@@ -14,6 +14,21 @@ With **Questie** enabled, the same strip also sends quest pickups, objective loc
 
 Screen frames and coordinates are not uploaded by this app. Map artwork is fetched from Wowhead's CDN. Equipment and bag item IDs are sent to Wowhead for optional icon/details lookup; character names, realms, synced item names, stack counts, attributes, and captured frames stay in browser memory. The addon does not automate gameplay or read process memory; the browser uses ordinary screen capture. This implementation is not a claim of Blizzard approval.
 
+## Screenshots
+
+Live captures from Drunks Azeroth UI 0.7.1.
+
+![Live Map and Character split view](docs/screenshots/07-Split-Map-and-Character.png)
+
+- [Live map and Questie markers](docs/screenshots/01-Map.png)
+- [Character, equipped gear, attributes, and 3D preview](docs/screenshots/02-Character.png)
+- [Separate bags and stack counts](docs/screenshots/03-Bags-Separate.png)
+- [Updates tab](docs/screenshots/04-Updates.png)
+- [Combined inventory view](docs/screenshots/05-Bags-Combined.png)
+- [Split view: Map and Bags](docs/screenshots/06-Split-Map-and-Bags.png)
+- [Split view: Map and Character](docs/screenshots/07-Split-Map-and-Character.png)
+- [Equipment item tooltip](docs/screenshots/08-Equipment-Tooltip.png)
+
 ## Install the addon
 
 From the project folder, inspect the planned installation:

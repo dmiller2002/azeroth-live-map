@@ -1,0 +1,27 @@
+DRUNKS AZEROTH UI — SCREENSHOTS
+
+Live companion captures from build 0.7.1, including the displayed character, equipment, and inventory.
+
+01-Map.png
+Live map and Questie markers
+
+02-Character.png
+Character, equipped gear, attributes, and 3D preview
+
+03-Bags-Separate.png
+Separate bags and stack counts
+
+04-Updates.png
+Updates tab
+
+05-Bags-Combined.png
+Combined inventory view
+
+06-Split-Map-and-Bags.png
+Split view: Map and Bags
+
+07-Split-Map-and-Character.png
+Split view: Map and Character
+
+08-Equipment-Tooltip.png
+Equipment item tooltip
