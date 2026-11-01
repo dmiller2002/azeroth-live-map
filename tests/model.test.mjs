@@ -30,7 +30,9 @@ test('local and hosted model routes allow only the fixed public model CDN',()=>{
 });
 test('hosted model requests never forward user credentials and enforce response bounds',async()=>{
   const original=globalThis.fetch;const requests=[];
+  const cacheDescriptor=Object.getOwnPropertyDescriptor(globalThis,'caches');
   try{
+    Object.defineProperty(globalThis,'caches',{configurable:true,get(){throw new Error('Hosted dispatch workers cannot access the default cache');}});
     globalThis.fetch=async(url,options)=>{requests.push({url,options});return new Response('model-data',{headers:{'Content-Type':'application/octet-stream'}});};
     const response=await worker.fetch(new Request('https://app.example/_model/m2/123.m2',{headers:{Cookie:'private-user-cookie',Authorization:'private-user-token',Origin:'https://unrelated.example'}}),{},{});
     assert.equal(response.status,200);assert.equal(await response.text(),'model-data');
@@ -41,5 +43,5 @@ test('hosted model requests never forward user credentials and enforce response 
     assert.equal((await worker.fetch(new Request('https://app.example/_model/m2/123.m2'),{},{})).status,502);
     assert.equal((await worker.fetch(new Request('https://app.example/_model/m2/123.m2',{method:'POST'}),{},{})).status,405);
     assert.equal((await worker.fetch(new Request('https://app.example/_model/m2/123.m2?host=evil'),{},{})).status,404);
-  }finally{globalThis.fetch=original;}
+  }finally{globalThis.fetch=original;if(cacheDescriptor)Object.defineProperty(globalThis,'caches',cacheDescriptor);else delete globalThis.caches;}
 });

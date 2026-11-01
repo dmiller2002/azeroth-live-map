@@ -14,9 +14,6 @@ export default {
     if(url.pathname.startsWith('/_model/')){
       const target=!url.search && modelAssetURL(url.pathname);
       if(!target)return new Response('Model asset not found',{status:404});
-      const cache=globalThis.caches?.default,key=new Request(url.origin+url.pathname);
-      const cached=cache && await cache.match(key);
-      if(cached)return head?new Response(null,{headers:cached.headers}):cached;
       try{
         // Fetch only the fixed public CDN. No user headers or cookies are sent.
         const upstream=await fetch(target,{redirect:'error',signal:AbortSignal.timeout(15000)});
@@ -25,7 +22,6 @@ export default {
         const body=await upstream.arrayBuffer();
         if(body.byteLength>MAX_ASSET_BYTES)return new Response('Model asset too large',{status:502});
         const response=new Response(body,{headers:{'Content-Type':url.pathname.endsWith('viewer.js')?'text/javascript; charset=utf-8':upstream.headers.get('Content-Type')||'application/octet-stream','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'}});
-        if(cache && ctx?.waitUntil)ctx.waitUntil(cache.put(key,response.clone()));
         return head?new Response(null,{headers:response.headers}):response;
       }catch{return new Response('Model asset unavailable',{status:502});}
     }
