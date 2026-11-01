@@ -11,20 +11,35 @@ const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial;
 const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw new Error(JSON.stringify(r.exceptionDetails));return r.result.value;};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const until=async(expression,label)=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await wait(100);}throw new Error(`Timed out: ${label}`);};
+const mapReady=async name=>until(`document.getElementById('map-title').textContent===${JSON.stringify(name)} && document.getElementById('map-message').hidden`,'artwork: '+name);
+const mouse=async(type,x,y,button='none',buttons=0)=>send('Input.dispatchMouseEvent',{type,x,y,button,buttons,clickCount:type==='mouseMoved'?0:1});
+const mapPixel=async(x,y)=>evaluate(`(async()=>{const {mapViewport}=await import('/navigation.js');const r=document.getElementById('map-stage').getBoundingClientRect();const v=mapViewport(r.width,r.height,1024,683,parseFloat(document.getElementById('zoom-label').textContent)/100);return {x:r.left+v.x+${x}/1024*v.w,y:r.top+v.y+${y}/683*v.h};})()`);
+const clickMap=async(x,y,button='left')=>{const p=await mapPixel(x,y);await mouse('mouseMoved',p.x,p.y);await mouse('mousePressed',p.x,p.y,button,button==='right'?2:1);await mouse('mouseReleased',p.x,p.y,button);};
 await send('Runtime.enable');await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride',{width:1440,height:960,deviceScaleFactor:1,mobile:false});
 await send('Page.addScriptToEvaluateOnNewDocument',{source:`
+localStorage.removeItem('azeroth-live-map.preferences.v1');
 window.__feed={valid:true,mapId:1944,x:.2345,y:.6789,facing:.6};
+window.__strip={x:123,y:82,cell:4.8};
+window.__quests={enabled:true,generation:1,status:1,count:3};
 navigator.mediaDevices.getDisplayMedia=async()=>{
- const {drawStrip,encodePacket}=await import('/protocol.js');
+ const {drawStrip,encodePacket,checksum}=await import('/protocol.js');
  const c=document.createElement('canvas');c.width=2048;c.height=1152;
- const ctx=c.getContext('2d');let seq=1;
- const paint=()=>{ctx.fillStyle='#394c40';ctx.fillRect(0,0,c.width,c.height);drawStrip(ctx,encodePacket({...window.__feed,sequence:seq++,clock:Math.floor(performance.now())}),123,82,4.8);};
- paint();window.__timer=setInterval(paint,100);window.__paint=paint;
+ const ctx=c.getContext('2d');let seq=1,aux=0;
+ const questPacket=()=>{
+   const q=window.__quests, part=aux++%4;
+   const kind=q.count===0||q.status!==1?0:part===0?0:part===1?1:2;
+   const index=kind===0?q.count:1;
+   const b=[167,2,kind,seq>>8,seq&255,window.__feed.mapId>>8,window.__feed.mapId&255,q.generation>>8,q.generation&255,index>>8,index&255];
+   let payload=kind===0?[q.status,0]:kind===1?[0,0,123,128,0,128,0,2,1,3,8]:[part===2?0:129,...Array.from(new TextEncoder().encode('Quête des loups')).slice(part===2?0:10,part===2?10:20)];
+   while(payload.length<11)payload.push(0); b.push(...payload);b.push(...checksum(b));return b;
+ };
+ const paint=()=>{seq++;ctx.fillStyle='#394c40';ctx.fillRect(0,0,c.width,c.height);const bytes=window.__quests.enabled&&seq%2===0?questPacket():encodePacket({...window.__feed,sequence:seq,clock:Math.floor(performance.now())});drawStrip(ctx,bytes,window.__strip.x,window.__strip.y,window.__strip.cell);};
+ paint();window.__timer=setInterval(paint,200);window.__paint=paint;
  window.__stream=c.captureStream(10);return window.__stream;
 };`});
 await send('Page.navigate',{url:'http://localhost:8765'});
-await until("document.querySelectorAll('#zone option').length === 65",'map catalog');
+await until("document.querySelectorAll('#zone option').length === 70",'map catalog');
 assert.equal(await evaluate("document.getElementById('status').textContent"),'Not connected');
 assert.equal(await evaluate("document.getElementById('coord-x').textContent"),'—');
 assert.equal(await evaluate("fetch('/AzerothLiveMap.zip').then(r=>r.status)"),200);
@@ -39,11 +54,78 @@ await until("document.getElementById('status').textContent==='Live position'",'s
 assert.equal(await evaluate("document.getElementById('coord-x').textContent"),'23.5');
 assert.equal(await evaluate("document.getElementById('coord-y').textContent"),'67.9');
 assert.equal(await evaluate("document.getElementById('map-title').textContent"),'Hellfire Peninsula');
+await until("document.getElementById('quest-list').textContent.includes('Quête des loups')",'Questie UTF-8 title through captured pixels');
+assert.ok(await evaluate("document.getElementById('quest-list').textContent.includes('3/8')"),'objective progress');
+assert.ok(await evaluate("document.getElementById('quest-status').textContent.includes('1/3')"),'partial sync is explicit');
+await evaluate("document.getElementById('quest-list').querySelector('button').click()");
+await wait(300);
+// Map artwork is cross-origin: verify the rendered pin's hit region and save
+// a full-browser screenshot without trying to read the tainted map canvas.
+await evaluate("(()=>{const s=document.getElementById('map-stage'),r=s.getBoundingClientRect();s.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+r.width/2,clientY:r.top+r.height/2}))})()");
+assert.equal(await evaluate("document.getElementById('quest-tooltip').hidden"),false,'rendered marker hit region');
+assert.ok(await evaluate("document.getElementById('quest-tooltip').textContent.includes('Quête des loups')"),'marker tooltip');
+const questScreenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile('artifacts/questie-live-synthetic.png',Buffer.from(questScreenshot.data,'base64'));
+// Real mouse events exercise contextmenu, pointer capture, and click-vs-drag
+// while the optical player feed is still actively updating in Hellfire.
+await mapReady('Hellfire Peninsula');
+await clickMap(500,350,'right');await mapReady('Outland');
+assert.equal(await evaluate("document.getElementById('follow').checked"),false,'manual browsing pauses follow');
+await wait(400);
+assert.equal(await evaluate("document.getElementById('map-title').textContent"),'Outland','incoming positions do not override browsing');
+await clickMap(570,357);await mapReady('Hellfire Peninsula');
+await clickMap(500,350,'right');await mapReady('Outland');
+await clickMap(500,350,'right');await mapReady('Worlds');
+assert.equal(await evaluate("document.getElementById('map-up').disabled"),true,'root has no parent');
+await clickMap(500,350,'right');await mapReady('Worlds');
+await clickMap(780,440);await mapReady('Azeroth');
+await clickMap(790,400);await mapReady('Eastern Kingdoms');
+await clickMap(30,400);await mapReady('Eastern Kingdoms');
+const hover=await mapPixel(455,520);await mouse('mouseMoved',hover.x,hover.y);
+assert.equal(await evaluate("document.getElementById('area-tooltip').hidden"),false);
+assert.ok(await evaluate("document.getElementById('area-tooltip').textContent.includes('Elwynn Forest')"),'hover identifies selected area');
+const navigationScreenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile('artifacts/map-navigation.png',Buffer.from(navigationScreenshot.data,'base64'));
+// A drag that starts over a zone pans without entering that zone.
+await mouse('mousePressed',hover.x,hover.y,'left',1);await mouse('mouseMoved',hover.x+60,hover.y+30,'left',1);await mouse('mouseReleased',hover.x+60,hover.y+30,'left');
+assert.equal(await evaluate("document.getElementById('map-title').textContent"),'Eastern Kingdoms');
+await evaluate("document.getElementById('fit').click();document.getElementById('zoom-in').click()");
+await clickMap(455,520);await mapReady('Elwynn Forest');
+await clickMap(1024*.16,683*.22);await mapReady('Stormwind City');
+assert.ok(await evaluate("document.getElementById('map-path').textContent.includes('Elwynn Forest')"),'city has its surrounding zone in the path');
+await evaluate("document.getElementById('map-up').click()");await mapReady('Elwynn Forest');
+await evaluate("document.getElementById('map-stage').focus()");
+await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Backspace',code:'Backspace',windowsVirtualKeyCode:8});
+await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Backspace',code:'Backspace',windowsVirtualKeyCode:8});
+await mapReady('Eastern Kingdoms');
+await evaluate("document.getElementById('map-path').querySelectorAll('button')[1].click()");await mapReady('Azeroth');
+await clickMap(230,400);await mapReady('Kalimdor');
+await clickMap(595,340);await mapReady('Durotar');
+assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).zone"),1411,'browsed map preference saved');
+assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).follow"),false);
+await evaluate("document.getElementById('follow').click()");await mapReady('Hellfire Peninsula');
+await until("document.getElementById('quest-list').children.length===1",'quest layer returns with player zone');
+await evaluate("document.getElementById('quests').click()");
+assert.equal(await evaluate("document.getElementById('quest-list').children.length"),0);
+await evaluate("document.getElementById('quests').click();window.__quests.generation=2;window.__quests.count=0");
+await until("document.getElementById('quest-status').textContent.includes('No Questie markers') && document.getElementById('quest-list').children.length===0",'removed quests clear on replacement snapshot');
+await evaluate("window.__quests.generation=3;window.__quests.status=0");
+await until("document.getElementById('quest-status').textContent.includes('not loaded')",'missing Questie status');
+await evaluate("window.__quests.generation=4;window.__quests.status=2");
+await until("document.getElementById('quest-status').textContent.includes('unsupported')",'incompatible Questie status');
+await evaluate("window.__quests.generation=5;window.__quests.status=1;window.__quests.count=3");
+await until("document.getElementById('quest-list').children.length===1",'Questie resumed');
+// A real /alm size 2 plus drag changes both the size and location of the
+// captured strip. Distinct coordinates prove we decoded the new region rather
+// than merely continuing to display the last packet from the old region.
+await evaluate("window.__strip={x:1948,y:1136,cell:2};window.__feed.x=.421;window.__feed.y=.753");
+await until("document.getElementById('status').textContent==='Live position' && document.getElementById('coord-x').textContent==='42.1' && document.getElementById('coord-y').textContent==='75.3'",'tiny strip reacquired at bottom-right edge');
+await evaluate("window.__strip={x:0,y:0,cell:2};window.__feed.x=.615;window.__feed.y=.287");
+await until("document.getElementById('status').textContent==='Live position' && document.getElementById('coord-x').textContent==='61.5' && document.getElementById('coord-y').textContent==='28.7'",'tiny strip reacquired after dragging to top-left edge');
 await evaluate("document.getElementById('zoom-in').click()");
 await until("document.getElementById('zoom-label').textContent==='125%'",'zoom');
 await evaluate("clearInterval(window.__timer)");
 await until("document.getElementById('status').textContent==='Signal paused'",'freeze detection');
-await evaluate("window.__feed.valid=false;window.__timer=setInterval(window.__paint,100)");
+assert.equal(await evaluate("document.getElementById('quest-list').children.length"),0,'stale capture hides quests');
+await evaluate("window.__feed.valid=false;window.__timer=setInterval(window.__paint,200)");
 await until("document.getElementById('status').textContent==='Position unavailable'",'unavailable coordinates');
 assert.equal(await evaluate("document.getElementById('coord-x').textContent"),'—');
 await evaluate("window.__feed.valid=true;window.__feed.mapId=9999");
@@ -51,10 +133,11 @@ await until("document.getElementById('map-message').textContent.includes('not av
 await evaluate("document.getElementById('connect').click();clearInterval(window.__timer)");
 await until("document.getElementById('status').textContent==='Not connected'",'disconnect');
 assert.equal(await evaluate("window.__stream.getTracks().every(t=>t.readyState==='ended')"),true);
+assert.equal(await evaluate("document.getElementById('quest-list').children.length"),0,'disconnect clears quests');
 await evaluate("navigator.mediaDevices.getDisplayMedia=async()=>{throw new DOMException('denied','NotAllowedError')};document.getElementById('connect').click()");
 await until("document.getElementById('status').textContent==='Sharing not started'",'permission denied');
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false});
 await wait(300);assert.ok(await evaluate('document.documentElement.scrollWidth<=390'),'no mobile horizontal overflow');
 assert.deepEqual(errors,[],'no browser runtime exceptions');
-console.log('Browser QA passed: catalog, ZIP, setup, demo, synthetic video capture at fractional scale, live coordinates, zone switching, zoom, frozen feed, unavailable coordinates, unsupported map, disconnect, capture denial, responsive layout.');
+console.log('Browser QA passed: right-click parent navigation, left-click world/continent/zone/city selection, ocean clicks, hover regions, drag-vs-click, zoomed hit testing, breadcrumbs, keyboard/up button, saved browsing, follow pause/resume during live capture; Questie optical packets, UTF-8 names, objective progress, painted markers, layer toggle, partial sync, removed quests, missing/incompatible Questie, stale/disconnected cleanup; catalog, ZIP, setup, demo, fractional-scale capture, tiny strip relocation, coordinates, zones, zoom, frozen feed, unavailable coordinates, unsupported map, capture denial, responsive layout.');
 socket.close();

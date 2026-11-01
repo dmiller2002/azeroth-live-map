@@ -14,7 +14,7 @@
 <body>
 <div class="app">
   <aside id="controls-panel">
-    <a class="brand" href="./" aria-label="Azeroth Live Map home"><img src="icon.svg" alt="" width="40" height="40"><span>AZEROTH<small>LIVE ATLAS</small></span></a>
+    <a class="brand" href="./" aria-label="Azeroth Live Map home"><img src="icon.svg" alt="" width="40" height="40"><span>AZEROTH<small>LIVE ATLAS</small><small class="developer-credit">Developed by Drunk</small></span></a>
     <div class="edition"><span></span> ANNIVERSARY EDITION</div>
     <section class="connection" aria-labelledby="connection-heading">
       <div class="eyebrow" id="connection-heading">YOUR CONNECTION</div>
@@ -33,6 +33,13 @@
       <label><span>Follow my zone</span><input type="checkbox" id="follow" checked></label>
       <label><span>Show recent trail</span><input type="checkbox" id="trail" checked></label>
       <label><span>Coordinate grid</span><input type="checkbox" id="grid"></label>
+      <label><span>Questie markers</span><input type="checkbox" id="quests" checked></label>
+    </section>
+    <section class="quest-panel" aria-label="Questie quests">
+      <div class="eyebrow">QUESTIE · CURRENT ZONE</div>
+      <p id="quest-status" role="status">Connect WoW to receive Questie markers.</p>
+      <div class="quest-legend"><span>! Pickup</span><span>◆ Objective</span><span>? Turn-in</span></div>
+      <div id="quest-list" class="quest-list"></div>
     </section>
     <button id="setup" class="setup-button"><span aria-hidden="true">ⓘ</span> Setup & addon download <span aria-hidden="true">→</span></button>
     <div class="sidebar-bottom"><button id="demo" class="text-button">Explore a simulated journey</button><p>Position is processed on this device.<br>Your screen is never uploaded by this app.</p></div>
@@ -47,15 +54,22 @@
     </div>
     <header>
       <div><div class="eyebrow" id="map-type">EASTERN KINGDOMS · ZONE MAP</div><h1 id="map-title">Elwynn Forest</h1></div>
-      <div class="header-actions"><label class="sr-only" for="zone">Browse a zone</label><select id="zone" aria-label="Browse a zone"></select><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></div>
+      <div class="header-actions"><label class="sr-only" for="zone">Browse a map</label><select id="zone" aria-label="Browse a map"></select><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></div>
     </header>
     <div id="quick-connection" class="quick-connection" hidden>
       <span class="quick-signal"><span id="quick-status-dot" class="dot"></span><span id="quick-status">Not connected</span></span>
       <span id="quick-coordinates">X — · Y —</span>
       <button id="quick-connect">Connect WoW ↗</button>
     </div>
-    <div id="map-stage" tabindex="0" role="region" aria-label="Map. Drag to pan. Use plus and minus buttons to zoom.">
-      <canvas id="map" aria-label="Zone map and player position"></canvas>
+    <div class="map-navigation">
+      <button id="map-up" aria-label="Go up one map level" title="Go up one map level (right-click or Backspace)">↑ Up</button>
+      <nav id="map-path" aria-label="Map hierarchy"></nav>
+      <span id="navigation-hint">Left-click an area · Right-click to go up</span>
+    </div>
+    <div id="map-stage" tabindex="0" role="region" aria-label="Map. Left-click an area to open it. Right-click or Backspace to go up one map level. Drag to pan. Use plus and minus buttons to zoom.">
+      <canvas id="map" aria-label="World map and player position"></canvas>
+      <div id="quest-tooltip" class="quest-tooltip" role="tooltip" hidden></div>
+      <div id="area-tooltip" class="quest-tooltip" role="tooltip" hidden></div>
       <div class="map-top"><span class="map-badge" id="mode-badge">BROWSING · NO LIVE POSITION</span><span class="north" title="North">N<span>↑</span></span></div>
       <div id="map-message" class="map-message" role="status" hidden></div>
       <div class="map-bottom"><span id="map-hint">Connect WoW to see your character here</span><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit" aria-label="Fit map" title="Fit map">⌖</button></div></div>
@@ -68,11 +82,11 @@
   <div class="eyebrow">ONE-TIME SETUP</div><h2>Your world. A second screen.</h2>
   <ol class="steps">
     <li><strong>Install the companion addon</strong><p>Extract <b>AzerothLiveMap</b> into your Anniversary <code>Interface/AddOns</code> folder. Restart WoW and enable it in the AddOns list.</p><a class="download" href="AzerothLiveMap.zip" download>↓ Download addon (.zip)</a></li>
-    <li><strong>Keep the position strip visible</strong><p>A small black-and-white strip appears in WoW’s top-left corner. Use <code>/alm show</code> if it is hidden. You can close the in-game map.</p></li>
+    <li><strong>Place your position strip</strong><p>Use <code>/alm size 2</code> for a tiny 100 × 16 strip. Type <code>/alm unlock</code>, drag its handle, then <code>/alm lock</code>. Its position is saved. Keep it visible; the in-game map can stay closed.</p></li>
     <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Move this app to your other monitor. A new session needs a fresh sharing choice.</p></li>
   </ol>
-  <div class="note">Use a desktop browser with screen sharing, such as Chromium on Linux. If detection fails, try <code>/alm size 8</code> or select the strip manually. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
-  <p class="small-print">Built for Anniversary 2.5.6. Outdoor zones and cities are the initial target; position may be unavailable in instances. Questie overlays are not included. Live-client verification is still required.</p>
+  <div class="note">If the tiny strip is hard to read, try <code>/alm size 3</code> or <code>/alm size 4</code>. Use <code>/alm show</code> if hidden or <code>/alm reset</code> to return it to the top-left. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
+  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside the updated companion addon to receive quest pickups, objectives, and turn-in locations for your current zone. Markers and quest titles sync progressively through the same strip. A full snapshot and subsequent quest changes can take several minutes in busy zones. Up to 96 nearby marker samples are shared; Questie’s map filters apply. Live-client verification is still required.</p>
 </dialog>
 <dialog id="app-dialog">
   <button class="dialog-close" id="close-app-dialog" aria-label="Close app instructions">×</button>

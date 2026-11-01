@@ -1,8 +1,10 @@
 ## Interface: 20506, 11509
 ## Title: Azeroth Live Map
-## Notes: Displays a small position strip for your browser map. /alm for help.
+## Notes: Displays a small, movable position strip for your companion map. /alm for help.
 ## Author: Dylan
-## Version: 0.1.0
+## Version: 0.3.0
+## OptionalDeps: Questie
 ## SavedVariables: AzerothLiveMapDB
 Protocol.lua
+Questie.lua
 Main.lua

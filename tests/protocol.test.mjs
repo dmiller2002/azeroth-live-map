@@ -4,7 +4,137 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   HEADER, COLS, ROWS, encodePacket, decodeBytes, decodeAt, findStrip, Freshness,
+  checksum,
 } from '../dist/protocol.js';
+import {QuestFeed} from '../dist/quests.js';
+
+const QUESTIE_MOCK = `
+local ns = {}
+assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
+assert(loadfile('addon/AzerothLiveMap/Questie.lua'))('AzerothLiveMap',ns)
+local qm = {questIdFrames={}}
+QuestieLoader={ImportModule=function(_,name) assert(name=='QuestieMap'); return qm end}
+local function add(id, typ, x, y, extra)
+  local name='QuestPin'..tostring(id)..'_'..tostring(x)..'_'..typ..'_'..tostring(extra and extra.miniMapIcon)
+  local f={data={Type=typ, QuestData={name='|cffffffffQuête des loups|r'}, ObjectiveIndex=2,
+    ObjectiveData=typ=='monster' and {Collected=3, Needed=8} or nil},
+    x=x,y=y,UiMapID=1429,miniMapIcon=false,ShouldBeHidden=function() return false end}
+  for k,v in pairs(extra or {}) do f[k]=v end
+  _G[name]=f; qm.questIdFrames[id]=qm.questIdFrames[id] or {}; qm.questIdFrames[id][name]=name
+  return f
+end
+local function emit(seq,mapID,now)
+  print(table.concat(ns.QuestiePacket(mapID or 1429,.4,.6,seq,now or seq*.4),','))
+end
+`;
+const readPackets = output => output.split('\n').map(row => {
+  const bytes = row.split(',').map(Number), packet = decodeBytes(bytes);
+  assert.ok(packet, `valid Lua auxiliary packet: ${row}`); return packet;
+});
+
+test('actual Questie bridge exports filtered world pins, progress, UTF-8 titles, and map coordinates', () => {
+  const packets = readPackets(runLua(`${QUESTIE_MOCK}
+    add(123,'monster',40,60)
+    add(123,'monster',40,60,{miniMapIcon=true})
+    add(124,'available',25,35)
+    add(125,'complete',45,65)
+    add(126,'monster',12,14,{ShouldBeHidden=function() return true end})
+    add(127,'monster',12,15,{UiMapID=1944})
+    add(128,'monster',12,16,{data={Type='monster',ObjectiveData={Completed=true}}})
+    add(129,'manual',12,17)
+    add(130,'monster',0/0,18)
+    for i=1,120 do emit(i) end
+    assert(qm.questIdFrames[126] and _G.QuestPin123_40_monster_nil.x==40,'Questie data is never modified')
+  `, 'luajit'));
+  const feed = new QuestFeed(); packets.forEach((p,i) => feed.accept(p,i*400));
+  assert.equal(feed.count,3); assert.equal(feed.markers.size,3);
+  const markers = feed.visible(1429,48000);
+  assert.deepEqual(markers.map(m => m.questId),[123,124,125]);
+  assert.deepEqual(markers.map(m => m.markerKind),[2,1,3]);
+  close(markers[0].x,.4); close(markers[0].y,.6);
+  assert.equal(markers[0].collected,3); assert.equal(markers[0].needed,8);
+  assert.equal(markers[0].title,'Quête des loups');
+  assert.deepEqual(feed.visible(1944,48000),[]);
+});
+
+test('Questie snapshot replacement clears completed/removed quests and interrupts on zone changes', () => {
+  const packets = readPackets(runLua(`${QUESTIE_MOCK}
+    add(123,'monster',40,60)
+    for i=1,40 do emit(i) end
+    qm.questIdFrames={}
+    for i=41,80 do emit(i) end
+    emit(81,1944)
+  `, 'luajit'));
+  const feed = new QuestFeed();
+  for (const packet of packets.slice(0,40)) feed.accept(packet,1);
+  assert.equal(feed.markers.size,1); const generation = feed.generation;
+  for (const packet of packets.slice(40,80)) feed.accept(packet,2);
+  assert.notEqual(feed.generation,generation); assert.equal(feed.count,0); assert.equal(feed.markers.size,0);
+  feed.accept(packets[80],3); assert.equal(feed.mapId,1944); assert.equal(feed.count,0);
+});
+
+test('Questie absence and incompatible internals send explicit status without breaking the stream', () => {
+  for (const [setup,status] of [[`QuestieLoader=nil`,0],[`QuestieLoader.ImportModule=function() error('changed API') end`,2]]) {
+    const packet = readPackets(runLua(`${QUESTIE_MOCK}${setup}; emit(1)`, 'luajit'))[0];
+    assert.equal(packet.kind,0); assert.equal(packet.count,0); assert.equal(packet.status,status);
+  }
+});
+
+test('Questie exports bounded nearby samples while retaining a stable order', () => {
+  const packets = readPackets(runLua(`${QUESTIE_MOCK}
+    for i=1,20 do add(123,'monster',i,60) end
+    for i=1,120 do add(1000+i,'available',i%100,35) end
+    for i=1,1200 do emit(i) end
+  `, 'luajit'));
+  const feed = new QuestFeed(); packets.forEach(p => feed.accept(p,1));
+  assert.equal(feed.count,96); assert.equal(feed.markers.size,96); assert.equal(feed.limited,true);
+  assert.equal([...feed.markers.values()].filter(p=>p.questId===123).length,4);
+});
+
+test('v2 auxiliary packets survive optical detection and reject corruption and invalid bounds', () => {
+  const bytes = runLua(`${QUESTIE_MOCK}add(123,'monster',40,60); emit(1)`, 'luajit').split(',').map(Number);
+  const {image,rect} = fixture(bytes,{cell:2.4,antialias:true});
+  assert.equal(decodeAt(image,rect).type,'quest'); assert.equal(findStrip(image).packet.count,1);
+  for (let i=0;i<24;i++) { const bad=[...bytes]; bad[i]^=1; assert.equal(decodeBytes(bad),null); }
+  for (const change of [b=>b[2]=9,b=>b[11]=3,b=>b[10]=97,b=>b[12]=2]) {
+    const bad=[...bytes]; change(bad); bad.splice(22,2,...checksum(bad.slice(0,22))); assert.equal(decodeBytes(bad),null);
+  }
+});
+
+test('Questie feed tolerates dropped metadata, reordered label fragments, duplicate frames, and reconnect', () => {
+  const packets = readPackets(runLua(`${QUESTIE_MOCK}add(123,'monster',40,60); for i=1,20 do emit(i) end`, 'luajit'));
+  const feed = new QuestFeed(), meta=packets.find(p=>p.kind===0), marker=packets.find(p=>p.kind===1), labels=packets.filter(p=>p.kind===2).slice(0,2);
+  assert.equal(feed.accept(marker,0),false,'must wait for snapshot metadata');
+  feed.accept(meta,1);
+  labels.reverse().forEach((p,i)=>feed.accept(p,10+i));
+  feed.accept(marker,20);
+  assert.equal(feed.visible(1429,21)[0].title,'Quête des loups');
+  assert.equal(feed.accept(marker,5000),false,'frozen frame cannot refresh the feed');
+  assert.equal(feed.isFresh(6020),false); assert.deepEqual(feed.visible(1429,6020),[]);
+  feed.accept({...meta,sequence:300,generation:2,count:0,index:0},7000);
+  assert.equal(feed.markers.size,0); assert.equal(feed.titles.size,0);
+  assert.equal(feed.accept({...marker,sequence:301},7001),false,'old generation is ignored');
+  feed.reset(); assert.equal(feed.status,null); assert.equal(feed.isFresh(7002),false);
+});
+
+test('real addon renderer multiplexes Questie packets with fresh v1 player positions in the same tiny strip', () => {
+  const output = runLua(`${ADDON_MOCK}
+    boot(nil,true)
+    for i=1,8 do
+      now=10+i*.2; strip.scripts.OnUpdate(strip,.2)
+      local bits={}
+      for j=98,#strip.textures do bits[#bits+1]=strip.textures[j].value end
+      originalPrint(table.concat(bits,''))
+    end
+    assert(strip.width==100 and strip.height==16)
+  `,'luajit');
+  const packets = output.split('\n').map(row=>decodeBytes(row.match(/.{8}/g).map(bits=>parseInt(bits,2))));
+  assert.ok(packets.every(Boolean));
+  assert.equal(packets.filter(p=>p.type==='quest').length,4);
+  const positions=packets.filter(p=>p.type!=='quest'); assert.equal(positions.length,4);
+  positions.forEach(p=>{assert.equal(p.valid,true);close(p.x,.2345);});
+  assert.ok(positions[3].clock>positions[0].clock);
+});
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 function runLua(program, runtime = 'lua') {
@@ -24,9 +154,9 @@ function close(actual, expected, tolerance = 1 / 65535) {
 
 // Independently rasterize the wire format, including antialiasing at cell edges.
 // This intentionally does not use production drawStrip or its bit helper.
-function fixture(bytes, {cell = 6, x = 31, y = 29, width = 440, height = 160, white = 255, black = 0, antialias = false} = {}) {
-  width = Math.max(width, Math.ceil(x + COLS * cell + 20));
-  height = Math.max(height, Math.ceil(y + ROWS * cell + 20));
+function fixture(bytes, {cell = 6, x = 31, y = 29, width = 440, height = 160, white = 255, black = 0, antialias = false, margin = 20} = {}) {
+  width = Math.max(width, Math.ceil(x + COLS * cell + margin));
+  height = Math.max(height, Math.ceil(y + ROWS * cell + margin));
   const data = new Uint8ClampedArray(width * height * 4);
   for (let i = 0; i < data.length; i += 4) {
     data[i] = 37; data[i + 1] = 48; data[i + 2] = 58; data[i + 3] = 255;
@@ -130,6 +260,25 @@ for (const cell of [2.4, 3.6, 4.8]) {
   });
 }
 
+test('the tiny 100×16 strip is detected at screen edges and deterministic arbitrary positions', () => {
+  const bytes = luaPacket({mapId: 1429, x: .4152, y: .7631, sequence: 456});
+  const positions = [[0,0], [540,0], [0,344], [540,344], [1,1], [539,343]];
+  let seed = 1701;
+  for (let i = 0; i < 12; i++) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const x = seed % 541;
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    positions.push([x, seed % 345]);
+  }
+  for (const [x, y] of positions) {
+    const {image, rect} = fixture(bytes, {cell: 2, x, y, width: 640, height: 360, margin: 0});
+    assert.equal(decodeAt(image, rect)?.sequence, 456, `manual decode at (${x},${y})`);
+    assert.equal(findStrip(image)?.packet.sequence, 456, `auto-detection at (${x},${y})`);
+  }
+  const {image} = fixture(bytes, {cell:2, x:0, y:0, width:100, height:16, margin:0});
+  assert.equal(findStrip(image)?.packet.sequence, 456, 'tight capture of the entire strip');
+});
+
 test('monochrome encoding survives moderate black/white level changes', () => {
   const {image, rect} = fixture(luaPacket(), {black: 35, white: 220});
   assert.equal(decodeAt(image, rect)?.mapId, 1429);
@@ -195,54 +344,152 @@ test('heartbeat updates while stationary, survives sequence rollover, and reset 
   assert.equal(freshness.packet, null); assert.equal(freshness.isFresh(201), false);
 });
 
-test('actual addon login and timer render a readable position; unavailable (0,0) clears validity', () => {
-  const output = runLua(`
-    local ns, frame = {}, nil
-    local now, px, py = 10, .2345, .6789
-    UIParent = {GetEffectiveScale = function() return .8 end}
-    SlashCmdList = {}
-    function GetTime() return now end
-    function GetPlayerFacing() return math.pi end
-    C_Map = {
-      GetBestMapForUnit = function() return 1944 end,
-      GetPlayerMapPosition = function() return {GetXY = function() return px, py end} end,
-    }
-    local dummy = function() end
-    function CreateFrame()
-      frame = {textures = {}, scripts = {}}
-      function frame:CreateTexture()
-        local t = {SetAllPoints = dummy, ClearAllPoints = dummy}
-        function t:SetColorTexture(r, g, b, a) self.value = r end
-        function t:SetSize(w, h) self.width, self.height = w, h end
-        function t:SetPoint(_, _, _, x, y) self.x, self.y = x, y end
-        table.insert(self.textures, t); return t
-      end
-      function frame:SetScript(kind, fn) self.scripts[kind] = fn end
-      function frame:SetShown(value) self.visible = value end
-      function frame:SetSize(w, h) self.width, self.height = w, h end
-      function frame:SetScale(value) self.scale = value end
-      frame.SetFrameStrata, frame.EnableMouse = dummy, dummy
-      frame.ClearAllPoints, frame.SetPoint, frame.RegisterEvent = dummy, dummy, dummy
-      return frame
-    end
-    local originalPrint = print; print = function() end
-    assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap', ns)
-    assert(loadfile('addon/AzerothLiveMap/Main.lua'))('AzerothLiveMap', ns)
-    frame.scripts.OnEvent(frame, 'PLAYER_LOGIN')
+const ADDON_MOCK = `
+  local now, px, py = 10, .2345, .6789
+  local screenWidth, screenHeight, uiScale = 1920, 1080, .8
+  local frames, strip, handle = {}, nil, nil
+  local originalPrint = print; print = function() end
+  local function near(actual, expected, label)
+    assert(type(actual) == 'number' and math.abs(actual - expected) < .001,
+      (label or 'number') .. ': got ' .. tostring(actual) .. ', expected ' .. tostring(expected))
+  end
+  local Object = {}; Object.__index = Object
+  local function object(parent, name, kind)
+    local o = setmetatable({parent=parent, name=name, kind=kind, scripts={}, textures={}, children={}, strings={}, visible=true, width=0, height=0, scale=1}, Object)
+    if parent and parent.children then table.insert(parent.children, o) end
+    if name then frames[name] = o end
+    return o
+  end
+  UIParent = object(nil, 'UIParent', 'root')
+  function UIParent:GetEffectiveScale() return uiScale end
+  function UIParent:GetWidth() return screenWidth / uiScale end
+  function UIParent:GetHeight() return screenHeight / uiScale end
+  function UIParent:GetPhysicalRect() return 0, 0, screenWidth, screenHeight end
+  function GetPhysicalScreenSize() return screenWidth, screenHeight end
+  function GetScreenWidth() return screenWidth / uiScale end
+  function GetScreenHeight() return screenHeight / uiScale end
+  function GetTime() return now end
+  function GetPlayerFacing() return math.pi end
+  C_Map = {
+    GetBestMapForUnit=function() return 1944 end,
+    GetPlayerMapPosition=function() return {GetXY=function() return px, py end} end,
+  }
+  function Object:GetEffectiveScale() return self.scale * (self.parent and self.parent:GetEffectiveScale() or 1) end
+  function Object:SetScale(value) self.scale=value end
+  function Object:GetScale() return self.scale end
+  function Object:SetSize(w,h) self.width,self.height=w,h end
+  function Object:SetWidth(w) self.width=w end
+  function Object:SetHeight(h) self.height=h end
+  function Object:GetWidth() return self.width end
+  function Object:GetHeight() return self.height end
+  function Object:GetName() return self.name end
+  function Object:GetParent() return self.parent end
+  function Object:SetFrameStrata(value) self.strata=value end
+  function Object:SetFrameLevel(value) self.level=value end
+  function Object:GetFrameLevel() return self.level or 1 end
+  function Object:EnableMouse(value) self.mouse=value end
+  function Object:IsMouseEnabled() return self.mouse == true end
+  function Object:SetMovable(value) self.movable=value end
+  function Object:SetDontSavePosition(value) self.dontSavePosition=value end
+  function Object:SetClampedToScreen(value) self.clamped=value end
+  function Object:SetClampRectInsets(...) self.insets={...} end
+  function Object:RegisterForDrag(...) self.dragButtons={...} end
+  function Object:SetScript(kind,fn) self.scripts[kind]=fn end
+  function Object:HookScript(kind,fn)
+    local old=self.scripts[kind]
+    self.scripts[kind]=function(...) if old then old(...) end; fn(...) end
+  end
+  function Object:RegisterEvent(event) self.events=self.events or {}; self.events[event]=true end
+  function Object:SetShown(value) self.visible=value == true end
+  function Object:Show() self:SetShown(true) end
+  function Object:Hide() self:SetShown(false) end
+  function Object:IsShown() return self.visible end
+  function Object:IsVisible() return self.visible and (not self.parent or self.parent:IsVisible()) end
+  function Object:SetAlpha(value) self.alpha=value end
+  function Object:SetText(value) self.text=value end
+  function Object:SetTextColor(...) self.textColor={...} end
+  function Object:SetJustifyH(value) self.justify=value end
+  function Object:SetAllPoints(relative) self.allPoints=relative or self.parent end
+  function Object:ClearAllPoints() self.point=nil; self.allPoints=nil; self.dragLeft=nil; self.dragTop=nil end
+  function Object:SetPoint(point, relative, relativePoint, x, y)
+    if type(relative)=='number' then x,y=relative,relativePoint; relative,relativePoint=self.parent,point end
+    self.point={point,relative or self.parent,relativePoint or point,x or 0,y or 0}
+  end
+  function Object:GetPoint() return unpack(self.point or {}) end
+  local anchors={TOPLEFT={0,1},TOP={.5,1},TOPRIGHT={1,1},LEFT={0,.5},CENTER={.5,.5},RIGHT={1,.5},BOTTOMLEFT={0,0},BOTTOM={.5,0},BOTTOMRIGHT={1,0}}
+  function Object:GetPhysicalRect()
+    if self.allPoints then return self.allPoints:GetPhysicalRect() end
+    local scale=self:GetEffectiveScale()
+    if self.dragLeft then return self.dragLeft*scale,self.dragTop*scale-self.height*scale,self.width*scale,self.height*scale end
+    local p=self.point or {'BOTTOMLEFT',self.parent or UIParent,'BOTTOMLEFT',0,0}
+    local rx,ry,rw,rh=p[2]:GetPhysicalRect()
+    local a,b=anchors[p[1]],anchors[p[3]]
+    return rx+rw*b[1]+p[4]*scale-self.width*scale*a[1],ry+rh*b[2]+p[5]*scale-self.height*scale*a[2],self.width*scale,self.height*scale
+  end
+  function Object:GetLeft() local x=self:GetPhysicalRect(); return x/self:GetEffectiveScale() end
+  function Object:GetTop() local _,y,_,h=self:GetPhysicalRect(); return (y+h)/self:GetEffectiveScale() end
+  function Object:GetRight() local x,_,w=self:GetPhysicalRect(); return (x+w)/self:GetEffectiveScale() end
+  function Object:GetBottom() local _,y=self:GetPhysicalRect(); return y/self:GetEffectiveScale() end
+  function Object:StartMoving() assert(self.movable, 'dragged frame must be movable'); self.moving=true; self.moveCount=(self.moveCount or 0)+1 end
+  function Object:StopMovingOrSizing() self.moving=false end
+  function Object:SetUserPlaced(value) self.userPlaced=value end
+  function Object:SetColorTexture(r,g,b,a) self.value=r; self.color={r,g,b,a} end
+  function Object:CreateTexture(_,layer)
+    local texture=object(self,nil,'texture'); texture.layer=layer; table.insert(self.textures,texture); return texture
+  end
+  function Object:CreateFontString(name,layer,template)
+    local text=object(self,name,'font'); text.layer,text.template=layer,template; table.insert(self.strings,text); return text
+  end
+  function CreateFrame(kind,name,parent) return object(parent or UIParent,name,kind) end
+  SlashCmdList={}
+  local function boot(saved, withQuestie)
+    AzerothLiveMapDB=saved; frames={}
+    local ns={}
+    assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
+    if withQuestie then assert(loadfile('addon/AzerothLiveMap/Questie.lua'))('AzerothLiveMap',ns) end
+    assert(loadfile('addon/AzerothLiveMap/Main.lua'))('AzerothLiveMap',ns)
+    strip=assert(frames.AzerothLiveMapStrip,'named strip frame missing')
+    strip.scripts.OnEvent(strip,'PLAYER_LOGIN')
+    handle=nil
+    for _,candidate in pairs(frames) do if candidate~=strip and candidate.scripts.OnDragStart then handle=candidate end end
+    if not handle then for _,candidate in ipairs(strip.children) do if candidate.scripts.OnDragStart then handle=candidate end end end
+  end
+  local function command(text) SlashCmdList.AZEROTHLIVEMAP(text) end
+  local function event(name) strip.scripts.OnEvent(strip,name) end
+  local function physicalPosition()
+    return strip:GetLeft()*strip:GetEffectiveScale(),screenHeight-strip:GetTop()*strip:GetEffectiveScale()
+  end
+  local function assertPosition(x,y)
+    local actualX,actualY=physicalPosition(); near(actualX,x,'physical x'); near(actualY,y,'physical y')
+  end
+  local function dragTo(x,y)
+    assert(handle,'drag handle missing')
+    handle.scripts.OnDragStart(handle)
+    assert(strip.moving,'unlocked handle should move the strip')
+    strip.dragLeft=x/strip:GetEffectiveScale(); strip.dragTop=(screenHeight-y)/strip:GetEffectiveScale()
+    handle.scripts.OnDragStop(handle)
+    assert(not strip.moving,'drag stop should stop movement')
+  end
+`;
+
+test('actual tiny addon login and timer render a readable position; unavailable (0,0) clears validity', () => {
+  const output = runLua(`${ADDON_MOCK}
+    boot(nil)
     local function snapshot()
       local bits = {}
-      for i = 2, #frame.textures do bits[#bits + 1] = frame.textures[i].value end
+      for i = 2, #strip.textures do bits[#bits + 1] = strip.textures[i].value end
       originalPrint(table.concat(bits, ''))
     end
-    assert(frame.width == 300 and frame.height == 48 and frame.visible)
-    assert(math.abs(frame.scale * UIParent:GetEffectiveScale() - 1) < .00001)
+    assert(strip.width == 100 and strip.height == 16 and strip.visible)
+    near(strip:GetEffectiveScale(),1,'physical scale')
+    assertPosition(12,12)
     snapshot()
     now = 10.2; px, py = 0, 0
-    frame.scripts.OnUpdate(frame, .2); snapshot()
-    SlashCmdList.AZEROTHLIVEMAP('hide'); assert(not frame.visible)
-    SlashCmdList.AZEROTHLIVEMAP('size 10'); assert(frame.width == 500)
-    SlashCmdList.AZEROTHLIVEMAP('show'); assert(frame.visible)
-  `);
+    strip.scripts.OnUpdate(strip, .2); snapshot()
+    command('hide'); assert(not strip.visible)
+    command('size 10'); assert(strip.width == 500)
+    command('show'); assert(strip.visible)
+  `, 'luajit');
   const rows = output.split('\n');
   assert.equal(rows.length, 2);
   const extract = row => {
@@ -260,4 +507,118 @@ test('actual addon login and timer render a readable position; unavailable (0,0)
   assert.equal(missing.valid, false);
   assert.equal(missing.sequence, live.sequence + 1);
   assert.ok(missing.clock > live.clock);
+});
+
+test('a saved custom size and physical position survive login and UI scale changes', () => {
+  runLua(`${ADDON_MOCK}
+    boot({size=8,x=327,y=219,enabled=true,locked=false})
+    assert(strip.dontSavePosition==true,'WoW layout cache must not compete with saved physical offsets')
+    near(strip.width*strip:GetEffectiveScale(),400,'saved width')
+    near(strip.height*strip:GetEffectiveScale(),64,'saved height')
+    assertPosition(327,219)
+    assert(not strip:IsMouseEnabled(),'strip must be click-through at login')
+    assert(handle and not handle:IsShown(),'login must lock a previously unlocked handle')
+    uiScale=.55; event('UI_SCALE_CHANGED')
+    near(strip:GetEffectiveScale(),1,'scale-independent pixels')
+    near(strip.width*strip:GetEffectiveScale(),400,'same physical width')
+    assertPosition(327,219)
+    uiScale=1.25; event('UI_SCALE_CHANGED')
+    assertPosition(327,219)
+    command('unlock'); handle.scripts.OnDragStart(handle)
+    strip.dragLeft=900; strip.dragTop=500
+    uiScale=.7; event('UI_SCALE_CHANGED')
+    assert(not strip.moving,'a scale change must cancel an active drag')
+    assertPosition(327,219)
+  `, 'luajit');
+});
+
+test('unlock exposes a separate handle; dragging persists and locking restores click-through', () => {
+  runLua(`${ADDON_MOCK}
+    boot(nil)
+    assert(handle,'movable addon needs a drag handle')
+    assert(not handle:IsShown(),'handle hidden while locked')
+    handle.scripts.OnDragStart(handle)
+    assert(not strip.moving,'a locked strip cannot start dragging')
+    command('unlock')
+    assert(handle:IsShown() and handle:IsMouseEnabled(),'unlock must expose a usable handle')
+    local x,y,w,h=strip:GetPhysicalRect()
+    local hx,hy,hw,hh=handle:GetPhysicalRect()
+    assert(hw>=100 and hh>=16,'handle must provide a practical drag target')
+    assert(hx+hw<=x or hx>=x+w or hy+hh<=y or hy>=y+h,'handle must not cover encoded cells')
+    assert(#strip.strings==0,'label must not be drawn over the encoded strip')
+    dragTo(701,333)
+    assertPosition(701,333)
+    near(AzerothLiveMapDB.x,701,'saved x'); near(AzerothLiveMapDB.y,333,'saved y')
+    command('lock')
+    assert(not handle:IsShown() and not strip:IsMouseEnabled(),'locked addon must be unobtrusive and click-through')
+    handle.scripts.OnDragStart(handle)
+    assert(not strip.moving,'locking must disable subsequent drags')
+    local saved=AzerothLiveMapDB
+    boot(saved)
+    assertPosition(701,333)
+    assert(not handle:IsShown(),'reload must never restore an unlocked handle')
+  `, 'luajit');
+});
+
+test('dragged and saved positions clamp to the current physical screen after resizing', () => {
+  runLua(`${ADDON_MOCK}
+    boot({size=2,x=99999,y=-500,enabled=true})
+    assertPosition(1820,0)
+    command('unlock'); dragTo(-100,99999)
+    assertPosition(0,1064)
+    local hx,hy,hw,hh=handle:GetPhysicalRect()
+    assert(hx>=0 and hy>=0 and hx+hw<=screenWidth and hy+hh<=screenHeight,'handle must remain accessible at the bottom edge')
+    command('size 12')
+    assertPosition(0,984)
+    screenWidth,screenHeight=640,360; event('DISPLAY_SIZE_CHANGED')
+    assertPosition(0,264)
+    dragTo(99999,99999)
+    assertPosition(40,264)
+    hx,hy,hw,hh=handle:GetPhysicalRect()
+    assert(hx>=0 and hy>=0 and hx+hw<=screenWidth and hy+hh<=screenHeight,'handle must remain accessible after display resize')
+    near(AzerothLiveMapDB.x,40,'clamped saved x'); near(AzerothLiveMapDB.y,264,'clamped saved y')
+    command('lock'); uiScale=.65; event('UI_SCALE_CHANGED')
+    assertPosition(40,264)
+  `, 'luajit');
+});
+
+test('reset returns the small visible strip to its default corner and locks it', () => {
+  runLua(`${ADDON_MOCK}
+    boot({size=9,x=600,y=400,enabled=false})
+    assert(not strip:IsShown(),'saved hidden preference should survive login')
+    command('show'); command('unlock'); command('size 12'); dragTo(800,500)
+    command('reset')
+    assert(strip:IsShown(),'reset must show the strip')
+    near(strip.width,100,'reset width'); near(strip.height,16,'reset height')
+    assertPosition(12,12)
+    assert(not strip:IsMouseEnabled() and not handle:IsShown(),'reset must lock')
+    assert(AzerothLiveMapDB.enabled==true and AzerothLiveMapDB.size==2)
+    near(AzerothLiveMapDB.x,12); near(AzerothLiveMapDB.y,12)
+  `, 'luajit');
+});
+
+test('malformed saved state cannot create NaN geometry or a permanently unreachable strip', () => {
+  runLua(`${ADDON_MOCK}
+    for _,saved in ipairs({
+      'corrupt', false, 37,
+      {size=0/0,x=math.huge,y=-math.huge,enabled='invalid'},
+      {size='not a number',x={},y='bad'},
+      {size=math.huge,x=0/0,y=0/0},
+    }) do
+      boot(saved)
+      assert(type(AzerothLiveMapDB)=='table','saved state repaired to table')
+      local x,y=physicalPosition()
+      assert(x==x and y==y and strip.width==strip.width and strip.height==strip.height,'finite geometry')
+      assert(x>=0 and y>=0 and x+strip.width<=screenWidth and y+strip.height<=screenHeight,'on-screen geometry')
+      assert(AzerothLiveMapDB.size>=2 and AzerothLiveMapDB.size<=12,'bounded cell size')
+      assert(not handle:IsShown(),'corrupt state cannot unlock the handle')
+    end
+    boot(nil)
+    command('size 1'); assert(AzerothLiveMapDB.size==2,'minimum cell size')
+    command('size 99'); assert(AzerothLiveMapDB.size==12,'maximum cell size')
+    command('size 3.9'); assert(AzerothLiveMapDB.size==3,'whole physical pixels')
+    local width=strip.width
+    command('size nope'); command('size 1e999')
+    assert(strip.width==strip.width and strip.width>=100 and strip.width<=600,'invalid commands remain finite and bounded')
+  `, 'luajit');
 });

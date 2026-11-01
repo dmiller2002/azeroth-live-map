@@ -33,3 +33,20 @@ end
 function ns.Bit(bytes, index)
     return math.floor(bytes[math.floor(index / 8) + 1] / 2 ^ (7 - index % 8)) % 2
 end
+
+-- Auxiliary packets share the same 24-byte rectangle as v1 positions.
+-- v2: magic/version/type, sequence:u16, map:u16, generation:u16,
+-- index:u16, payload:11 bytes, Fletcher16. Positions remain v1-compatible.
+function ns.EncodeQuest(kind, sequence, mapID, generation, index, payload)
+    local bytes = { 167, 2, kind }
+    for _, n in ipairs({ sequence, mapID or 0, generation, index }) do
+        n = math.floor(n) % 65536
+        bytes[#bytes + 1] = math.floor(n / 256)
+        bytes[#bytes + 1] = n % 256
+    end
+    for i = 1, 11 do bytes[#bytes + 1] = payload[i] or 0 end
+    local a, b = 0, 0
+    for i = 1, #bytes do a = (a + bytes[i]) % 255; b = (b + a) % 255 end
+    bytes[#bytes + 1], bytes[#bytes + 2] = a, b
+    return bytes
+end

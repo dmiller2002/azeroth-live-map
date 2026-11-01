@@ -17,7 +17,7 @@ def install(addons_dir: Path, dry_run: bool = False) -> None:
     addons_dir = addons_dir.expanduser().resolve(strict=True)
     if not addons_dir.is_dir():
         raise ValueError(f"AddOns path is not a directory: {addons_dir}")
-    required = ("AzerothLiveMap.toc", "Protocol.lua", "Main.lua")
+    required = ("AzerothLiveMap.toc", "Protocol.lua", "Questie.lua", "Main.lua")
     for name in required:
         if not (SOURCE / name).is_file():
             raise ValueError(f"Missing addon source file: {SOURCE / name}")
@@ -63,7 +63,10 @@ def install(addons_dir: Path, dry_run: bool = False) -> None:
                 backup.rename(target)
             raise
 
-    print("Installed AzerothLiveMap. Restart WoW, then enable it in the AddOns list.")
+    if backup is not None:
+        print("Updated AzerothLiveMap. Type /reload in WoW to load the update.")
+    else:
+        print("Installed AzerothLiveMap. Restart WoW, then enable it in the AddOns list.")
 
 
 def main() -> int:

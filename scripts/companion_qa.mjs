@@ -60,7 +60,7 @@ const reload = async (params, label, milliseconds = 20000) => {
   // Page.reload acknowledges the request before the old document disappears.
   // Its existing zone options must not satisfy the new-document readiness check.
   await until(`performance.timeOrigin !== ${JSON.stringify(previousTimeOrigin)} && document.readyState !== 'loading'`, `${label}: new document`, milliseconds);
-  await until("document.querySelectorAll('#zone option').length === 65 && document.getElementById('quick-connect')", `${label}: app ready`, milliseconds);
+  await until("document.querySelectorAll('#zone option').length === 70 && document.getElementById('quick-connect')", `${label}: app ready`, milliseconds);
 };
 const shown = id => `(() => {
   const e = document.getElementById(${JSON.stringify(id)});
@@ -130,7 +130,7 @@ try {
     };
   `});
   await send('Page.navigate', {url: origin});
-  await until("document.querySelectorAll('#zone option').length === 65 && document.getElementById('install-app')", 'companion application');
+  await until("document.querySelectorAll('#zone option').length === 70 && document.getElementById('install-app')", 'companion application');
   assert.equal(await evaluate("document.getElementById('status').textContent"), 'Not connected');
   assert.equal(await evaluate('window.__companionCaptureCalls'), 0, 'loading the companion must not request screen capture');
 

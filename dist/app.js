@@ -1,5 +1,7 @@
 import {decodeAt, findStrip, Freshness} from './protocol.js';
 import {loadPreferences, savePreferences} from './prefs.js';
+import {QuestFeed, QUEST_KINDS} from './quests.js';
+import {buildMapCatalog, mapViewport, hitTestMap} from './navigation.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('map'), ctx = canvas.getContext('2d');
@@ -7,13 +9,16 @@ const stage = $('map-stage'), video = $('capture-video');
 const readCanvas = document.createElement('canvas'), readCtx = readCanvas.getContext('2d', {willReadFrequently: true});
 const preview = $('capture-preview'), previewCtx = preview.getContext('2d');
 const freshness = new Freshness();
+const questFeed = new QuestFeed();
+let questPins = [], questListKey = '', focusedQuest = null;
 let maps = [], mapById = new Map(), selected = 1429, image = null, imageRequest = 0;
 let stream = null, roi = null, captureWidth = 0, captureHeight = 0, failures = 0, nextSearch = 0;
 let demo = false, demoStart = 0, last = null, trail = [], zoom = 1, pan = {x:0,y:0};
 let drag = null, selection = null, mapSize = {w:0,h:0};
+let viewport = null, mapChildren = [], hoveredMap = null;
 let statusOverride = null;
 const preferences = loadPreferences();
-for (const key of ['follow','trail','grid']) $(key).checked = preferences[key];
+for (const key of ['follow','trail','grid','quests']) $(key).checked = preferences[key];
 
 function setMapOnly(enabled, save = true) {
   document.body.classList.toggle('map-only', enabled);
@@ -37,11 +42,16 @@ function mapName(id) { return mapById.get(id)?.name || `Map ${id}`; }
 async function selectMap(id, manual = false) {
   selected = Number(id); if (manual) $('follow').checked = false;
   if (manual) savePreferences({zone:selected, follow:false});
-  zoom = 1; pan = {x:0,y:0}; image = null;
+  zoom = 1; pan = {x:0,y:0}; image = null; viewport = null;
+  hoveredMap = null; stage.style.cursor = ''; drag = null;
+  $('quest-tooltip').hidden = true; $('area-tooltip').hidden = true;
+  $('zoom-label').textContent = '100%';
   $('zone').value = String(selected);
   const meta = mapById.get(selected);
   $('map-title').textContent = meta?.name || `Map ${selected}`;
-  $('map-type').textContent = meta ? `${meta.edition === 'tbc' ? 'BURNING CRUSADE' : 'CLASSIC AZEROTH'} · ZONE MAP` : 'MAP NOT AVAILABLE';
+  $('map-type').textContent = meta ? `${meta.edition === 'tbc' ? 'BURNING CRUSADE' : 'CLASSIC AZEROTH'} · ${meta.kind.toUpperCase()} MAP` : 'MAP NOT AVAILABLE';
+  mapChildren = maps.filter(map => map.parentId === selected && (map.polygon || map.entrance));
+  updateNavigation(meta);
   const request = ++imageRequest;
   if (!meta) { message('Map artwork is not available for this area yet. Your coordinates are still shown at the left.'); draw(); return; }
   message('Loading map…'); draw();
@@ -51,10 +61,39 @@ async function selectMap(id, manual = false) {
   img.src = meta.url;
 }
 
+function updateNavigation(meta) {
+  const path = [], seen = new Set();
+  // Unknown live maps can still return to the world browser.
+  for (let map = meta || mapById.get(946); map && !seen.has(map.uiMapId); map = mapById.get(map.parentId)) {
+    seen.add(map.uiMapId); path.unshift(map);
+  }
+  $('map-path').replaceChildren();
+  for (const map of path) {
+    const button = document.createElement('button');
+    button.textContent = map.name;
+    if (map.uiMapId === selected) button.setAttribute('aria-current','location');
+    button.onclick = () => selectMap(map.uiMapId,true);
+    $('map-path').append(button);
+  }
+  const parent = mapById.get(meta?.parentId ?? (meta ? null : 946));
+  $('map-up').disabled = !parent;
+  $('map-up').title = parent ? `Go up to ${parent.name} (right-click or Backspace)` : 'At the outermost map';
+  $('map-up').setAttribute('aria-label',parent ? `Go up to ${parent.name}` : 'At the outermost map');
+}
+
+function navigateUp() {
+  const meta = mapById.get(selected);
+  const parentId = meta ? meta.parentId : 946;
+  if (mapById.has(parentId)) selectMap(parentId,true);
+}
+$('map-up').onclick = navigateUp;
+
 function accept(packet, now, simulated = false) {
+  if (packet.type === 'quest') { questFeed.accept(packet, now); return; }
   if (!freshness.accept(packet, now)) return;
+  if (last && packet.mapId !== last.mapId) { questFeed.reset(); focusedQuest = null; }
   last = packet;
-  if (!packet.valid) { trail = []; draw(); return; }
+  if (!packet.valid) { trail = []; questFeed.reset(); draw(); return; }
   if ($('follow').checked && selected !== packet.mapId) selectMap(packet.mapId);
   if (trail.length && trail[trail.length-1].mapId !== packet.mapId) trail = [];
   const previous = trail[trail.length-1];
@@ -98,11 +137,55 @@ function tickStatus(now) {
   $('quick-coordinates').textContent = `X ${$('coord-x').textContent} · Y ${$('coord-y').textContent}`;
   $('quick-connect').textContent = stream ? 'Disconnect ×' : 'Connect WoW ↗';
   $('quick-connect').disabled = $('connect').disabled;
+  updateQuests(now);
   draw();
+}
+
+function currentQuests(now) {
+  if (demo || !stream || !last?.valid || !freshness.isFresh(now) || !mapById.has(selected) || last.mapId !== selected || !$('quests').checked) return [];
+  return questFeed.visible(selected, now);
+}
+
+function updateQuests(now) {
+  const markers = currentQuests(now);
+  let text;
+  if (!$('quests').checked) text = 'Questie layer hidden.';
+  else if (demo) text = 'Connect WoW for your real Questie markers.';
+  else if (!stream) text = 'Connect WoW to receive Questie markers.';
+  else if (!last?.valid || !freshness.isFresh(now)) text = 'Waiting for a live position; quest markers are hidden.';
+  else if (last.mapId !== selected) text = 'Questie markers are shared for your character’s current zone.';
+  else if (!mapById.has(selected)) text = 'Quest markers need map artwork for this zone.';
+  else if (!questFeed.isFresh(now) || questFeed.mapId !== selected) text = 'Waiting for Questie data. Enable Questie and update the companion addon.';
+  else if (questFeed.status === 0) text = 'Questie is not loaded. Enable it in WoW, then /reload.';
+  else if (questFeed.status === 2) text = 'Questie is loading or its marker format is unsupported. Try /reload.';
+  else if (!questFeed.count) text = 'No Questie markers in this zone. Questie’s map filters apply.';
+  else text = `${markers.length}/${questFeed.count} markers${markers.length < questFeed.count ? ' · syncing…' : ' · synced'}${questFeed.limited ? ' · nearby samples' : ''}`;
+  $('quest-status').textContent = text;
+  if (!markers.length) $('quest-tooltip').hidden = true;
+  const key = JSON.stringify(markers.map(m => [m.questId,m.title,m.markerKind,m.objective,m.collected,m.needed]));
+  if (key === questListKey) return;
+  questListKey = key;
+  $('quest-list').replaceChildren();
+  const groups = new Map();
+  for (const marker of markers) {
+    const id = `${marker.questId}:${marker.markerKind}:${marker.objective}`;
+    if (!groups.has(id)) groups.set(id, marker);
+  }
+  for (const marker of groups.values()) {
+    const button = document.createElement('button'); button.className = 'quest-entry';
+    const title = document.createElement('span'); title.textContent = marker.title;
+    const detail = document.createElement('small');
+    detail.textContent = `${QUEST_KINDS[marker.markerKind]}${marker.markerKind === 2 && marker.objective ? ` ${marker.objective}` : ''}${marker.needed ? ` · ${marker.collected}/${marker.needed}` : ''}`;
+    button.append(title,detail);
+    button.onclick = () => { focusedQuest = marker.questId; pan = {x:0,y:0}; zoom = 1; draw(); };
+    button.title = `Highlight ${marker.title} on the map`;
+    $('quest-list').append(button);
+  }
 }
 
 function resetPosition() {
   freshness.reset(); last = null; trail = [];
+  questFeed.reset(); focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true;
   $('location').textContent = 'Waiting for your character'; $('coord-x').textContent = $('coord-y').textContent = '—';
   $('updated').textContent = 'No position received'; draw();
 }
@@ -197,14 +280,27 @@ preview.onpointerup = event => {
 };
 
 function draw() {
+  questPins = [];
   const {w,h} = mapSize; if (!w || !h) return;
   ctx.clearRect(0,0,w,h); ctx.fillStyle='#0b120e'; ctx.fillRect(0,0,w,h);
   if (!image) return;
-  const base = Math.min((w-32)/image.width,(h-85)/image.height);
-  const iw=image.width*base*zoom, ih=image.height*base*zoom, ox=(w-iw)/2+pan.x, oy=(h-ih)/2+pan.y;
+  viewport = mapViewport(w,h,image.width,image.height,zoom,pan);
+  const {w:iw,h:ih,x:ox,y:oy} = viewport;
   ctx.save(); ctx.beginPath(); ctx.rect(ox,oy,iw,ih); ctx.clip();
   ctx.drawImage(image,ox,oy,iw,ih);
   ctx.fillStyle='rgba(14,22,13,.07)'; ctx.fillRect(ox,oy,iw,ih);
+  if (hoveredMap?.polygon) {
+    ctx.beginPath();
+    hoveredMap.polygon.forEach(([x,y],i) => i ? ctx.lineTo(ox+x*iw,oy+y*ih) : ctx.moveTo(ox+x*iw,oy+y*ih));
+    ctx.closePath(); ctx.fillStyle='#ffe6a52b'; ctx.fill();
+    ctx.strokeStyle='#fff1b9bb'; ctx.lineWidth=2; ctx.stroke();
+  }
+  for (const child of mapChildren.filter(map => map.entrance)) {
+    const x=ox+child.entrance.x*iw,y=oy+child.entrance.y*ih;
+    ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);
+    ctx.fillStyle=hoveredMap===child?'#ffe8ac':'#273522';ctx.fill();ctx.strokeStyle='#e0c389';ctx.lineWidth=2;ctx.stroke();
+    ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=hoveredMap===child?'#273522':'#ffe8ac';ctx.fillText('↗',x,y);
+  }
   if ($('grid').checked) {
     ctx.strokeStyle='rgba(44,44,23,.3)'; ctx.lineWidth=1; ctx.font='10px system-ui';ctx.fillStyle='#282d17';
     for(let i=1;i<10;i++){const x=ox+iw*i/10,y=oy+ih*i/10;ctx.beginPath();ctx.moveTo(x,oy);ctx.lineTo(x,oy+ih);ctx.moveTo(ox,y);ctx.lineTo(ox+iw,y);ctx.stroke();ctx.fillText(String(i*10),x+4,oy+14);ctx.fillText(String(i*10),ox+4,y-4);}
@@ -212,6 +308,21 @@ function draw() {
   if ($('trail').checked && trail.length>1 && last?.mapId===selected) {
     ctx.beginPath();trail.forEach((p,i)=>{if(i===0)ctx.moveTo(ox+p.x*iw,oy+p.y*ih);else ctx.lineTo(ox+p.x*iw,oy+p.y*ih);});
     ctx.strokeStyle='#102e24bb';ctx.lineWidth=5;ctx.stroke();ctx.strokeStyle='#93edc9';ctx.lineWidth=2;ctx.stroke();
+  }
+  for (const marker of currentQuests(performance.now())) {
+    const x = ox + marker.x * iw, y = oy + marker.y * ih;
+    questPins.push({...marker, screenX:x, screenY:y});
+    ctx.save(); ctx.translate(x,y);
+    ctx.globalAlpha = focusedQuest && marker.questId !== focusedQuest ? .35 : 1;
+    ctx.shadowColor = '#09130c'; ctx.shadowBlur = 4;
+    ctx.fillStyle = marker.markerKind === 2 ? '#9cddff' : '#ffe074'; ctx.strokeStyle = '#35280e'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (marker.markerKind === 2) { ctx.moveTo(0,-7); ctx.lineTo(7,0); ctx.lineTo(0,7); ctx.lineTo(-7,0); ctx.closePath(); }
+    else ctx.arc(0,0,10,0,Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    if (marker.markerKind !== 2) { ctx.shadowBlur = 0; ctx.fillStyle='#30280e'; ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(marker.markerKind === 1 ? '!' : '?',0,0); }
+    if (focusedQuest === marker.questId) { ctx.strokeStyle='#fff8d2'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.stroke(); }
+    ctx.restore();
   }
   if (last?.valid && last.mapId===selected) {
     const fresh=freshness.isFresh(performance.now());ctx.globalAlpha=fresh?1:.4;
@@ -231,13 +342,59 @@ new ResizeObserver(() => {
 function zoomBy(factor, x=mapSize.w/2,y=mapSize.h/2){const next=Math.min(5,Math.max(.7,zoom*factor)),ratio=next/zoom;pan={x:x-mapSize.w/2-(x-mapSize.w/2-pan.x)*ratio,y:y-mapSize.h/2-(y-mapSize.h/2-pan.y)*ratio};zoom=next;draw();}
 $('zoom-in').onclick=()=>zoomBy(1.25);$('zoom-out').onclick=()=>zoomBy(.8);$('fit').onclick=()=>{zoom=1;pan={x:0,y:0};draw();};
 stage.addEventListener('wheel',event=>{event.preventDefault();const r=stage.getBoundingClientRect();zoomBy(Math.exp(-event.deltaY*.001),event.clientX-r.left,event.clientY-r.top);},{passive:false});
-stage.addEventListener('pointerdown',event=>{if(event.target!==canvas)return;drag={x:event.clientX,y:event.clientY,pan:{...pan}};stage.setPointerCapture(event.pointerId);});
-stage.addEventListener('pointermove',event=>{if(drag){pan={x:drag.pan.x+event.clientX-drag.x,y:drag.pan.y+event.clientY-drag.y};draw();}});
-stage.addEventListener('pointerup',()=>drag=null);stage.addEventListener('pointercancel',()=>drag=null);
-stage.addEventListener('keydown',event=>{if(event.key==='+'||event.key==='=')zoomBy(1.25);else if(event.key==='-')zoomBy(.8);else if(event.key==='0')$('fit').click();});
+stage.addEventListener('contextmenu',event=>{
+  if (event.target !== canvas && event.target !== stage) return;
+  event.preventDefault(); navigateUp();
+});
+stage.addEventListener('pointerdown',event=>{
+  if(event.target!==canvas || event.button!==0 || drag)return;
+  drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,pan:{...pan},moved:false};
+  stage.setPointerCapture(event.pointerId);
+});
+stage.addEventListener('pointermove',event=>{
+  const tooltip = $('quest-tooltip'); tooltip.hidden = true; $('area-tooltip').hidden = true;
+  if(drag){
+    if (drag.pointerId !== event.pointerId) return;
+    if (Math.hypot(event.clientX-drag.x,event.clientY-drag.y)>5) drag.moved=true;
+    if (drag.moved) { hoveredMap=null;stage.style.cursor='grabbing';pan={x:drag.pan.x+event.clientX-drag.x,y:drag.pan.y+event.clientY-drag.y};draw(); }
+    return;
+  }
+  const r=stage.getBoundingClientRect(), x=event.clientX-r.left, y=event.clientY-r.top;
+  const marker=questPins.find(pin=>Math.hypot(pin.screenX-x,pin.screenY-y)<13);
+  const child=event.target===canvas && image ? hitTestMap(mapChildren,x,y,viewport) : null;
+  if (hoveredMap !== child) { hoveredMap=child;draw(); }
+  stage.style.cursor=child || marker ? 'pointer' : '';
+  if(marker){
+    tooltip.textContent=`${marker.title} · ${QUEST_KINDS[marker.markerKind]}${marker.markerKind === 2 && marker.objective ? ` ${marker.objective}` : ''}${marker.needed ? ` · ${marker.collected}/${marker.needed}` : ''} · ${(marker.x*100).toFixed(1)}, ${(marker.y*100).toFixed(1)}`;
+    tooltip.style.left=`${Math.max(8,Math.min(r.width-250,x+16))}px`;tooltip.style.top=`${Math.max(8,y-50)}px`;tooltip.hidden=false;
+  } else if (child) {
+    const areaTooltip=$('area-tooltip');areaTooltip.textContent=`${child.name} · Click to open`;
+    areaTooltip.style.left=`${Math.max(8,Math.min(r.width-230,x+16))}px`;areaTooltip.style.top=`${Math.max(8,y-42)}px`;areaTooltip.hidden=false;
+  }
+});
+stage.addEventListener('pointerleave',()=>{$('quest-tooltip').hidden=true;$('area-tooltip').hidden=true;hoveredMap=null;stage.style.cursor='';draw();});
+stage.addEventListener('pointerup',event=>{
+  if (!drag || drag.pointerId !== event.pointerId || event.button!==0) return;
+  const moved=drag.moved || Math.hypot(event.clientX-drag.x,event.clientY-drag.y)>5;
+  drag=null;
+  if(stage.hasPointerCapture(event.pointerId))stage.releasePointerCapture(event.pointerId);
+  stage.style.cursor='';
+  if (moved || !image) return;
+  const r=stage.getBoundingClientRect(),x=event.clientX-r.left,y=event.clientY-r.top;
+  const marker=questPins.find(pin=>Math.hypot(pin.screenX-x,pin.screenY-y)<13);
+  if (marker) { focusedQuest=marker.questId;draw();return; }
+  const child=hitTestMap(mapChildren,x,y,viewport);
+  if(child)selectMap(child.uiMapId,true);
+});
+for (const event of ['pointercancel','lostpointercapture']) stage.addEventListener(event,()=>{drag=null;stage.style.cursor='';});
+stage.addEventListener('keydown',event=>{
+  if (event.target!==stage && event.target!==canvas) return;
+  if(event.key==='+'||event.key==='=')zoomBy(1.25);else if(event.key==='-')zoomBy(.8);else if(event.key==='0')$('fit').click();
+  else if(event.key==='Backspace' || (event.altKey && event.key==='ArrowUp')) {event.preventDefault();navigateUp();}
+});
 $('zone').onchange=event=>selectMap(event.target.value,true);
 $('follow').onchange=()=>{savePreferences({follow:$('follow').checked});if($('follow').checked&&last?.valid)selectMap(last.mapId);};
-for (const key of ['trail','grid']) $(key).onchange=()=>{savePreferences({[key]:$(key).checked});draw();};
+for (const key of ['trail','grid','quests']) $(key).onchange=()=>{savePreferences({[key]:$(key).checked});$('quest-tooltip').hidden=true;updateQuests(performance.now());draw();};
 $('setup').onclick=()=>$('setup-dialog').showModal();$('close-setup').onclick=()=>$('setup-dialog').close();
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{statusOverride=true;status('Fullscreen unavailable','You can maximize your browser window instead.','waiting');}};
 $('demo').onclick=()=>{
@@ -255,7 +412,11 @@ window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach
 
 try {
   const response=await fetch('./maps.json');if(!response.ok)throw new Error('Map catalog unavailable');
-  maps=await response.json();mapById=new Map(maps.map(map=>[map.uiMapId,map]));
-  for(const map of maps){const option=document.createElement('option');option.value=map.uiMapId;option.textContent=map.name;$('zone').append(option);}
+  maps=buildMapCatalog(await response.json());mapById=new Map(maps.map(map=>[map.uiMapId,map]));
+  for (const [label,kinds] of [['World & continents',['cosmic','world','continent']],['Zones & cities',['zone','city']],['Battlegrounds',['battleground']]]) {
+    const group=document.createElement('optgroup');group.label=label;
+    for(const map of maps.filter(map=>kinds.includes(map.kind))){const option=document.createElement('option');option.value=map.uiMapId;option.textContent=map.name;group.append(option);}
+    $('zone').append(group);
+  }
   selectMap(mapById.has(preferences.zone) ? preferences.zone : 1429);
 } catch {message('The map catalog could not load. Reload the page, or start the local server using the project instructions.');}

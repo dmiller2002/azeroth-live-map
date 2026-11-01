@@ -9,10 +9,28 @@ export function checksum(bytes) {
 }
 
 export function decodeBytes(bytes) {
-  if (bytes.length !== 24 || bytes[0] !== 167 || bytes[1] !== 1 || (bytes[2] & ~3)) return null;
+  if (bytes.length !== 24 || bytes[0] !== 167) return null;
   const [a, b] = checksum(bytes.slice(0, 22));
   if (bytes[22] !== a || bytes[23] !== b) return null;
   const u16 = i => bytes[i] * 256 + bytes[i + 1];
+  if (bytes[1] === 2) {
+    const base = {type:'quest', kind:bytes[2], sequence:u16(3), mapId:u16(5), generation:u16(7), index:u16(9)};
+    if (base.kind === 0) {
+      if (base.index > 96 || bytes[11] > 2 || bytes[12] > 1 || (bytes[11] !== 1 && base.index)) return null;
+      return {...base, count:base.index, status:bytes[11], limited:Boolean(bytes[12])};
+    }
+    if (!base.index || base.index > 96) return null;
+    if (base.kind === 1) {
+      const questId = bytes[11] * 65536 + u16(12);
+      if (!questId || bytes[18] < 1 || bytes[18] > 3) return null;
+      return {...base, questId, x:u16(14)/65535, y:u16(16)/65535, markerKind:bytes[18], objective:bytes[19], collected:bytes[20], needed:bytes[21]};
+    }
+    if (base.kind === 2 && (bytes[11] & 127) < 8) {
+      return {...base, fragment:bytes[11] & 127, final:Boolean(bytes[11] & 128), textBytes:Array.from(bytes.slice(12,22))};
+    }
+    return null;
+  }
+  if (bytes[1] !== 1 || (bytes[2] & ~3)) return null;
   return {
     valid: Boolean(bytes[2] & 1) && u16(5) !== 0,
     sequence: u16(3), mapId: u16(5), x: u16(7) / 65535, y: u16(9) / 65535,
