@@ -1,5 +1,6 @@
 import {RecordFeed} from './record-feed.js';
 import {getItemDetails,createEquipmentTooltip} from './equipment-tooltip.js';
+import {loadPreferences,savePreferences} from './prefs.js';
 
 const QUALITY=['#adb2b2','#ededdf','#7ce06e','#6baaff','#c29aff','#ffbd70','#ead28a','#ead28a'];
 export class BagFeed extends RecordFeed {
@@ -26,6 +27,8 @@ export class BagFeed extends RecordFeed {
 export function createBagsPanel(feed){
   const $=id=>document.getElementById(id),cards=new Map();
   const tooltip=createEquipmentTooltip({id:'bag-item-tooltip'});
+  let view=loadPreferences().bagView;
+  $('bags-layout').value=view;
   for(let bag=0;bag<=4;bag++){
     const section=document.createElement('section');section.className='bag-card';section.dataset.bag=bag;
     const header=document.createElement('header'),copy=document.createElement('div');
@@ -38,6 +41,25 @@ export function createBagsPanel(feed){
     section.append(header,grid,empty);$('bags-grid').append(section);
     cards.set(bag,{section,name,count,grid,empty,entries:[],layout:''});
   }
+  function placeItems(){
+    const combined=view==='combined';
+    $('bags-grid').classList.toggle('is-combined',combined);
+    $('combined-bag').hidden=!combined;
+    for(const card of cards.values())card.section.hidden=combined;
+    const lists=combined?[[...cards.values()].flatMap(card=>card.entries)]:[...cards.values()].map(card=>card.entries);
+    lists.forEach((entries,list)=>{
+      const target=combined?$('combined-bag-items'):[...cards.values()][list].grid;
+      entries.forEach((entry,index)=>{
+        // Keep existing nodes in place during live updates to preserve focus.
+        if(target.children[index]!==entry.cell)target.insertBefore(entry.cell,target.children[index]||null);
+      });
+    });
+  }
+  $('bags-layout').addEventListener('change',()=>{
+    view=$('bags-layout').value==='combined'?'combined':'separate';
+    savePreferences({bagView:view});tooltip.hide();placeItems();
+  });
+  placeItems();
   function paint(entry){
     const {record,item}=entry,id=entry.itemId;
     const name=item?(id?(record.text||entry.details?.name||`Item #${id}`):'Empty slot'):'Syncing slot…';
@@ -61,6 +83,9 @@ export function createBagsPanel(feed){
     const available=connected && fresh && !demo && feed.isFresh(now),progress=feed.progress();
     $('bags-status').textContent=demo?'Connect WoW to see the items in your bags.':!connected?'Connect WoW to sync your backpack and equipped bags.':!fresh?'Signal paused. Bag contents are hidden until live capture resumes.':!feed.isFresh(now)?'Waiting for bag data. Requires addon 0.7.0; /reload after updating.':progress.complete?'Live bags · contents update automatically':`Syncing bags · ${progress.received}/${progress.total} slots · ${progress.bags}/5 bags`;
     $('bags-summary').textContent=available?`${progress.used} occupied · ${progress.free} free${progress.complete?'':' received'} · ${progress.total} total slots`:'Your backpack and four equipped bags';
+    $('combined-bag-capacity').textContent=available?`${progress.used}/${progress.total} slots used${progress.complete?'':' · syncing…'}`:'Waiting…';
+    $('combined-bag-empty').hidden=available && progress.total>0;
+    $('combined-bag-empty').textContent=available?'Syncing your bag slots…':'Waiting for bag data…';
     const visible=document.body.dataset.activeTab==='bags';
     if(!visible){tooltip.hide();lastKey='';return;}
     const key=`${available}:${feed.version}`;if(key===lastKey)return;lastKey=key;
@@ -70,7 +95,9 @@ export function createBagsPanel(feed){
       card.name.textContent=descriptor?.text || (bag===0?'Backpack':total?`Bag ${bag}`:`Bag slot ${bag}`);
       const layout=`${available}:${info?.epoch}:${total}`;
       if(card.layout!==layout){
-        tooltip.hide();card.layout=layout;card.grid.replaceChildren();card.entries=[];
+        tooltip.hide();card.layout=layout;
+        for(const entry of card.entries)entry.cell.remove();
+        card.grid.replaceChildren();card.entries=[];
         for(let slot=1;slot<=total;slot++){
           const cell=document.createElement('li'),link=document.createElement('a');link.className='bag-slot';link.target='_blank';link.rel='noopener noreferrer';link.dataset.bag=bag;link.dataset.slot=slot;
           const icon=document.createElement('span');icon.className='bag-item-icon';icon.setAttribute('aria-hidden','true');
@@ -104,5 +131,6 @@ export function createBagsPanel(feed){
       card.empty.hidden=Boolean(total);
       card.empty.textContent=info?(bag===0?'Backpack data is not ready yet.':'No bag equipped.'):available?'Syncing this bag…':'Waiting for bag data…';
     }
+    placeItems();
   }};
 }

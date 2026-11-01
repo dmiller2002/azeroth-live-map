@@ -152,7 +152,7 @@ The addon remembers the hidden preference after reload/login. It delays requeste
 
 ## Bags tab
 
-**Bags** shows your backpack and four equipped bags, item icons with quality borders, stack counts, empty slots, and occupied/free capacity. Hover or focus an item for the same base-item tooltip used by Character; touch users tap once for details and again to open Wowhead. Use **Show empty slots** to change the view. Capture keeps running on every tab. Bag contents remain in browser memory and are cleared on a new addon session or disconnect; paused capture hides them.
+**Bags** shows your backpack and four equipped bags, item icons with quality borders, stack counts, empty slots, and occupied/free capacity. Hover or focus an item for the same base-item tooltip used by Character; touch users tap once for details and again to open Wowhead. Choose **Separate bags** for individual bag panels or **Combined bag** for one grid containing every slot. This display preference is remembered across reloads; original bag/slot locations remain in item tooltips. **Show empty slots** works in either view. Capture keeps running on every tab. Bag contents remain in browser memory and are cleared on a new addon session or disconnect; paused capture hides them.
 
 Update the addon and companion to **0.7.0**, type `/reload` in WoW, refresh/reopen the app, reconnect, then choose **Bags**. Inventory is read through the Anniversary `C_Container` APIs, with legacy container API fallback. This covers carried bags 0–4, including quivers and profession bags; bank storage and the keyring are not included. The view displays inventory; it does not move or use items in WoW.
 

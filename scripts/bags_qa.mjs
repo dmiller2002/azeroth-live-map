@@ -75,7 +75,22 @@ try{
  await evaluate(`${slot(0,2)}.focus()`);
  await until("!document.getElementById('bag-item-tooltip').hidden && document.getElementById('bag-item-tooltip').textContent.includes('Restores')",'bag item hover details');
  assert.match(await evaluate("document.getElementById('bag-item-tooltip').textContent"),/Quantity 12/);
+ await evaluate("document.getElementById('bags-layout').value='combined';document.getElementById('bags-layout').dispatchEvent(new Event('change'))");
+ assert.equal(await evaluate("document.getElementById('combined-bag').hidden"),false);
+ assert.equal(await evaluate("document.querySelectorAll('#combined-bag-items .bag-slot').length"),64,'all slots move into one bag');
+ assert.equal(await evaluate("Array.from(document.querySelectorAll('.bag-card[data-bag]')).every(card=>card.hidden)"),true);
+ assert.equal(await evaluate("document.getElementById('bag-item-tooltip').hidden"),true,'switching views dismisses tooltips');
+ await evaluate(`${slot(0,2)}.focus()`);
+ await new Promise(resolve=>setTimeout(resolve,350));
+ assert.equal(await evaluate("document.activeElement===document.querySelector('#combined-bag-items .bag-slot[data-bag=\"0\"][data-slot=\"2\"]')"),true,'live refresh preserves item focus');
+ await until("!document.getElementById('bag-item-tooltip').hidden",'combined bag tooltip');
+ assert.match(await evaluate("document.getElementById('bag-item-tooltip').textContent"),/Backpack · Slot 2/,'combined view retains original location');
  await evaluate("document.getElementById('bags-show-empty').click()");
+ await evaluate("document.getElementById('bags-layout').value='separate';document.getElementById('bags-layout').dispatchEvent(new Event('change'))");
+ assert.equal(await evaluate("document.querySelectorAll('.bag-card[data-bag=\"0\"] .bag-slot').length"),16);
+ assert.equal(await evaluate("document.getElementById('combined-bag-items').children.length"),0);
+ assert.equal(await evaluate("document.getElementById('combined-bag').hidden"),true);
+ await evaluate("document.getElementById('bags-layout').value='combined';document.getElementById('bags-layout').dispatchEvent(new Event('change'))");
  assert.equal(await evaluate("Array.from(document.querySelectorAll('.bag-slot')).filter(node=>node.getBoundingClientRect().width>0).length"),13);
  await evaluate("document.getElementById('bags-show-empty').click()");
  await mkdir('artifacts',{recursive:true});
@@ -90,6 +105,7 @@ try{
  await until(`${slot(0,2)}?.getAttribute('aria-label').includes('Quantity 3')`,'stack updates while Bags is hidden');
  await until("document.querySelector('.bag-card[data-bag=\"1\"] h2').textContent==='Small Brown Pouch'",'bag replacement name');
  assert.equal(await evaluate("document.querySelectorAll('.bag-slot[data-bag=\"1\"]').length"),4);
+ assert.equal(await evaluate("document.querySelectorAll('#combined-bag-items .bag-slot').length"),52,'combined bag removes replaced bag slots');
  assert.equal(await evaluate(`${slot(0,3)}.hasAttribute('href')`),false,'moved item clears its old slot');
  assert.equal(await evaluate(`${slot(0,8)}.getAttribute('href')`),'https://www.wowhead.com/tbc/item=27854');
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false});
@@ -107,7 +123,8 @@ try{
  await evaluate("document.getElementById('connect').click()");
  await until("document.getElementById('bags-status').textContent.includes('Connect WoW')",'disconnect cleanup');
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).activeTab"),'bags');
+ assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).bagView"),'combined');
  assert.equal(await evaluate("localStorage.getItem('azeroth-live-map.preferences.v1').includes('Hearthstone')"),false,'live inventory is not persisted');
  assert.deepEqual(errors,[]);
- console.log(`${artMode?'HUZZAH':'Plain'} bags browser QA passed: five bags, 64 slots, quantities, actual icons/tooltips, hidden-tab sync, bag replacement, moved items, Character/Questie coexistence, touch/mobile, session replacement and stale/disconnect cleanup.`);
+ console.log(`${artMode?'HUZZAH':'Plain'} bags browser QA passed: separate/combined views, retained focus and original slot tooltips, empty filtering, view preference, five bags, 64 slots, quantities, actual icons/tooltips, hidden-tab sync, bag replacement, moved items, Character/Questie coexistence, touch/mobile, session replacement and stale/disconnect cleanup.`);
 }finally{socket.close();await fetch(`http://127.0.0.1:9223/json/close/${target.id}`);}

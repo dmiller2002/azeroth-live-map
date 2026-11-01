@@ -127,9 +127,15 @@
   </section>
     <section id="bags-view" class="bags-view" role="tabpanel" aria-labelledby="tab-bags" tabindex="0" hidden>
       <div class="eyebrow">YOUR INVENTORY · BACKPACK & BAGS</div>
-      <div class="bags-heading"><div><h1>Bags</h1><p id="bags-summary">Your backpack and four equipped bags</p></div><label class="bags-empty-toggle"><input id="bags-show-empty" type="checkbox" checked> Show empty slots</label></div>
+      <div class="bags-heading"><div><h1>Bags</h1><p id="bags-summary">Your backpack and four equipped bags</p></div><div class="bags-display-controls"><label class="bags-layout-choice">Bag view <select id="bags-layout"><option value="separate">Separate bags</option><option value="combined">Combined bag</option></select></label><label class="bags-empty-toggle"><input id="bags-show-empty" type="checkbox" checked> Show empty slots</label></div></div>
       <p id="bags-status" class="character-status" role="status">Connect WoW to sync your backpack and equipped bags.</p>
-      <div id="bags-grid" class="bags-grid"></div>
+      <div id="bags-grid" class="bags-grid">
+        <section id="combined-bag" class="bag-card bag-card-combined" hidden>
+          <header><div><small>ALL BAGS</small><h2>Combined bag</h2></div><span id="combined-bag-capacity" class="bag-capacity">Waiting…</span></header>
+          <ul id="combined-bag-items" class="bag-grid" aria-label="Combined backpack and bag contents"></ul>
+          <p id="combined-bag-empty" class="bag-empty-note">Waiting for bag data…</p>
+        </section>
+      </div>
       <p class="character-note">Hover or focus an item for details. Stack counts and contents sync from WoW. On touch screens, tap once for details and again to open Wowhead.</p>
     </section>
     <section id="updates-view" class="updates-view" role="tabpanel" aria-labelledby="tab-updates" tabindex="0" hidden>

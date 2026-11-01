@@ -1,6 +1,6 @@
 // Preferences only: no capture images, positions, trails, or sharing permissions.
 const KEY = 'azeroth-live-map.preferences.v1';
-const defaults = {follow:true, trail:true, grid:false, quests:true, mapOnly:false, zone:1429, activeTab:'map'};
+const defaults = {follow:true, trail:true, grid:false, quests:true, mapOnly:false, zone:1429, activeTab:'map', bagView:'separate'};
 const validTab=value=>typeof value==='string' && /^[a-z][a-z0-9-]{0,31}$/.test(value);
 
 export function loadPreferences() {
@@ -13,6 +13,7 @@ export function loadPreferences() {
     }
     if (Number.isInteger(saved.zone) && saved.zone > 0 && saved.zone <= 65535) preferences.zone = saved.zone;
     if (validTab(saved.activeTab)) preferences.activeTab = saved.activeTab;
+    if (['separate','combined'].includes(saved.bagView)) preferences.bagView = saved.bagView;
   } catch { /* The app remains usable when storage is blocked or damaged. */ }
   return preferences;
 }
@@ -24,5 +25,6 @@ export function savePreferences(changes) {
   }
   if (Number.isInteger(changes.zone) && changes.zone > 0 && changes.zone <= 65535) preferences.zone = changes.zone;
   if (validTab(changes.activeTab)) preferences.activeTab = changes.activeTab;
+  if (['separate','combined'].includes(changes.bagView)) preferences.bagView = changes.bagView;
   try { localStorage.setItem(KEY, JSON.stringify(preferences)); } catch { /* Optional persistence. */ }
 }
