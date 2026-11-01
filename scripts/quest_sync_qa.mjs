@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir,writeFile} from 'node:fs/promises';
+const artMode=process.argv.includes('--art');
 
 const lua=`
 local ns={}; local clock=100
@@ -24,7 +25,7 @@ for frame=1,400 do
   clock=100+frame*.1
   if frame==251 then for _,names in pairs(qm.questIdFrames)do for name in pairs(names)do if _G[name].UiMapID==1429 then names[name]=nil end end end end
   local packets={}
-  seq=seq+1;packets[1]='['..table.concat(ns.Encode(1944,.2345,.6789,0,seq,clock*1000,4,777),',')..']'
+  seq=seq+1;packets[1]='['..table.concat(ns.Encode(1944,.2345,.6789,0,seq,clock*1000,4,777,${artMode?'true':'false'}),',')..']'
   for lane=1,4 do seq=seq+1;packets[#packets+1]='['..table.concat(ns.QuestiePacket(1944,.2345,.6789,seq,clock),',')..']' end
   print('['..table.concat(packets,',')..']')
 end
@@ -51,15 +52,22 @@ try{
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`
     localStorage.removeItem('azeroth-live-map.preferences.v1');
     window.__frames=${JSON.stringify(frames)};window.__index=0;
-    window.__strip={x:100,y:50,cell:2};window.__lostLane=-1;
+    window.__strip={x:100,y:50,cell:2};window.__lostLane=-1;window.__artMode=${artMode};
     navigator.mediaDevices.getDisplayMedia=async()=>{
       const {drawStrip}=await import('/protocol.js');
+      const {HEADER}=await import('/protocol.js');
+      const {drawArtBlock}=await import('/art.js');
+      const art=await(await fetch('/elephant-art.json')).json();let ticks=0;
       const c=document.createElement('canvas');c.width=640;c.height=360;
       const ctx=c.getContext('2d');
       window.__paint=()=>{
         const row=window.__frames[window.__index++%window.__frames.length];
         ctx.fillStyle='#394c40';ctx.fillRect(0,0,c.width,c.height);
-        row.forEach((bytes,lane)=>{if(lane!==window.__lostLane)drawStrip(ctx,bytes,window.__strip.x,window.__strip.y+lane*8*window.__strip.cell,window.__strip.cell);});
+        if(window.__artMode){
+          let tick=ticks++%art.durations.reduce((sum,n)=>sum+n,0),frame=0;
+          while(tick>=art.durations[frame]){tick-=art.durations[frame];frame++;}
+          drawArtBlock(ctx,row,art,frame,window.__strip.x,window.__strip.y,window.__strip.cell,HEADER);
+        }else row.forEach((bytes,lane)=>{if(lane!==window.__lostLane)drawStrip(ctx,bytes,window.__strip.x,window.__strip.y+lane*8*window.__strip.cell,window.__strip.cell);});
       };
       window.__paint();window.__timer=setInterval(window.__paint,100);
       window.__stream=c.captureStream(30);return window.__stream;
@@ -78,13 +86,13 @@ try{
   assert.equal(await evaluate("document.getElementById('quest-list').children.length"),7);
   assert.equal(await evaluate("document.getElementById('follow').checked"),false);
   await mkdir('artifacts',{recursive:true});
-  const screenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile('artifacts/all-zone-quests.png',Buffer.from(screenshot.data,'base64'));
+  const screenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile(artMode?'artifacts/elephant-live-synthetic.png':'artifacts/all-zone-quests.png',Buffer.from(screenshot.data,'base64'));
   // Move the full 100×80 data block to the bottom-right screen edge.
-  await evaluate("window.__strip={x:540,y:280,cell:2}");
+  await evaluate(`window.__strip={x:540,y:${artMode?224:280},cell:2}`);
   await wait(3000);
   await until("document.getElementById('status').textContent==='Live position' && parseInt(document.getElementById('quest-sync').textContent.split(' · ').at(-1))>0",'taller block reacquired at edge');
   await evaluate("document.getElementById('calibrate').click()");
-  const selection=await evaluate("(()=>{const r=document.getElementById('capture-preview').getBoundingClientRect();return {x1:r.left+538/640*r.width,y1:r.top+278/360*r.height,x2:r.right,y2:r.bottom};})()");
+  const selection=await evaluate(`(()=>{const r=document.getElementById('capture-preview').getBoundingClientRect();return {x1:r.left+538/640*r.width,y1:r.top+${artMode?222:278}/360*r.height,x2:r.right,y2:r.bottom};})()`);
   await send('Input.dispatchMouseEvent',{type:'mousePressed',x:selection.x1,y:selection.y1,button:'left',buttons:1,clickCount:1});
   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:selection.x2,y:selection.y2,button:'left',buttons:1});
   await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:selection.x2,y:selection.y2,button:'left',buttons:0,clickCount:1});
@@ -102,5 +110,5 @@ try{
   assert.equal(await evaluate("window.__stream.getTracks().every(track=>track.readyState==='ended')"),true);
   assert.equal(await evaluate("document.getElementById('quest-sync').textContent"),'');
   assert.deepEqual(errors,[]);
-  console.log('All-zone browser QA passed: actual Lua v3 packets, four simultaneous optical lanes, remote-zone pins, shared UTF-8 names, live rate/progress, complete-block edge relocation and manual calibration, removed remote zone, retained sibling zone, frozen capture, disconnect cleanup.');
+  console.log(`${artMode?'Animated elephant':'Plain strip'} browser QA passed: actual Lua v3 packets, four simultaneous quest packets, remote-zone pins, shared UTF-8 names, live rate/progress, complete-block edge relocation and manual calibration, removed remote zone, retained sibling zone, frozen capture, disconnect cleanup.`);
 }finally{socket.close();}

@@ -12,6 +12,7 @@ background:SetColorTexture(0, 0, 0, 1)
 local cells, sequence, elapsed, dragging = {}, 0, 0, false
 local auxiliary = false
 local questFrames = {}
+local art = ns.Elephant and ns.CreateArt(frame)
 for row = 1, 6 do
     cells[row] = {}
     for col = 1, 48 do
@@ -71,8 +72,12 @@ local function Layout()
     local db = AzerothLiveMapDB
     local width, height = ScreenSize()
     db.size = math.max(2, math.min(12, math.floor(Number(db.size, 2))))
-    local lanes = ns.QuestiePacket and db.fastSync and 4 or 0
-    local stripWidth, stripHeight = ns.COLUMNS * db.size, ns.ROWS * db.size * (1 + lanes)
+    local artMode = art and db.art
+    local lanes = ns.QuestiePacket and (db.fastSync and 4 or (artMode and 1 or 0)) or 0
+    local rows = artMode and (ns.Elephant.height+ns.Elephant.footerRows) or ns.ROWS*(1+lanes)
+    db.size = math.max(2,math.min(db.size,math.floor(height/rows)))
+    local stripWidth = ns.COLUMNS * db.size
+    local stripHeight = rows * db.size
     -- Stored offsets are physical pixels, independent of the game's UI scale.
     db.x = math.floor(math.max(0, math.min(math.max(0, width - stripWidth), Number(db.x, 12))) + 0.5)
     db.y = math.floor(math.max(0, math.min(math.max(0, height - stripHeight), Number(db.y, 12))) + 0.5)
@@ -80,12 +85,15 @@ local function Layout()
     frame:SetSize(stripWidth, stripHeight)
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", db.x, -db.y)
+    background:SetColorTexture(0,0,0,artMode and 0 or 1)
+    if art then art:Layout(db.size,artMode) end
     for row = 1, 6 do
         for col = 1, 48 do
             local t = cells[row][col]
+            t:SetShown(not artMode or row <= 2)
             t:SetSize(db.size, db.size)
             t:ClearAllPoints()
-            t:SetPoint("TOPLEFT", frame, "TOPLEFT", col * db.size, -row * db.size)
+            t:SetPoint("TOPLEFT", artMode and art.locator or frame, "TOPLEFT", col * db.size, -row * db.size)
             if row <= 2 then
                 local v = ns.Bit(ns.HEADER, col - 1)
                 if row == 2 then v = 1 - v end
@@ -94,7 +102,7 @@ local function Layout()
         end
     end
     for lane, data in ipairs(questFrames) do
-        data.frame:SetShown(lane <= lanes)
+        data.frame:SetShown(not artMode and lane <= lanes)
         data.frame:SetSize(stripWidth, ns.ROWS * db.size)
         data.frame:ClearAllPoints()
         data.frame:SetPoint("TOPLEFT",frame,"TOPLEFT",0,-lane * ns.ROWS * db.size)
@@ -161,8 +169,10 @@ local function Update()
     -- (0,0) is a common unavailable-position sentinel.
     if x == 0 and y == 0 then x, y = nil, nil end
     sequence = (sequence + 1) % 65536
-    local lanes = ns.QuestiePacket and AzerothLiveMapDB.fastSync and 4 or 0
-    local bytes = ns.Encode(mapID, x, y, GetPlayerFacing(), sequence, GetTime() * 1000, lanes, ns.QuestSession)
+    local artMode = art and AzerothLiveMapDB.art
+    local lanes = ns.QuestiePacket and (AzerothLiveMapDB.fastSync and 4 or (artMode and 1 or 0)) or 0
+    local bytes = ns.Encode(mapID, x, y, GetPlayerFacing(), sequence, GetTime() * 1000, lanes, ns.QuestSession, artMode)
+    local packets = {bytes}
     if ns.QuestiePacket and lanes == 0 then
         auxiliary = not auxiliary
         if auxiliary then bytes = ns.QuestiePacket(mapID, x, y, sequence, GetTime()) end
@@ -170,13 +180,15 @@ local function Update()
     for lane = 1, lanes do
         sequence = (sequence + 1) % 65536
         local packet = ns.QuestiePacket(mapID,x,y,sequence,GetTime())
-        for row = 3, 6 do
+        packets[#packets+1] = packet
+        if not artMode then for row = 3, 6 do
             for col = 1, 48 do
                 local value = ns.Bit(packet,(row-3)*48+col-1)
                 questFrames[lane].cells[row][col]:SetColorTexture(value,value,value,1)
             end
-        end
+        end end
     end
+    if artMode then art:Render(packets,GetTime()) end
     for row = 3, 6 do
         for col = 1, 48 do
             local v = ns.Bit(bytes, (row - 3) * 48 + col - 1)
@@ -195,9 +207,10 @@ frame:SetScript("OnEvent", function(_, event)
         db.size = math.max(2, math.min(12, math.floor(Number(db.size, 2))))
         if type(db.enabled) ~= "boolean" then db.enabled = true end
         if type(db.fastSync) ~= "boolean" then db.fastSync = true end
+        if type(db.art) ~= "boolean" then db.art = true end
         -- Never unexpectedly intercept clicks after a reload or a new login.
         db.locked = true
-        Tell("Position and quest sync ready. /alm sync compact for a single row, /alm unlock to move, /alm lock when finished.")
+        Tell("Position and quest sync ready. /alm art on|off for elephant/plain strip, /alm unlock to move, /alm lock when finished.")
     end
     if dragging then dragging = false; frame:StopMovingOrSizing() end
     if AzerothLiveMapDB then Layout(); Update() end
@@ -227,11 +240,15 @@ SlashCmdList.AZEROTHLIVEMAP = function(message)
     elseif command == "sync" and (arg == "fast" or arg == "compact") then
         AzerothLiveMapDB.fastSync = arg == "fast"
         Layout(); Update()
-        Tell(AzerothLiveMapDB.fastSync and "Fast quest sync: four quest rows below your position row." or "Compact sync: one row; all-zone quests take longer to arrive.")
+        Tell(AzerothLiveMapDB.fastSync and "Fast sync: four quest packets alongside your position." or "Compact sync: fewer quest packets; all-zone quests take longer to arrive.")
+    elseif command == "art" and (arg == "on" or arg == "off") then
+        AzerothLiveMapDB.art = arg == "on"
+        Layout(); Update()
+        Tell(AzerothLiveMapDB.art and "Animated elephant enabled. Keep the elephant and its short locator line visible." or "Plain data strip enabled.")
     elseif command == "size" and Number(arg, nil) then
         AzerothLiveMapDB.size = math.max(2, math.min(12, math.floor(Number(arg, 2)))); Layout()
         Tell("Data block: " .. frame:GetWidth() .. " x " .. frame:GetHeight() .. " pixels. Keep every row visible. If sharing scales it down too far, try /alm size 3 or 4.")
     else
-        Tell("/alm size 2 (2–12) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep every data row visible while sharing WoW.")
+        Tell("/alm art on|off · /alm size 2 (2–12) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep the full artwork/data block visible while sharing WoW.")
     end
 end

@@ -1,4 +1,5 @@
-import {decodeAt, decodeBlock, findStrip, Freshness} from './protocol.js';
+import {decodeAt, decodeBlock, decodeBytes, findStrip, Freshness, HEADER} from './protocol.js';
+import {artGeometry, decodeArtAt} from './art.js';
 import {loadPreferences, savePreferences} from './prefs.js';
 import {QuestFeed, QUEST_KINDS} from './quests.js';
 import {buildMapCatalog, mapViewport, hitTestMap} from './navigation.js';
@@ -18,6 +19,8 @@ let drag = null, selection = null, mapSize = {w:0,h:0};
 let viewport = null, mapChildren = [], hoveredMap = null;
 let statusOverride = null;
 let lastCaptureKey = null;
+let artAsset = null, roiArt = false;
+const artReady = fetch('./elephant-art.json').then(response=>response.ok?response.json():null).then(asset=>artAsset=asset).catch(()=>null);
 const preferences = loadPreferences();
 for (const key of ['follow','trail','grid','quests']) $(key).checked = preferences[key];
 
@@ -234,7 +237,18 @@ function readROI(rect) {
   return decodeAt(readCtx.getImageData(0, 0, 500, 80), {x:0,y:0,width:500,height:80});
 }
 
-function readDataBlock(rect) {
+function readDataBlock(rect, isArt = roiArt) {
+  if(isArt){
+    if(!artAsset)return [];
+    const box=artGeometry(rect,artAsset);
+    if(box.y<0 || box.x<0 || box.x+box.width>video.videoWidth+1 || box.y+box.height>video.videoHeight+1)return [];
+    const cell=10;
+    readCanvas.width=artAsset.width*cell;readCanvas.height=(artAsset.height+artAsset.footerRows)*cell;
+    readCtx.imageSmoothingEnabled=false;
+    readCtx.drawImage(video,box.x,box.y,box.width,box.height,0,0,readCanvas.width,readCanvas.height);
+    return decodeArtAt(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height),
+      {x:0,y:artAsset.height*cell,width:500,height:80},artAsset,decodeBytes,HEADER)?.packets||[];
+  }
   const first = readROI(rect);
   if (!first) return [];
   if (!first.questLanes) return [first];
@@ -269,8 +283,8 @@ function captureTick(now) {
       const scale = Math.min(1, 2560 / captureWidth);
       readCanvas.width = Math.round(captureWidth * scale); readCanvas.height = Math.round(captureHeight * scale);
       readCtx.drawImage(video, 0, 0, readCanvas.width, readCanvas.height);
-      const found = findStrip(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height));
-      if (found) { roi = Object.fromEntries(Object.entries(found.rect).map(([k,v]) => [k,v / scale])); acceptBlock(readDataBlock(roi), now); }
+      const found = findStrip(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height),artAsset);
+      if (found) { roiArt=Boolean(found.art);roi = Object.fromEntries(Object.entries(found.rect).map(([k,v]) => [k,v / scale])); acceptBlock(readDataBlock(roi), now); }
     }
     if ($('calibration-dialog').open) renderPreview();
   } catch { roi = null; }
@@ -303,16 +317,16 @@ preview.onpointerup = event => {
   const scale = video.videoWidth/preview.width;
   const rect = {x:Math.min(selection.x,selection.endX)*scale,y:Math.min(selection.y,selection.endY)*scale,width:Math.abs(selection.endX-selection.x)*scale,height:Math.abs(selection.endY-selection.y)*scale};
   if (rect.width < 50 || rect.height < 8) { $('calibration-result').textContent = 'Select the whole strip, including its black border.'; return; }
-  let packets = readDataBlock(rect), detectedRect=rect;
+  let packets = readDataBlock(rect,false), detectedRect=rect, detectedArt=false;
   if(!packets.length){
     // Accept a selection around the entire taller block as well as just its
     // top row. Search the crop for the original position-row header.
     readCanvas.width=Math.ceil(rect.width);readCanvas.height=Math.ceil(rect.height);
     readCtx.drawImage(video,rect.x,rect.y,rect.width,rect.height,0,0,readCanvas.width,readCanvas.height);
-    const found=findStrip(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height));
-    if(found){detectedRect={...found.rect,x:rect.x+found.rect.x,y:rect.y+found.rect.y};packets=readDataBlock(detectedRect);}
+    const found=findStrip(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height),artAsset);
+    if(found){detectedArt=Boolean(found.art);detectedRect={...found.rect,x:rect.x+found.rect.x,y:rect.y+found.rect.y};packets=readDataBlock(detectedRect,detectedArt);}
   }
-  if (packets.length) { roi=detectedRect; acceptBlock(packets,performance.now()); $('calibration-dialog').close(); }
+  if (packets.length) { roiArt=detectedArt;roi=detectedRect; acceptBlock(packets,performance.now()); $('calibration-dialog').close(); }
   else $('calibration-result').textContent = 'Could not read that selection. Include the entire black border, or try /alm size 8 in WoW.';
 };
 
@@ -454,6 +468,7 @@ if(video.requestVideoFrameCallback){
 window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(track=>track.stop());});
 
 try {
+  await artReady;
   const response=await fetch('./maps.json');if(!response.ok)throw new Error('Map catalog unavailable');
   maps=buildMapCatalog(await response.json());mapById=new Map(maps.map(map=>[map.uiMapId,map]));
   for (const [label,kinds] of [['World & continents',['cosmic','world','continent']],['Zones & cities',['zone','city']],['Battlegrounds',['battleground']]]) {

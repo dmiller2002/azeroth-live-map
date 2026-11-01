@@ -37,10 +37,13 @@ REQUIREMENTS
    ...\Interface\AddOns\AzerothLiveMap\AzerothLiveMap.toc
    ...\Interface\AddOns\AzerothLiveMap\Protocol.lua
    ...\Interface\AddOns\AzerothLiveMap\Questie.lua
+   ...\Interface\AddOns\AzerothLiveMap\Elephant.lua
+   ...\Interface\AddOns\AzerothLiveMap\Art.lua
+   ...\Interface\AddOns\AzerothLiveMap\Elephant.tga
    ...\Interface\AddOns\AzerothLiveMap\Main.lua
 
    Do not copy the whole Windows package into AddOns, and do not leave an
-   extra AzerothLiveMap folder between AddOns and those four files.
+   extra AzerothLiveMap folder between AddOns and those seven files.
 6) Start WoW. At character selection, open AddOns and enable Azeroth Live
    Map for your character. Log in, then type /alm show in game chat.
    A small black-and-white strip should appear near the upper-left corner.
@@ -81,11 +84,13 @@ to Windows startup. The local server listens only on this computer.
 /alm             Show command help.
 /alm show        Show the strip.
 /alm hide        Hide it; live tracking will stop.
-/alm size 2      Smallest cells: 100 x 80 fast block (100 x 16 compact).
-/alm sync fast   Four quest rows below the position row (default).
-/alm sync compact One small row, with slower quest sync.
+/alm size 2      Smallest artwork: 100 x 136 pixels, including locator.
+/alm art on      Animated pink elephant (default).
+/alm art off     Plain strip: 100 x 80 fast, or 100 x 16 compact at size 2.
+/alm sync fast   Four quest packets per update (default).
+/alm sync compact Fewer quest packets; slower all-zone sync.
 /alm size 3      Slightly larger strip if capture scaling makes it hard to read.
-/alm size 4      Larger block: 200 x 160 fast (200 x 32 compact).
+/alm size 4      Larger artwork: 200 x 272; plain fast is 200 x 160.
 /alm unlock      Show the drag handle and allow moving the strip.
 /alm lock        Hide the handle and let clicks pass through to the game.
 /alm reset       Restore size 2 at the top-left corner and lock the block.
@@ -94,7 +99,7 @@ The strip saves its position and locks again after login or /reload.
 
 QUESTIE OVERLAY
 --------------
-Enable Questie alongside Azeroth Live Map 0.4.0. Questie is optional and
+Enable Questie alongside Azeroth Live Map 0.5.0. Questie is optional and
 must be installed separately. Update both the addon and Companion folder
 from this package, then /reload in WoW and refresh the browser map.
 
@@ -103,7 +108,10 @@ and turn-in locations (?) sync across all Questie-generated zones. Hover
 pins for titles and objective counts; select a sidebar quest to highlight
 its locations. Questie's map filters apply even when its map is closed.
 
-Keep the entire five-row data block visible. Fast mode sends up to 40 quest
+Keep the entire elephant and its short locator line visible. Use /alm art off
+for the plain strip if game color settings affect capture. The elephant
+requires the updated companion from this package. Preview it by opening
+elephant-preview.html through the local server. Colored pixels within the elephant carry the data. Fast mode sends up to 40 quest
 packets per second, versus 2.5 in addon 0.3.0. Pins and names arrive
 progressively; the sidebar shows overall pins, zones, names, and observed
 packet rate. Browse another zone to see its received quests without moving

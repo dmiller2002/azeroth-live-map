@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   HEADER, COLS, ROWS, encodePacket, decodeBytes, decodeAt, findStrip, Freshness,
-  checksum, decodeBlock,
+  checksum, decodeBlock, bit,
 } from '../dist/protocol.js';
 import {QuestFeed} from '../dist/quests.js';
 
@@ -517,6 +517,8 @@ const ADDON_MOCK = `
   function Object:StopMovingOrSizing() self.moving=false end
   function Object:SetUserPlaced(value) self.userPlaced=value end
   function Object:SetColorTexture(r,g,b,a) self.value=r; self.color={r,g,b,a} end
+  function Object:SetTexture(path,...) self.texture=path end
+  function Object:SetTexCoord(...) self.texCoord={...} end
   function Object:CreateTexture(_,layer)
     local texture=object(self,nil,'texture'); texture.layer=layer; table.insert(self.textures,texture); return texture
   end
@@ -525,11 +527,15 @@ const ADDON_MOCK = `
   end
   function CreateFrame(kind,name,parent) return object(parent or UIParent,name,kind) end
   SlashCmdList={}
-  local function boot(saved, withQuestie)
+  local function boot(saved, withQuestie, withArt)
     AzerothLiveMapDB=saved; frames={}
     local ns={}
     assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
     if withQuestie then assert(loadfile('addon/AzerothLiveMap/Questie.lua'))('AzerothLiveMap',ns) end
+    if withArt then
+      assert(loadfile('addon/AzerothLiveMap/Elephant.lua'))('AzerothLiveMap',ns)
+      assert(loadfile('addon/AzerothLiveMap/Art.lua'))('AzerothLiveMap',ns)
+    end
     assert(loadfile('addon/AzerothLiveMap/Main.lua'))('AzerothLiveMap',ns)
     strip=assert(frames.AzerothLiveMapStrip,'named strip frame missing')
     strip.scripts.OnEvent(strip,'PLAYER_LOGIN')
@@ -554,6 +560,75 @@ const ADDON_MOCK = `
     assert(not strip.moving,'drag stop should stop movement')
   end
 `;
+
+test('animated elephant renders and decodes five actual Lua packets in every animation frame',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const {decodeArtAt}=await import('../dist/art.js');
+  const art=JSON.parse(readFileSync(new URL('../dist/elephant-art.json',import.meta.url)));
+  const rows=runLua(`${ADDON_MOCK}
+    boot(nil,true,true)
+    assert(strip.width==100 and strip.height==136,'full mascot must fit its frame')
+    assert(frames.AzerothLiveMapArt:IsShown() and frames.AzerothLiveMapLocator:IsShown())
+    for _,tick in ipairs({0,12,15,17,18,21,23,26}) do
+      now=(tick+.01)/10;strip.scripts.OnUpdate(strip,.1)
+      local a=frames.AzerothLiveMapArt
+      local index=math.floor(a.textures[1].texCoord[1]*8+.5)
+      local colors={}
+      for i=2,#a.textures do colors[#colors+1]=math.floor(a.textures[i].color[1]*255+.5) end
+      originalPrint(index..';'..table.concat(colors,','))
+    end
+    command('unlock');dragTo(1910,1070);assertPosition(1820,944)
+    command('lock');assert(not strip:IsMouseEnabled(),'art must remain click-through')
+    command('art off');assert(strip.height==80 and not frames.AzerothLiveMapArt:IsShown())
+    command('art on');assert(strip.height==136)
+    command('sync compact');assert(strip.height==136)
+    command('hide');assert(not strip:IsShown())
+    boot(AzerothLiveMapDB,true,true);assert(AzerothLiveMapDB.art and not AzerothLiveMapDB.fastSync)
+  `,'luajit').split('\n');
+  assert.equal(rows.length,8);
+  for(const [expectedFrame,row] of rows.entries()){
+    const [frameText,colorText]=row.split(';'),frame=Number(frameText),reds=colorText.split(',').map(Number);
+    assert.equal(frame,expectedFrame);assert.equal(reds.length,960);
+    const carrier=new Map(art.positions.map((position,i)=>[position,reds[i]]));
+    for(const cell of [2,2.4,3.6]){
+      const left=31,top=29,width=Math.ceil(left+50*cell+20),height=Math.ceil(top+68*cell+20);
+      const data=new Uint8ClampedArray(width*height*4);
+      for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+        let color=[57,76,64];
+        const gx=Math.floor((x+.5-left)/cell),gy=Math.floor((y+.5-top)/cell);
+        if(gx>=0&&gx<50&&gy>=0&&gy<68){
+          if(gy<64){
+            const position=gy*50+gx,base=art.palette[art.frames[frame][position]];
+            if(base[3])color=[carrier.get(position)??base[0],base[1],base[2]];
+          }else{
+            const fy=gy-64,white=gx>0&&gx<49&&((fy===1&&bit(HEADER,gx-1))||(fy===2&&!bit(HEADER,gx-1)));
+            color=white?[255,255,255]:[0,0,0];
+          }
+        }
+        const index=(y*width+x)*4;data.set([...color,255],index);
+      }
+      const image={data,width,height},rect={x:left,y:top+64*cell,width:50*cell,height:8*cell};
+      const decoded=decodeArtAt(image,rect,art,decodeBytes,HEADER);
+      assert.equal(decoded?.frame,frame,`frame ${frame} at ${cell}px`);
+      assert.equal(decoded.packets.length,5);assert.equal(decoded.packets[0].artMode,true);
+      assert.equal(decoded.packets[0].mapId,1944);close(decoded.packets[0].x,.2345);
+      const found=findStrip(image,art);assert.equal(found?.art,true,`auto-discovery frame ${frame}, ${cell}px`);
+      if(frame===0&&cell===2){
+        for(const gamma of [.9,1.1]){
+          const adjusted={...image,data:new Uint8ClampedArray(data)};
+          for(let i=0;i<adjusted.data.length;i++)if(i%4!==3)adjusted.data[i]=Math.round(255*(adjusted.data[i]/255)**gamma);
+          assert.equal(decodeArtAt(adjusted,rect,art,decodeBytes,HEADER)?.packets.length,5,`gamma ${gamma}`);
+        }
+        const damaged={...image,data:new Uint8ClampedArray(data)},position=art.positions[384];
+        const px=left+(position%50)*cell,py=top+Math.floor(position/50)*cell;
+        const opposite=2*art.palette[art.frames[frame][position]][0]-carrier.get(position);
+        for(let yy=py;yy<py+cell;yy++)for(let xx=px;xx<px+cell;xx++)damaged.data[(yy*width+xx)*4]=opposite;
+        const repaired=decodeArtAt(damaged,rect,art,decodeBytes,HEADER);
+        assert.equal(repaired?.packets.length,4,'one damaged quest packet leaves position and siblings readable');
+      }
+    }
+  }
+});
 
 test('actual tiny addon login and timer render a readable position; unavailable (0,0) clears validity', () => {
   const output = runLua(`${ADDON_MOCK}

@@ -6,7 +6,7 @@ This is a prototype. The addon targets the installed Anniversary **2.5.6.70577**
 
 ## How it works
 
-The `AzerothLiveMap` addon draws your map ID and coordinates as a small black-and-white strip near the upper-left corner of WoW. When you select **Connect WoW** in the browser, the browser asks you to share the WoW window or the monitor containing the game. The page decodes the strip locally and updates your marker.
+The `AzerothLiveMap` addon sends map/quest data through an animated pink elephant near the upper-left corner of WoW. Its colored pixels carry the packets; a short black-and-white locator sits underneath. Use `/alm art off` for the original plain strip. When you select **Connect WoW** in the browser, the browser asks you to share the WoW window or the monitor containing the game. The page decodes the strip locally and updates your marker.
 
 With **Questie** enabled, the same strip also sends quest pickups, objective locations and counts, turn-in locations, and quest titles across all zones represented by Questie’s pins for your character. Use the **Questie markers** toggle, hover a pin for details, or select a quest in the sidebar to highlight its locations. The in-game world map can stay closed.
 
@@ -37,6 +37,9 @@ Alternatively, copy `addon/AzerothLiveMap` manually, or extract the downloadable
 Interface/AddOns/AzerothLiveMap/AzerothLiveMap.toc
 Interface/AddOns/AzerothLiveMap/Protocol.lua
 Interface/AddOns/AzerothLiveMap/Questie.lua
+Interface/AddOns/AzerothLiveMap/Elephant.lua
+Interface/AddOns/AzerothLiveMap/Art.lua
+Interface/AddOns/AzerothLiveMap/Elephant.tga
 Interface/AddOns/AzerothLiveMap/Main.lua
 ```
 
@@ -83,7 +86,11 @@ The configured hosted address is **https://azeroth-live-map-dylan.spicyleaf18.ch
 
 Chromium is the recommended first browser to test on this Linux setup. Screen sharing requires a secure browser context: use `localhost` for the local server, or HTTPS for a hosted page. Open the page directly in its own browser tab if an embedded preview blocks capture. The browser requires a fresh sharing choice when starting a new capture session.
 
-Fast sync is the default: a **100 × 80 pixel** block at `/alm size 2`, with one position row and four quest rows. Keep the entire block visible in the shared game window. `/alm size 3` uses 150 × 120 pixels; `/alm size 4` uses 200 × 160. Existing saved cell sizes are preserved. Use `/alm sync compact` for a single 100 × 16 row at size 2, with slower quest transmission; `/alm sync fast` restores the four parallel quest rows.
+The default skin is your **animated pink elephant**: **100 × 136 pixels** at `/alm size 2`. It blinks, bobs, and wiggles its ears; the red bow tie and transparent silhouette follow your reference. Small red-channel variations within opaque sprite pixels carry one position and four quest packets per update. A short locator line underneath allows automatic discovery. Keep the entire elephant and locator visible. [Open the simulated animation preview](dist/elephant-preview.html).
+
+`/alm art off` switches to the original monochrome transport: 100 × 80 pixels in fast mode, or 100 × 16 with `/alm sync compact`. `/alm art on` restores the elephant. Fast artwork mode retains 40 quest packets/second; compact artwork mode carries one quest packet per update (10/s). Cell sizes 2–12 remain supported, with the largest size clamped to fit the screen. Artwork is 50 × 68 cells including its locator (size 3: 150 × 204; size 4: 200 × 272). Existing cell sizes and placement are preserved where they fit.
+
+The color-based skin needs matching addon/companion 0.5.0. Its decoder checks checksums, tries each known pose, tolerates modest gamma changes, and isolates damaged quest packets. Strong game color changes or aggressive capture compression can affect it more than the plain strip; `/alm art off` remains available. Automated capture is verified; actual in-game artwork loading, game performance, and color settings still need checking.
 
 Use `/alm unlock`, then drag the strip or the handle next to it. Use `/alm lock` afterward so clicks pass through to the game. The handle sits outside the position data and disappears when locked. The strip remembers its position, stays within the game screen, and locks automatically after login or `/reload`. `/alm reset` restores the small strip to the top-left corner.
 
@@ -99,7 +106,7 @@ Manual navigation switches off **Follow my zone** and remembers the map you sele
 
 ## Questie integration
 
-Keep Questie installed and enabled alongside **Azeroth Live Map 0.4.0**. Questie is an optional dependency; this project does not bundle or modify it. Update the companion addon and browser app together, then type `/reload` in WoW and reopen/reconnect the app. Version 0.3.0 still supplies its slower current-zone quest feed; earlier addons supply positions only.
+Keep Questie installed and enabled alongside **Azeroth Live Map 0.5.0**. Questie is an optional dependency; this project does not bundle or modify it. Update the companion addon and browser app together, then type `/reload` in WoW and reopen/reconnect the app. Version 0.4.0 supplies the original fast all-zone strip; version 0.3.0 still supplies its slower current-zone quest feed; earlier addons supply positions only.
 
 The adapter reads Questie’s generated world-map frames (`QuestieMap.questIdFrames`, `UiMapID`, percent coordinates, and `data.QuestData`/`ObjectiveData`), matching the installed Questie implementation and [upstream QuestieMap](https://github.com/Questie/Questie/blob/master/Modules/Map/QuestieMap.lua). It honors Questie’s map visibility filters without requiring its map window to be shown. Yellow **!** pins are pickups, blue diamonds are objectives, and **?** pins are turn-in locations (including incomplete turn-ins shown by Questie).
 
@@ -118,10 +125,12 @@ Quest data stays in browser memory through player zone changes and while browsin
 | `/alm` | Show help. |
 | `/alm show` | Show the position strip. |
 | `/alm hide` | Hide it; live tracking will stop. |
-| `/alm size 2` | Use the smallest cells: 100 × 80 in fast mode, 100 × 16 in compact mode. Sizes 2–12 are supported. |
-| `/alm size 3` | Use 150 × 120 in fast mode (150 × 24 in compact mode) if sharing scales it down. |
-| `/alm sync fast` | Send four quest packets per update below the position row (default). |
-| `/alm sync compact` | Use a single row, alternating position and quest packets more slowly. |
+| `/alm size 2` | Use 100 × 136 artwork, or 100 × 80 plain fast / 100 × 16 plain compact. |
+| `/alm size 3` | Use 150 × 204 artwork (150 × 120 plain fast / 150 × 24 plain compact). |
+| `/alm art on` | Show the animated elephant carrying position and quest data (default). |
+| `/alm art off` | Return to the monochrome strip. |
+| `/alm sync fast` | Send four quest packets per update alongside the position (default). |
+| `/alm sync compact` | Reduce quest traffic: one quest packet per artwork update, or alternating packets on the plain strip. |
 | `/alm unlock` | Show the drag handle and allow moving the strip. |
 | `/alm lock` | Hide the handle and let clicks pass through. |
 | `/alm reset` | Restore size 2 at the top-left corner and lock the block. |
@@ -134,7 +143,7 @@ Quest data stays in browser memory through player zone changes and while browsin
 - **No position available:** the game may not expose coordinates in that area or during a loading screen. Return to an outdoor zone to establish the initial connection.
 - **Unsupported map:** the artwork catalog covers 65 Classic and Burning Crusade zones, cities, and selected battlegrounds, plus Kalimdor, Eastern Kingdoms, Outland, Azeroth, and Worlds overviews. Dungeon interiors are not included. Coordinates should never be plotted on unrelated artwork.
 - **Map artwork does not load:** the browser needs access to `wow.zamimg.com`. This app does not bundle or claim ownership of Blizzard's map artwork.
-- **Questie markers are missing:** enable Questie and Azeroth Live Map 0.4.0, type `/reload`, refresh the companion, reconnect, and enable **Questie markers**. Check Questie’s map filters and the sidebar’s sync status. Keep all five rows visible in fast mode. All Questie-generated zones are shared; check the overall sync progress and observed packet rate.
+- **Questie markers are missing:** enable Questie and Azeroth Live Map 0.5.0, type `/reload`, refresh the companion, reconnect, and enable **Questie markers**. Check Questie’s map filters and the sidebar’s sync status. Keep the whole elephant and locator visible, or all five rows of the plain fast strip. All Questie-generated zones are shared; check the overall sync progress and observed packet rate.
 
 Use demo mode to inspect the browser interface without WoW. Demo positions are explicitly simulated; stop demo mode and connect the game to see your real location.
 
@@ -153,7 +162,11 @@ The ZIP is written to `dist/AzerothLiveMap.zip`. The position protocol has synch
 
 Four navigation tests check the complete map hierarchy, representative geographic targets, empty ocean clicks, city entrances, and hit testing after panning/zooming or resizing. Browser integration uses real mouse events during synthetic live capture to check right-click parents, left-click world/continent/zone/city selection, hover highlights, drag-versus-click, zoomed selection, breadcrumbs, Up/Backspace, saved browsing, and follow pause/resume.
 
-40 automated protocol/addon tests cover actual Lua emitter/browser interoperability, Lua 5.1 compatibility, addon rendering under mocked WoW APIs, fractional capture scaling, invalid packets, frozen feeds, tiny-strip detection at screen edges, dragging, saved placement, UI scaling, and reset. Questie checks cover filtered pins, titles, progress, complete spawn export, independent zone replacement, missing/incompatible internals, skipped/reordered fragments, checksum rejection, and actual Lua rendering of four quest rows alongside positions. All-zone checks cover 300 pins and shared titles, 20% deterministic packet loss, rotating repeats, progress-update fairness, session replacement, fractional multi-lane decoding, and damaged-row isolation. Browser integration tests use a synthetic canvas video stream through the real capture decoder and check Questie names, progress, tooltips, layer toggling, removed quests, missing/incompatible status, stale/disconnected cleanup, coordinates, reacquisition after shrinking and moving the strip, zone transitions, missing coordinates, unsupported maps, capture denial, disconnection, and responsive layout. Screenshots of demo mode are labeled simulated. The movement controls and Questie bridge still need an in-game check; complete map-art alignment coverage has not been verified. The standalone server has also been checked for port collisions, authenticated reuse, traversal and symlink escapes, hidden files, directory listings, and invalid Host headers; the installer has been checked in a temporary directory for dry runs, backups, profile preservation, and desktop entry validation.
+41 automated protocol/addon tests cover actual Lua emitter/browser interoperability, Lua 5.1 compatibility, addon rendering under mocked WoW APIs, fractional capture scaling, invalid packets, frozen feeds, tiny-strip detection at screen edges, dragging, saved placement, UI scaling, and reset. Questie checks cover filtered pins, titles, progress, complete spawn export, independent zone replacement, missing/incompatible internals, skipped/reordered fragments, checksum rejection, and actual Lua rendering of four quest rows alongside positions. All-zone checks cover 300 pins and shared titles, 20% deterministic packet loss, rotating repeats, progress-update fairness, session replacement, fractional multi-lane decoding, and damaged-row isolation. Browser integration tests use a synthetic canvas video stream through the real capture decoder and check Questie names, progress, tooltips, layer toggling, removed quests, missing/incompatible status, stale/disconnected cleanup, coordinates, reacquisition after shrinking and moving the strip, zone transitions, missing coordinates, unsupported maps, capture denial, disconnection, and responsive layout. Screenshots of demo mode are labeled simulated. The movement controls and Questie bridge still need an in-game check; complete map-art alignment coverage has not been verified. The standalone server has also been checked for port collisions, authenticated reuse, traversal and symlink escapes, hidden files, directory listings, and invalid Host headers; the installer has been checked in a temporary directory for dry runs, backups, profile preservation, and desktop entry validation.
+
+The elephant test rasterizes the actual Lua renderer in all eight poses at integer and fractional sizes, verifies five packet decoding, automatic discovery, gamma variation, damaged-packet isolation, dragging, art on/off, compact mode, and saved preferences.
+
+`scripts/quest_sync_qa.mjs --art` checks the animated transport through real browser capture, including locator discovery, all-zone quests/titles, relocation, whole-mascot manual calibration, removal, stale capture, and disconnects.
 
 `scripts/quest_sync_qa.mjs` sends actual Lua packets through a synthetic browser capture and checks remote-zone pins, names, the overall rate, complete-block relocation, remote-zone removal, retained sibling zones, frozen feeds, and disconnect cleanup.
 
@@ -169,3 +182,7 @@ World of Warcraft and its map artwork belong to **Blizzard Entertainment**. Map 
 - [Browser screen-sharing API](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia)
 
 The image URLs were checked during development. Their availability can change. Coordinate alignment with the selected images remains part of live-client validation.
+
+### Artwork source
+
+The built-in image generation tool created the eight-frame sheet from the user-supplied pink elephant reference. The saved source is `assets/elephant-idle-source.png`; the exact generation prompt is `assets/elephant-prompt.txt`. `python3 scripts/build_elephant.py` (Pillow required) packs it into `Elephant.tga`, `Elephant.lua`, `dist/elephant-art.json`, and `dist/elephant-atlas.png`. These matching assets define both the visible skin and its decoder reference; regenerate and update them together.

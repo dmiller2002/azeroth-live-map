@@ -1,3 +1,4 @@
+import {decodeArtAt} from './art.js';
 export const HEADER = [211, 145, 166, 92, 240, 43];
 export const COLS = 50, ROWS = 8;
 export const bit = (bytes, i) => (bytes[i >> 3] >> (7 - (i & 7))) & 1;
@@ -45,17 +46,17 @@ export function decodeBytes(bytes) {
     valid: Boolean(bytes[2] & 1) && u16(5) !== 0,
     sequence: u16(3), mapId: u16(5), x: u16(7) / 65535, y: u16(9) / 65535,
     facing: (bytes[2] & 2) ? u16(11) / 65535 * Math.PI * 2 : null,
-    clock: u16(13) * 65536 + u16(15), questLanes:bytes[17] <= 4 ? bytes[17] : 0, questSession:u16(18),
+    clock: u16(13) * 65536 + u16(15), questLanes:bytes[17] <= 4 ? bytes[17] : 0, questSession:u16(18), artMode:bytes[20]===225,
   };
 }
 
-export function encodePacket({mapId = 1429, x = .5, y = .5, facing = 0, sequence = 1, clock = 1000, valid = true, questLanes = 0, questSession = 0} = {}) {
+export function encodePacket({mapId = 1429, x = .5, y = .5, facing = 0, sequence = 1, clock = 1000, valid = true, questLanes = 0, questSession = 0, artMode = false} = {}) {
   const bytes = [167, 1, valid ? (facing === null ? 1 : 3) : 0];
   const put = n => { n = Math.floor(n) & 65535; bytes.push(n >> 8, n & 255); };
   put(sequence); put(valid ? mapId : 0); put(Math.round(x * 65535)); put(Math.round(y * 65535));
   put(Math.round(((facing || 0) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * 65535));
   put(Math.floor(clock / 65536)); put(clock % 65536);
-  bytes.push(questLanes, questSession>>8&255, questSession&255, 0, 0); bytes.push(...checksum(bytes));
+  bytes.push(questLanes, questSession>>8&255, questSession&255, artMode?225:0, 0); bytes.push(...checksum(bytes));
   return bytes;
 }
 
@@ -100,7 +101,7 @@ export function decodeBlock(image, rect) {
 
 // Search for the header's distinctive 11010011... run pattern, then require
 // both full sync rows AND a packet checksum. Works anywhere in a shared display.
-export function findStrip(image) {
+export function findStrip(image, art = null) {
   const runs = [];
   for (let i = 0; i < 48; i++) {
     if (i === 0 || bit(HEADER, i) !== bit(HEADER, i - 1)) runs.push(1);
@@ -129,6 +130,8 @@ export function findStrip(image) {
         if (s < 1.4) continue;
         for (const dx of [0, -.5, .5]) for (const dy of [0, -.5, .5]) {
           const rect = {x: start - s + dx, y: y - 1.5 * s + dy, width: COLS * s, height: ROWS * s};
+          const decodedArt = decodeArtAt(image,rect,art,decodeBytes,HEADER);
+          if(decodedArt)return {rect,packet:decodedArt.packets[0],art:true};
           const packet = decodeAt(image, rect);
           if (packet) return {rect, packet};
         }
