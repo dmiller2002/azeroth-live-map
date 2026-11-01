@@ -46,17 +46,17 @@ export function decodeBytes(bytes) {
     valid: Boolean(bytes[2] & 1) && u16(5) !== 0,
     sequence: u16(3), mapId: u16(5), x: u16(7) / 65535, y: u16(9) / 65535,
     facing: (bytes[2] & 2) ? u16(11) / 65535 * Math.PI * 2 : null,
-    clock: u16(13) * 65536 + u16(15), questLanes:bytes[17] <= 4 ? bytes[17] : 0, questSession:u16(18), artMode:bytes[20]===225,
+    clock: u16(13) * 65536 + u16(15), questLanes:bytes[17] <= 4 ? bytes[17] : 0, questSession:u16(18), artMode:bytes[20]===225, artEncoding:bytes[21],
   };
 }
 
-export function encodePacket({mapId = 1429, x = .5, y = .5, facing = 0, sequence = 1, clock = 1000, valid = true, questLanes = 0, questSession = 0, artMode = false} = {}) {
+export function encodePacket({mapId = 1429, x = .5, y = .5, facing = 0, sequence = 1, clock = 1000, valid = true, questLanes = 0, questSession = 0, artMode = false, artEncoding = 1} = {}) {
   const bytes = [167, 1, valid ? (facing === null ? 1 : 3) : 0];
   const put = n => { n = Math.floor(n) & 65535; bytes.push(n >> 8, n & 255); };
   put(sequence); put(valid ? mapId : 0); put(Math.round(x * 65535)); put(Math.round(y * 65535));
   put(Math.round(((facing || 0) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * 65535));
   put(Math.floor(clock / 65536)); put(clock % 65536);
-  bytes.push(questLanes, questSession>>8&255, questSession&255, artMode?225:0, 0); bytes.push(...checksum(bytes));
+  bytes.push(questLanes, questSession>>8&255, questSession&255, artMode?225:0, artMode?artEncoding:0); bytes.push(...checksum(bytes));
   return bytes;
 }
 

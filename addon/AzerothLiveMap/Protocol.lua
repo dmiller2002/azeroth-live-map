@@ -5,7 +5,8 @@ ns.COLUMNS, ns.ROWS = 50, 8
 -- 24 bytes, big endian. Monochrome bits survive gamma and color correction.
 -- Magic/version/flags, sequence:u16, map:u16, x:u16, y:u16,
 -- facing:u16, monotonicMilliseconds:u32, questLanes:u8, questSession:u16,
--- two reserved bytes, Fletcher16. Older position decoders ignore these fields.
+-- artMarker:u8, artEncoding:u8, Fletcher16. Older position decoders ignore
+-- these fields. Art encoding 0 is red-only (0.5.0), 1 is brightness (0.5.1).
 function ns.Encode(mapID, x, y, facing, sequence, milliseconds, questLanes, questSession, artMode)
     local valid = type(mapID) == "number" and type(x) == "number" and type(y) == "number"
         and mapID > 0 and mapID <= 65535 and x >= 0 and x <= 1 and y >= 0 and y <= 1
@@ -27,7 +28,7 @@ function ns.Encode(mapID, x, y, facing, sequence, milliseconds, questLanes, ques
     bytes[#bytes + 1] = questLanes or 0
     put16(questSession or 0)
     bytes[#bytes + 1] = artMode and 225 or 0
-    bytes[#bytes + 1] = 0
+    bytes[#bytes + 1] = artMode and 1 or 0
     local a, b = 0, 0
     for i = 1, #bytes do a = (a + bytes[i]) % 255; b = (b + a) % 255 end
     bytes[#bytes + 1], bytes[#bytes + 2] = a, b

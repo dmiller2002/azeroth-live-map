@@ -99,7 +99,7 @@ The strip saves its position and locks again after login or /reload.
 
 QUESTIE OVERLAY
 --------------
-Enable Questie alongside Azeroth Live Map 0.5.0. Questie is optional and
+Enable Questie alongside Azeroth Live Map 0.5.1. Questie is optional and
 must be installed separately. Update both the addon and Companion folder
 from this package, then /reload in WoW and refresh the browser map.
 
@@ -109,7 +109,10 @@ pins for titles and objective counts; select a sidebar quest to highlight
 its locations. Questie's map filters apply even when its map is closed.
 
 Keep the entire elephant and its short locator line visible. Use /alm art off
-for the plain strip if game color settings affect capture. The elephant
+for the plain strip if game color settings affect capture. If you previously
+installed 0.5.0, update both addon and companion: 0.5.1 fixes small color
+signals being lost during window-capture video conversion. Animation speed
+does not affect detection. /reload in WoW, then /alm art on and reconnect. The elephant
 requires the updated companion from this package. Preview it by opening
 elephant-preview.html through the local server. Colored pixels within the elephant carry the data. Fast mode sends up to 40 quest
 packets per second, versus 2.5 in addon 0.3.0. Pins and names arrive

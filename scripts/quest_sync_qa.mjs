@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir,writeFile} from 'node:fs/promises';
 const artMode=process.argv.includes('--art');
+const yuv420=process.argv.includes('--yuv420');
 
 const lua=`
 local ns={}; local clock=100
@@ -52,7 +53,7 @@ try{
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`
     localStorage.removeItem('azeroth-live-map.preferences.v1');
     window.__frames=${JSON.stringify(frames)};window.__index=0;
-    window.__strip={x:100,y:50,cell:2};window.__lostLane=-1;window.__artMode=${artMode};
+    window.__strip={x:100,y:50,cell:${artMode&&yuv420?2.8:2}};window.__lostLane=-1;window.__artMode=${artMode};
     navigator.mediaDevices.getDisplayMedia=async()=>{
       const {drawStrip}=await import('/protocol.js');
       const {HEADER}=await import('/protocol.js');
@@ -60,6 +61,20 @@ try{
       const art=await(await fetch('/elephant-art.json')).json();let ticks=0;
       const c=document.createElement('canvas');c.width=640;c.height=360;
       const ctx=c.getContext('2d');
+      const convertVideo=()=>{
+        const rgb=ctx.getImageData(0,0,640,360).data,uvSize=320*180,planes=new Uint8Array(640*360+2*uvSize);
+        for(let y=0;y<360;y+=2)for(let x=0;x<640;x+=2){
+          let cb=0,cr=0;
+          for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++){
+            const p=(y+dy)*640+x+dx,i=p*4,r=rgb[i],g=rgb[i+1],b=rgb[i+2],yy=.299*r+.587*g+.114*b;
+            planes[p]=Math.round(16+219/255*yy);cb+=(b-yy)/(2*(1-.114));cr+=(r-yy)/(2*(1-.299));
+          }
+          const p=y/2*320+x/2;planes[640*360+p]=Math.round(128+224/255*cb/4);planes[640*360+uvSize+p]=Math.round(128+224/255*cr/4);
+        }
+        const frame=new VideoFrame(planes,{format:'I420',codedWidth:640,codedHeight:360,timestamp:Math.floor(performance.now()*1000),
+          colorSpace:{primaries:'bt709',transfer:'bt709',matrix:'smpte170m',fullRange:false}});
+        ctx.drawImage(frame,0,0);frame.close();
+      };
       window.__paint=()=>{
         const row=window.__frames[window.__index++%window.__frames.length];
         ctx.fillStyle='#394c40';ctx.fillRect(0,0,c.width,c.height);
@@ -68,6 +83,7 @@ try{
           while(tick>=art.durations[frame]){tick-=art.durations[frame];frame++;}
           drawArtBlock(ctx,row,art,frame,window.__strip.x,window.__strip.y,window.__strip.cell,HEADER);
         }else row.forEach((bytes,lane)=>{if(lane!==window.__lostLane)drawStrip(ctx,bytes,window.__strip.x,window.__strip.y+lane*8*window.__strip.cell,window.__strip.cell);});
+        if(${yuv420})convertVideo();
       };
       window.__paint();window.__timer=setInterval(window.__paint,100);
       window.__stream=c.captureStream(30);return window.__stream;
@@ -110,5 +126,5 @@ try{
   assert.equal(await evaluate("window.__stream.getTracks().every(track=>track.readyState==='ended')"),true);
   assert.equal(await evaluate("document.getElementById('quest-sync').textContent"),'');
   assert.deepEqual(errors,[]);
-  console.log(`${artMode?'Animated elephant':'Plain strip'} browser QA passed: actual Lua v3 packets, four simultaneous quest packets, remote-zone pins, shared UTF-8 names, live rate/progress, complete-block edge relocation and manual calibration, removed remote zone, retained sibling zone, frozen capture, disconnect cleanup.`);
+  console.log(`${artMode?'Animated elephant':'Plain strip'}${yuv420?' through native I420 video conversion':''} browser QA passed: actual Lua v3 packets, four simultaneous quest packets, remote-zone pins, shared UTF-8 names, live rate/progress, complete-block edge relocation and manual calibration, removed remote zone, retained sibling zone, frozen capture, disconnect cleanup.`);
 }finally{socket.close();}

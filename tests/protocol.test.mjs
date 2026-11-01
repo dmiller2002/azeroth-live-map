@@ -235,6 +235,27 @@ function close(actual, expected, tolerance = 1 / 65535) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} should be near ${expected}`);
 }
 
+// Independent NV12-style 4:2:0 round-trip. Screen capture often keeps a luma
+// sample per pixel but shares each chroma sample across a 2×2 pixel block.
+function subsample420(image, kr=.299, kb=.114){
+  const kg=1-kr-kb,data=new Uint8ClampedArray(image.data),{width,height}=image;
+  for(let y=0;y<height;y+=2)for(let x=0;x<width;x+=2){
+    const pixels=[];let cb=0,cr=0;
+    for(let dy=0;dy<2&&y+dy<height;dy++)for(let dx=0;dx<2&&x+dx<width;dx++){
+      const index=((y+dy)*width+x+dx)*4,r=image.data[index],g=image.data[index+1],b=image.data[index+2],luma=kr*r+kg*g+kb*b;
+      pixels.push({index,luma});cb+=(b-luma)/(2*(1-kb));cr+=(r-luma)/(2*(1-kr));
+    }
+    cb=(Math.round(128+224/255*cb/pixels.length)-128)*255/224;
+    cr=(Math.round(128+224/255*cr/pixels.length)-128)*255/224;
+    for(const {index,luma} of pixels){
+      const yy=(Math.round(16+219/255*luma)-16)*255/219;
+      const r=yy+2*(1-kr)*cr,b=yy+2*(1-kb)*cb,g=(yy-kr*r-kb*b)/kg;
+      data[index]=Math.round(r);data[index+1]=Math.round(g);data[index+2]=Math.round(b);
+    }
+  }
+  return {...image,data};
+}
+
 // Independently rasterize the wire format, including antialiasing at cell edges.
 // This intentionally does not use production drawStrip or its bit helper.
 function fixture(bytes, {cell = 6, x = 31, y = 29, width = 440, height = 160, white = 255, black = 0, antialias = false, margin = 20} = {}) {
@@ -574,7 +595,7 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
       local a=frames.AzerothLiveMapArt
       local index=math.floor(a.textures[1].texCoord[1]*8+.5)
       local colors={}
-      for i=2,#a.textures do colors[#colors+1]=math.floor(a.textures[i].color[1]*255+.5) end
+      for i=2,#a.textures do for channel=1,3 do colors[#colors+1]=math.floor(a.textures[i].color[channel]*255+.5) end end
       originalPrint(index..';'..table.concat(colors,','))
     end
     command('unlock');dragTo(1910,1070);assertPosition(1820,944)
@@ -587,9 +608,9 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
   `,'luajit').split('\n');
   assert.equal(rows.length,8);
   for(const [expectedFrame,row] of rows.entries()){
-    const [frameText,colorText]=row.split(';'),frame=Number(frameText),reds=colorText.split(',').map(Number);
-    assert.equal(frame,expectedFrame);assert.equal(reds.length,960);
-    const carrier=new Map(art.positions.map((position,i)=>[position,reds[i]]));
+    const [frameText,colorText]=row.split(';'),frame=Number(frameText),rgb=colorText.split(',').map(Number);
+    assert.equal(frame,expectedFrame);assert.equal(rgb.length,960*3);
+    const carrier=new Map(art.positions.map((position,i)=>[position,rgb.slice(i*3,i*3+3)]));
     for(const cell of [2,2.4,3.6]){
       const left=31,top=29,width=Math.ceil(left+50*cell+20),height=Math.ceil(top+68*cell+20);
       const data=new Uint8ClampedArray(width*height*4);
@@ -599,7 +620,7 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
         if(gx>=0&&gx<50&&gy>=0&&gy<68){
           if(gy<64){
             const position=gy*50+gx,base=art.palette[art.frames[frame][position]];
-            if(base[3])color=[carrier.get(position)??base[0],base[1],base[2]];
+            if(base[3])color=carrier.get(position)??base.slice(0,3);
           }else{
             const fy=gy-64,white=gx>0&&gx<49&&((fy===1&&bit(HEADER,gx-1))||(fy===2&&!bit(HEADER,gx-1)));
             color=white?[255,255,255]:[0,0,0];
@@ -611,8 +632,15 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
       const decoded=decodeArtAt(image,rect,art,decodeBytes,HEADER);
       assert.equal(decoded?.frame,frame,`frame ${frame} at ${cell}px`);
       assert.equal(decoded.packets.length,5);assert.equal(decoded.packets[0].artMode,true);
+      assert.equal(decoded.packets[0].artEncoding,1);
       assert.equal(decoded.packets[0].mapId,1944);close(decoded.packets[0].x,.2345);
       const found=findStrip(image,art);assert.equal(found?.art,true,`auto-discovery frame ${frame}, ${cell}px`);
+      for(const [name,kr,kb] of [['BT.601',.299,.114],['BT.709',.2126,.0722]]){
+        const video=subsample420(image,kr,kb),received=decodeArtAt(video,rect,art,decodeBytes,HEADER);
+        assert.equal(received?.packets.length,5,`${name} 4:2:0 frame ${frame} at ${cell}px`);
+        assert.equal(received.packets[0].mapId,1944);close(received.packets[0].x,.2345);
+        assert.equal(findStrip(video,art)?.packet.mapId,1944,`${name} auto-discovery`);
+      }
       if(frame===0&&cell===2){
         for(const gamma of [.9,1.1]){
           const adjusted={...image,data:new Uint8ClampedArray(data)};
@@ -621,8 +649,9 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
         }
         const damaged={...image,data:new Uint8ClampedArray(data)},position=art.positions[384];
         const px=left+(position%50)*cell,py=top+Math.floor(position/50)*cell;
-        const opposite=2*art.palette[art.frames[frame][position]][0]-carrier.get(position);
-        for(let yy=py;yy<py+cell;yy++)for(let xx=px;xx<px+cell;xx++)damaged.data[(yy*width+xx)*4]=opposite;
+        const base=art.palette[art.frames[frame][position]].slice(0,3).map(value=>Math.max(48,Math.min(207,value)));
+        const opposite=base.map((value,i)=>2*value-carrier.get(position)[i]);
+        for(let yy=py;yy<py+cell;yy++)for(let xx=px;xx<px+cell;xx++)damaged.data.set(opposite,(yy*width+xx)*4);
         const repaired=decodeArtAt(damaged,rect,art,decodeBytes,HEADER);
         assert.equal(repaired?.packets.length,4,'one damaged quest packet leaves position and siblings readable');
       }

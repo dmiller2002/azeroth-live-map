@@ -47,7 +47,13 @@ function ns.CreateArt(parent)
             if packet then
                 local color = asset.palette[colors[position+1]+1]
                 local bit = ns.Bit(packet,(i-1)%192)
-                texture:SetColorTexture((color[1]+(bit == 1 and asset.delta or -asset.delta))/255,color[2]/255,color[3]/255,1)
+                -- A brightness change survives NV12/YUV420 capture; red-only
+                -- modulation is blurred by chroma subsampling. Reserve gamut
+                -- headroom so conversion does not clip the darkest carriers.
+                local delta = bit == 1 and asset.delta or -asset.delta
+                texture:SetColorTexture((math.max(48,math.min(207,color[1]))+delta)/255,
+                    (math.max(48,math.min(207,color[2]))+delta)/255,
+                    (math.max(48,math.min(207,color[3]))+delta)/255,1)
             end
         end
     end
