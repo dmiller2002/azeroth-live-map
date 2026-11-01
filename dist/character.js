@@ -1,3 +1,4 @@
+import {RecordFeed} from './record-feed.js';
 import {getItemDetails, createEquipmentTooltip} from './equipment-tooltip.js';
 import {createCharacterModel} from './character-model.js';
 
@@ -10,34 +11,8 @@ const RACES = {1:'Human',2:'Orc',3:'Dwarf',4:'Night Elf',5:'Undead',6:'Tauren',7
 const QUALITY = ['#adb2b2','#ededdf','#7ce06e','#6baaff','#c29aff','#ffbd70','#ead28a','#ead28a'];
 const POWER = {0:'Mana',1:'Rage',2:'Focus',3:'Energy',6:'Runic power'};
 
-export class CharacterFeed {
-  constructor(){this.reset();}
-  reset(){this.records=new Map();this.sequences=new Set();this.sequenceQueue=[];this.receivedAt=-Infinity;this.session=null;this.version=0;}
-  accept(packet,now){
-    if(packet.type!=='character' || this.sequences.has(packet.sequence))return false;
-    if(this.session!==null && packet.session!==this.session)return false;
-    this.session=packet.session;
-    const key=packet.kind===3?`stats:${packet.index}`:packet.index;
-    let record=this.records.get(key);
-    if(record && record.generation!==packet.generation){
-      if((packet.generation-record.generation+65536)%65536>32768)return false;
-      record=null;
-    }
-    if(!record){record={generation:packet.generation,parts:new Map(),final:null,info:null,text:null};this.records.set(key,record);}
-    if(packet.kind===2){
-      record.parts.set(packet.fragment,packet.textBytes);
-      if(packet.final)record.final=packet.fragment;
-      if(record.final!==null){
-        const bytes=[];
-        for(let i=0;i<=record.final;i++){if(!record.parts.has(i))break;bytes.push(...record.parts.get(i));
-          if(i===record.final){const end=bytes.indexOf(0);record.text=new TextDecoder().decode(new Uint8Array(end<0?bytes:bytes.slice(0,end)));}}
-      }
-    }else record.info=packet;
-    this.sequences.add(packet.sequence);this.sequenceQueue.push(packet.sequence);
-    if(this.sequenceQueue.length>512)this.sequences.delete(this.sequenceQueue.shift());
-    this.receivedAt=now;this.version++;return true;
-  }
-  isFresh(now){return now-this.receivedAt<6000;}
+export class CharacterFeed extends RecordFeed {
+  constructor(){super('character');}
   get identity(){return this.records.get(0);}
   slot(index){return this.records.get(index);}
 }

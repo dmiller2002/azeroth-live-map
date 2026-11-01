@@ -181,6 +181,10 @@ try {
   await reload({ignoreCache: true}, 'preferences restored after reload');
   assert.equal(await evaluate("document.getElementById('tab-character').getAttribute('aria-selected')"),'true','selected Character tab is remembered');
   assert.equal(await evaluate("document.getElementById('map-view').hidden"),true);
+  await evaluate("document.getElementById('tab-bags').click()");
+  await reload({ignoreCache: true}, 'Bags tab restored after reload');
+  assert.equal(await evaluate("document.getElementById('tab-bags').getAttribute('aria-selected')"),'true','selected Bags tab is remembered');
+  assert.match(await evaluate("document.getElementById('bags-status').textContent"),/Connect WoW/);
   await evaluate("document.getElementById('tab-map').click()");
   assert.deepEqual(await readPrefs(), wantedPrefs);
   assert.equal(await evaluate("document.getElementById('status').textContent"), 'Not connected');

@@ -18,6 +18,10 @@ local function AuxiliaryPacket(mapID, x, y, sequence, now)
         local packet = ns.CharacterPacket(sequence, now)
         if packet then return packet end
     end
+    if ns.BagPacket and auxiliaryCount % 4 == 2 then
+        local packet = ns.BagPacket(sequence, now)
+        if packet then return packet end
+    end
     return ns.QuestiePacket(mapID, x, y, sequence, now)
 end
 local pendingMinimap = nil
@@ -228,7 +232,14 @@ frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("UI_SCALE_CHANGED")
 frame:RegisterEvent("DISPLAY_SIZE_CHANGED")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+frame:RegisterEvent("BAG_UPDATE_DELAYED")
+frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 frame:SetScript("OnEvent", function(_, event)
+    if event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED" or event == "GET_ITEM_INFO_RECEIVED" then
+        if ns.InvalidateBags then ns.InvalidateBags() end
+        return
+    end
     if event == "PLAYER_REGEN_ENABLED" then
         if pendingMinimap ~= nil then ApplyMinimap(pendingMinimap,true) end
         return

@@ -14,6 +14,18 @@ export function decodeBytes(bytes) {
   const [a, b] = checksum(bytes.slice(0, 22));
   if (bytes[22] !== a || bytes[23] !== b) return null;
   const u16 = i => bytes[i] * 256 + bytes[i + 1];
+  if (bytes[1] === 5) {
+    const kind=bytes[2],index=u16(9),descriptor=index>=512 && index<=516,slot=index>=1 && index<=320;
+    const base={type:'bags',version:5,kind,sequence:u16(3),session:u16(5),generation:u16(7),index};
+    const u24=i=>bytes[i]*65536+u16(i+1);
+    if(kind===0 && descriptor && bytes[11]<=64 && (bytes[15]<=7 || bytes[15]===255))
+      return {...base,bag:index-512,slotCount:bytes[11],itemId:u24(12),quality:bytes[15]===255?null:bytes[15],epoch:u16(16)};
+    if(kind===1 && slot && (bytes[16]<=7 || bytes[16]===255) && (u24(11)?u16(14)>0:u16(14)===0))
+      return {...base,bag:Math.floor((index-1)/64),slot:(index-1)%64+1,itemId:u24(11),count:u16(14),quality:bytes[16]===255?null:bytes[16],itemLevel:u16(17),epoch:u16(19)};
+    if(kind===2 && (descriptor || slot) && (bytes[11]&127)<10)
+      return {...base,fragment:bytes[11]&127,final:Boolean(bytes[11]&128),textBytes:Array.from(bytes.slice(12,22))};
+    return null;
+  }
   if (bytes[1] === 4) {
     const kind=bytes[2], index=u16(9), base={type:'character',version:4,kind,sequence:u16(3),session:u16(5),generation:u16(7),index};
     const u24=i=>bytes[i]*65536+u16(i+1);
@@ -107,7 +119,7 @@ export function decodeBlock(image, rect) {
   const packets=[first];
   for(let lane=1;lane<=(first.questLanes||0);lane++) {
     const packet=decodeAt(image,{...rect,y:rect.y+rect.height*lane});
-    if(packet?.type==='quest' || packet?.type==='character')packets.push(packet);
+    if(packet?.type==='quest' || packet?.type==='character' || packet?.type==='bags')packets.push(packet);
   }
   return packets;
 }

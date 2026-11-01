@@ -5,6 +5,7 @@ import {QuestFeed, QUEST_KINDS, questColor} from './quests.js';
 import {buildMapCatalog, mapViewport, hitTestMap} from './navigation.js';
 import {CharacterFeed, createCharacterPanel} from './character.js';
 import {createTabs} from './tabs.js';
+import {BagFeed,createBagsPanel} from './bags.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('map'), ctx = canvas.getContext('2d');
@@ -14,6 +15,7 @@ const preview = $('capture-preview'), previewCtx = preview.getContext('2d');
 const freshness = new Freshness();
 const questFeed = new QuestFeed();
 const characterFeed = new CharacterFeed(), characterPanel = createCharacterPanel(characterFeed);
+const bagFeed = new BagFeed(), bagsPanel = createBagsPanel(bagFeed);
 let questPins = [], questListKey = '', focusedQuest = null;
 let maps = [], mapById = new Map(), selected = 1429, image = null, imageRequest = 0;
 let stream = null, roi = null, captureWidth = 0, captureHeight = 0, failures = 0, nextSearch = 0;
@@ -40,6 +42,7 @@ $('toggle-controls').onclick = () => setMapOnly(!document.body.classList.contain
 $('quick-connect').onclick = () => $('connect').click();
 createTabs(view=>{
   characterPanel.hideTooltip();
+  bagsPanel.hideTooltip();
   $('quest-tooltip').hidden=true;$('area-tooltip').hidden=true;
   if(view==='map')requestAnimationFrame(draw);
 });
@@ -121,8 +124,12 @@ function accept(packet, now, simulated = false) {
     if(last && packet.session===last.questSession)characterFeed.accept(packet,now);
     return;
   }
+  if (packet.type === 'bags') {
+    if(last && packet.session===last.questSession)bagFeed.accept(packet,now);
+    return;
+  }
   if (!freshness.accept(packet, now)) return;
-  if(last && packet.questSession!==last.questSession){questFeed.reset();characterFeed.reset();focusedQuest=null;}
+  if(last && packet.questSession!==last.questSession){questFeed.reset();characterFeed.reset();bagFeed.reset();focusedQuest=null;}
   if (last && packet.mapId !== last.mapId) focusedQuest = null;
   last = packet;
   if (!packet.valid) { trail = []; draw(); return; }
@@ -141,6 +148,7 @@ function accept(packet, now, simulated = false) {
 function tickStatus(now) {
   const fresh = freshness.isFresh(now);
   characterPanel.update(now,{connected:Boolean(stream),fresh,demo});
+  bagsPanel.update(now,{connected:Boolean(stream),fresh,demo});
   if (demo) {
     $('mode-badge').textContent = 'DEMO · SIMULATED POSITION'; $('mode-badge').className = 'map-badge demo';
     $('updated').textContent = 'Simulated data · not connected to WoW';
@@ -226,7 +234,7 @@ function updateQuests(now) {
 function resetPosition() {
   freshness.reset(); last = null; trail = [];
   lastCaptureKey = null;
-  questFeed.reset(); characterFeed.reset(); focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true;
+  questFeed.reset(); characterFeed.reset(); bagFeed.reset(); focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true;
   $('location').textContent = 'Waiting for your character'; $('coord-x').textContent = $('coord-y').textContent = '—';
   $('updated').textContent = 'No position received'; updateQuests(performance.now()); draw();
 }

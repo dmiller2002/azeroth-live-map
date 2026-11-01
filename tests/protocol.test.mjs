@@ -548,7 +548,7 @@ const ADDON_MOCK = `
   end
   function CreateFrame(kind,name,parent) return object(parent or UIParent,name,kind) end
   SlashCmdList={}
-  local function boot(saved, withQuestie, withArt, withCharacter)
+  local function boot(saved, withQuestie, withArt, withCharacter, withBags)
     AzerothLiveMapDB=saved; frames={}
     local ns={}
     assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
@@ -556,6 +556,10 @@ const ADDON_MOCK = `
     if withCharacter then
       assert(loadfile('addon/AzerothLiveMap/Character.lua'))('AzerothLiveMap',ns)
       assert(loadfile('tests/fixtures/character.lua'))()
+    end
+    if withBags then
+      assert(loadfile('addon/AzerothLiveMap/Bags.lua'))('AzerothLiveMap',ns)
+      assert(loadfile('tests/fixtures/bags.lua'))()
     end
     if withArt then
       assert(loadfile('addon/AzerothLiveMap/Elephant.lua'))('AzerothLiveMap',ns)
@@ -882,4 +886,29 @@ test('the full addon shares existing fast and compact lanes between character an
   assert.ok(compact.some(p=>p.type==='character'));
   assert.ok(compact.some(p=>p.type==='quest'));
   assert.ok(compact.some(p=>!p.type && p.questLanes===0));
+});
+
+test('bag, character and quest packets all retain bandwidth beside the position heartbeat',()=>{
+  const output=runLua(`${ADDON_MOCK}
+    boot(nil,true,false,true,true)
+    local function dump(f)
+      local bits={};for j=98,#f.textures do bits[#bits+1]=f.textures[j].value end
+      originalPrint(table.concat(bits,''))
+    end
+    for i=1,20 do
+      now=10+i*.1;strip.scripts.OnUpdate(strip,.1);dump(strip)
+      for _,child in ipairs(strip.children) do if child.kind=='Frame' and #child.textures==289 and child:IsShown() then dump(child) end end
+    end
+    command('sync compact')
+    for i=1,100 do now=20+i*.1;strip.scripts.OnUpdate(strip,.1);dump(strip) end
+    event('BAG_UPDATE_DELAYED');event('GET_ITEM_INFO_RECEIVED')
+  `,'luajit');
+  const packets=output.split('\n').map(row=>decodeBytes(row.match(/.{8}/g).map(bits=>parseInt(bits,2))));
+  assert.ok(packets.every(Boolean));
+  const fast=packets.slice(0,100),compact=packets.slice(100);
+  assert.equal(fast.filter(p=>p.type==='character').length,20);
+  assert.equal(fast.filter(p=>p.type==='bags').length,20);
+  assert.equal(fast.filter(p=>p.type==='quest').length,40);
+  assert.equal(fast.filter(p=>!p.type).length,20);
+  for(const type of ['bags','character','quest'])assert.ok(compact.some(p=>p.type===type),type+' remains available in compact mode');
 });

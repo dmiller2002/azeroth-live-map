@@ -1,8 +1,8 @@
 // Only the public app shell is cached. Never store captures or live positions.
-const CACHE = 'azeroth-live-map-shell-v15';
+const CACHE = 'azeroth-live-map-shell-v16';
 const ROOT = new URL('./', self.location.href);
 const SHELL = ['index.html','style.css','app.js','tabs.js','navigation.js','protocol.js','art.js','elephant-art.json','quests.js','character.js','character-model.js','item-models.json','equipment-tooltip.js','prefs.js','companion.js',
-  'maps.json','icon.svg','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png'];
+  'bags.js','record-feed.js','maps.json','icon.svg','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png'];
 const URLS = SHELL.map(path => new URL(path, ROOT).href);
 const INDEX = new URL('index.html', ROOT).href;
 

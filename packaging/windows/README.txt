@@ -201,3 +201,10 @@ Blizzard approval is claimed.
 
 Screen-sharing permission documentation:
 https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia
+
+BAGS TAB (ADDON 0.7.0)
+---------------------
+Open Bags to see your backpack and four equipped bags, quantities, free slots,
+and item details. Update both addon and companion, /reload in WoW, refresh the
+app, and reconnect. Bag contents sync while browsing any tab. Bank storage and
+the keyring are not included. Live inventory is not saved between connections.

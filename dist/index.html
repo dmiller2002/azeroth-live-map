@@ -59,6 +59,7 @@
     <nav id="app-tabs" class="app-tabs" role="tablist" aria-label="App views">
       <button id="tab-map" role="tab" data-view="map" aria-controls="map-view" aria-selected="true">Map</button>
       <button id="tab-character" role="tab" data-view="character" aria-controls="character-panel" aria-selected="false" tabindex="-1">Character</button>
+      <button id="tab-bags" role="tab" data-view="bags" aria-controls="bags-view" aria-selected="false" tabindex="-1">Bags</button>
       <button id="tab-updates" role="tab" data-view="updates" aria-controls="updates-view" aria-selected="false" tabindex="-1">Updates</button>
     </nav>
     <div id="quick-connection" class="quick-connection" hidden>
@@ -124,12 +125,19 @@
     </div>
     </div>
   </section>
+    <section id="bags-view" class="bags-view" role="tabpanel" aria-labelledby="tab-bags" tabindex="0" hidden>
+      <div class="eyebrow">YOUR INVENTORY · BACKPACK & BAGS</div>
+      <div class="bags-heading"><div><h1>Bags</h1><p id="bags-summary">Your backpack and four equipped bags</p></div><label class="bags-empty-toggle"><input id="bags-show-empty" type="checkbox" checked> Show empty slots</label></div>
+      <p id="bags-status" class="character-status" role="status">Connect WoW to sync your backpack and equipped bags.</p>
+      <div id="bags-grid" class="bags-grid"></div>
+      <p class="character-note">Hover or focus an item for details. Stack counts and contents sync from WoW. On touch screens, tap once for details and again to open Wowhead.</p>
+    </section>
     <section id="updates-view" class="updates-view" role="tabpanel" aria-labelledby="tab-updates" tabindex="0" hidden>
       <div class="eyebrow">AZEROTH LIVE ATLAS · LATEST IMPROVEMENTS</div>
       <h1>What’s new</h1>
       <p class="updates-intro">Your companion is growing. Find new features and improvements here as they arrive.</p>
       <div class="updates-grid">
-        <article class="update-card"><span class="update-tag">NAVIGATION</span><h2>A place for every view</h2><p>Switch between your map, character, and updates with the tabs above. Your WoW connection keeps running while you browse.</p></article>
+        <article class="update-card"><span class="update-tag">BAGS · ADDON 0.7.0</span><h2>Your inventory beside you</h2><p>See your backpack and four equipped bags, item icons, stack counts, free slots, and item details. Your WoW connection keeps running while you browse.</p></article>
         <article class="update-card"><span class="update-tag">CHARACTER · ADDON 0.6.0</span><h2>Your gear, at a glance</h2><p>See your character in 3D, all 19 equipment slots, quality colors, and core attributes. Hover an item for its stats, requirements, effects, and live durability.</p></article>
         <article class="update-card"><span class="update-tag">QUEST TRACKING</span><h2>Follow the color</h2><p>Quest pins match their sidebar colors across zones. Select a quest to highlight its locations, and browse areas with left-click and right-click.</p></article>
       </div>
@@ -146,7 +154,7 @@
     <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Move this app to your other monitor. A new session needs a fresh sharing choice.</p></li>
   </ol>
   <div class="note">If the tiny strip is hard to read, try <code>/alm size 3</code> or <code>/alm size 4</code>. Use <code>/alm show</code> if hidden or <code>/alm reset</code> to return it to the top-left. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
-  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.6.1 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four data packets at once, shared by quests and character equipment; overall quest progress and packet rate appear in the sidebar. Use the Character tab for equipment and attributes. Initial sync depends on total data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
+  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.7.0 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four data packets at once, shared by quests, character equipment, and bag contents; overall quest progress and packet rate appear in the sidebar. Use Character for equipment and attributes, and Bags for your inventory. Initial sync depends on total data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
 </dialog>
 <dialog id="minimap-dialog" aria-labelledby="minimap-heading">
   <button class="dialog-close" id="close-minimap" aria-label="Close minimap commands">×</button>

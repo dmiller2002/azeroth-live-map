@@ -41,8 +41,8 @@ export function itemDescription(html){
   return result;
 }
 
-export function createEquipmentTooltip(){
-  const tooltip=document.createElement('div');tooltip.id='equipment-tooltip';tooltip.className='equipment-tooltip';tooltip.role='tooltip';tooltip.hidden=true;
+export function createEquipmentTooltip({id='equipment-tooltip'}={}){
+  const tooltip=document.createElement('div');tooltip.id=id;tooltip.className='equipment-tooltip';tooltip.role='tooltip';tooltip.hidden=true;
   document.body.append(tooltip);
   let active=null,key='',token=0,timer=null,touch=false;
   const cancel=()=>{clearTimeout(timer);timer=null;};
@@ -63,7 +63,7 @@ export function createEquipmentTooltip(){
     const request=++token;
     tooltip.replaceChildren();tooltip.style.setProperty('--item-color',entry.link.style.getPropertyValue('--item-color'));
     const name=document.createElement('strong');name.className='equipment-tooltip-name';name.textContent=data.name;
-    const summary=document.createElement('div');summary.className='equipment-tooltip-summary';summary.textContent=`${data.slot}${data.itemLevel?' · Item level '+data.itemLevel:''}`;
+    const summary=document.createElement('div');summary.className='equipment-tooltip-summary';summary.textContent=`${data.slot}${data.count?' · Quantity '+data.count:''}${data.itemLevel?' · Item level '+data.itemLevel:''}`;
     const body=document.createElement('div');body.className='equipment-tooltip-body';body.textContent='Loading item details…';
     const durability=document.createElement('div');durability.className='equipment-tooltip-durability';
     if(data.maxDurability)durability.textContent=`Durability ${data.durability} / ${data.maxDurability}`;
