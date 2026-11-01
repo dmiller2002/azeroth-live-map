@@ -42,7 +42,7 @@ export class CharacterFeed {
 }
 
 export function createCharacterPanel(feed){
-  const $=id=>document.getElementById(id),panel=$('character-panel'),slots=new Map();
+  const $=id=>document.getElementById(id),slots=new Map();
   const tooltip=createEquipmentTooltip();
   const columns=[['equipment-left',[1,2,3,15,5,4,19,9]],['equipment-right',[10,6,7,8,11,12,13,14]],['equipment-weapons',[16,17,18]]];
   for(const [container,indices] of columns)for(const index of indices){
@@ -55,16 +55,7 @@ export function createCharacterPanel(feed){
     const entry={link,icon,name,itemId:null};slots.set(index,entry);tooltip.watch(entry);
   }
   let lastKey='';
-  function setOpen(open,focus=true){
-    if(!open)tooltip.hide();
-    panel.hidden=!open;document.body.classList.toggle('character-open',open);
-    $('toggle-character').setAttribute('aria-expanded',String(open));
-    if(focus)(open?$('close-character'):$('toggle-character')).focus();
-  }
-  $('toggle-character').onclick=()=>setOpen(panel.hidden);
-  $('close-character').onclick=()=>setOpen(false);
-  panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();setOpen(false);}});
-  return {update(now,{connected,fresh,demo}){
+  return {hideTooltip:()=>tooltip.hide(),update(now,{connected,fresh,demo}){
     const available=connected && fresh && !demo && feed.isFresh(now);
     let state=demo?'Connect WoW to see your real character.':!connected?'Connect WoW to sync your character and equipment.':!fresh?'Signal paused. Character data is hidden until live capture resumes.':!feed.isFresh(now)?'Waiting for character data. Requires addon 0.6.0; /reload after updating.':!feed.identity?.info?'Syncing character details…':'Live character · equipment updates automatically';
     $('character-status').textContent=state;

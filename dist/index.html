@@ -50,21 +50,27 @@
     <div class="app-toolbar">
       <span id="app-mode">SECOND-SCREEN COMPANION</span>
       <div class="toolbar-actions">
-        <button id="toggle-character" class="toolbar-button" aria-controls="character-panel" aria-expanded="false">Character</button>
         <button id="wow-minimap" class="toolbar-button" aria-haspopup="dialog">WoW minimap</button>
         <button id="install-app" class="toolbar-button">Open as an app <span aria-hidden="true">↗</span></button>
+        <button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
         <button id="toggle-controls" class="toolbar-button" aria-controls="controls-panel" aria-expanded="true">Hide controls</button>
       </div>
     </div>
-    <header>
-      <div><div class="eyebrow" id="map-type">EASTERN KINGDOMS · ZONE MAP</div><h1 id="map-title">Elwynn Forest</h1></div>
-      <div class="header-actions"><label class="sr-only" for="zone">Browse a map</label><select id="zone" aria-label="Browse a map"></select><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></div>
-    </header>
+    <nav id="app-tabs" class="app-tabs" role="tablist" aria-label="App views">
+      <button id="tab-map" role="tab" data-view="map" aria-controls="map-view" aria-selected="true">Map</button>
+      <button id="tab-character" role="tab" data-view="character" aria-controls="character-panel" aria-selected="false" tabindex="-1">Character</button>
+      <button id="tab-updates" role="tab" data-view="updates" aria-controls="updates-view" aria-selected="false" tabindex="-1">Updates</button>
+    </nav>
     <div id="quick-connection" class="quick-connection" hidden>
       <span class="quick-signal"><span id="quick-status-dot" class="dot"></span><span id="quick-status">Not connected</span></span>
       <span id="quick-coordinates">X — · Y —</span>
       <button id="quick-connect">Connect WoW ↗</button>
     </div>
+    <section id="map-view" class="map-view" role="tabpanel" aria-labelledby="tab-map" tabindex="0">
+    <header>
+      <div><div class="eyebrow" id="map-type">EASTERN KINGDOMS · ZONE MAP</div><h1 id="map-title">Elwynn Forest</h1></div>
+      <div class="header-actions"><label class="sr-only" for="zone">Browse a map</label><select id="zone" aria-label="Browse a map"></select></div>
+    </header>
     <div class="map-navigation">
       <button id="map-up" aria-label="Go up one map level" title="Go up one map level (right-click or Backspace)">↑ Up</button>
       <nav id="map-path" aria-label="Map hierarchy"></nav>
@@ -79,12 +85,14 @@
       <div class="map-bottom"><span id="map-hint">Connect WoW to see your character here</span><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit" aria-label="Fit map" title="Fit map">⌖</button></div></div>
     </div>
     <footer><span><i class="legend-dot"></i> You <span class="trail-legend">―</span> Recent trail</span><span>Map art © Blizzard Entertainment · <a href="https://www.wowhead.com/tbc" target="_blank" rel="noreferrer">Wowhead</a></span></footer>
-  </main>
-  <section id="character-panel" class="character-panel" aria-labelledby="character-name" hidden>
-    <div class="character-panel-top"><span class="eyebrow">CHARACTER · EQUIPMENT</span><button id="close-character" aria-label="Close character panel">×</button></div>
+    </section>
+  <section id="character-panel" class="character-panel" role="tabpanel" aria-labelledby="tab-character" tabindex="0" hidden>
+    <div class="eyebrow">YOUR ADVENTURER · EQUIPMENT & ATTRIBUTES</div>
     <h2 id="character-name">Your character</h2>
     <p id="character-subtitle" class="character-subtitle">Equipment & attributes</p>
     <p id="character-status" class="character-status" role="status">Connect WoW to sync your character and equipment.</p>
+    <div class="character-layout">
+    <div class="character-equipment">
     <div class="paper-doll">
       <div id="equipment-left" class="equipment-column"></div>
       <div class="equipment-silhouette" aria-hidden="true"><svg viewBox="0 0 80 300"><circle cx="40" cy="42" r="16"/><path d="M19 69 Q40 57 61 69 L73 142 L61 147 L52 105 L54 172 L63 260 L45 260 L40 187 L35 260 L17 260 L26 172 L28 105 L19 147 L7 142 Z"/></svg></div>
@@ -92,6 +100,8 @@
       <div id="equipment-weapons" class="equipment-weapons"></div>
     </div>
     <p id="character-gear-count" class="character-gear-count">Waiting for equipment</p>
+    </div>
+    <div class="character-attributes">
     <div class="eyebrow character-stats-heading">ATTRIBUTES</div>
     <dl class="character-stats">
       <div><dt>Strength</dt><dd id="stat-strength">—</dd></div><div><dt>Agility</dt><dd id="stat-agility">—</dd></div>
@@ -100,7 +110,21 @@
       <div><dt>Max health</dt><dd id="stat-health">—</dd></div><div><dt id="stat-power-label">Power</dt><dd id="stat-power">—</dd></div>
     </dl>
     <p class="character-note">Hover or focus an item for stats and effects. On touch screens, tap once for details and again to open Wowhead. Item descriptions and icons load from Wowhead; names, item level and durability sync from WoW.</p>
+    </div>
+    </div>
   </section>
+    <section id="updates-view" class="updates-view" role="tabpanel" aria-labelledby="tab-updates" tabindex="0" hidden>
+      <div class="eyebrow">AZEROTH LIVE ATLAS · LATEST IMPROVEMENTS</div>
+      <h1>What’s new</h1>
+      <p class="updates-intro">Your companion is growing. Find new features and improvements here as they arrive.</p>
+      <div class="updates-grid">
+        <article class="update-card"><span class="update-tag">NAVIGATION</span><h2>A place for every view</h2><p>Switch between your map, character, and updates with the tabs above. Your WoW connection keeps running while you browse.</p></article>
+        <article class="update-card"><span class="update-tag">CHARACTER · ADDON 0.6.0</span><h2>Your gear, at a glance</h2><p>See all 19 equipment slots, quality colors, and core attributes. Hover an item for its stats, requirements, effects, and live durability.</p></article>
+        <article class="update-card"><span class="update-tag">QUEST TRACKING</span><h2>Follow the color</h2><p>Quest pins match their sidebar colors across zones. Select a quest to highlight its locations, and browse areas with left-click and right-click.</p></article>
+      </div>
+      <div class="updates-next"><span class="eyebrow">MORE TO COME</span><p>Future additions will have their own place here alongside Map and Character.</p></div>
+    </section>
+  </main>
 </div>
 <dialog id="setup-dialog">
   <button class="dialog-close" id="close-setup" aria-label="Close setup">×</button>
@@ -111,7 +135,7 @@
     <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Move this app to your other monitor. A new session needs a fresh sharing choice.</p></li>
   </ol>
   <div class="note">If the tiny strip is hard to read, try <code>/alm size 3</code> or <code>/alm size 4</code>. Use <code>/alm show</code> if hidden or <code>/alm reset</code> to return it to the top-left. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
-  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.6.0 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four data packets at once, shared by quests and character equipment; overall quest progress and packet rate appear in the sidebar. Use Character in the toolbar for equipment and attributes. Initial sync depends on total data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
+  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.6.0 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four data packets at once, shared by quests and character equipment; overall quest progress and packet rate appear in the sidebar. Use the Character tab for equipment and attributes. Initial sync depends on total data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
 </dialog>
 <dialog id="minimap-dialog" aria-labelledby="minimap-heading">
   <button class="dialog-close" id="close-minimap" aria-label="Close minimap commands">×</button>

@@ -4,6 +4,7 @@ import {loadPreferences, savePreferences} from './prefs.js';
 import {QuestFeed, QUEST_KINDS, questColor} from './quests.js';
 import {buildMapCatalog, mapViewport, hitTestMap} from './navigation.js';
 import {CharacterFeed, createCharacterPanel} from './character.js';
+import {createTabs} from './tabs.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('map'), ctx = canvas.getContext('2d');
@@ -37,6 +38,11 @@ function setMapOnly(enabled, save = true) {
 setMapOnly(preferences.mapOnly, false);
 $('toggle-controls').onclick = () => setMapOnly(!document.body.classList.contains('map-only'));
 $('quick-connect').onclick = () => $('connect').click();
+createTabs(view=>{
+  characterPanel.hideTooltip();
+  $('quest-tooltip').hidden=true;$('area-tooltip').hidden=true;
+  if(view==='map')requestAnimationFrame(draw);
+});
 $('wow-minimap').onclick = () => { $('minimap-copy-status').textContent='';$('minimap-dialog').showModal(); };
 $('close-minimap').onclick = () => $('minimap-dialog').close();
 for(const action of ['hide','show']){

@@ -105,7 +105,7 @@ const assertNoStoredPosition = async () => {
 
 let offline = false;
 try {
-  await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable');
+  await send('Runtime.enable'); await send('Page.enable'); await send('Page.bringToFront'); await send('Network.enable');
   await send('Storage.clearDataForOrigin', {origin, storageTypes: 'all'});
   await send('Emulation.setDeviceMetricsOverride', {width: 1440, height: 960, deviceScaleFactor: 1, mobile: false});
   await send('Page.addScriptToEvaluateOnNewDocument', {source: `
@@ -177,7 +177,11 @@ try {
   const stored = await assertNoStoredPosition();
   assert.ok(Object.keys(stored.local).length > 0, 'selected preferences must be saved');
 
+  await evaluate("document.getElementById('tab-character').click()");
   await reload({ignoreCache: true}, 'preferences restored after reload');
+  assert.equal(await evaluate("document.getElementById('tab-character').getAttribute('aria-selected')"),'true','selected Character tab is remembered');
+  assert.equal(await evaluate("document.getElementById('map-view').hidden"),true);
+  await evaluate("document.getElementById('tab-map').click()");
   assert.deepEqual(await readPrefs(), wantedPrefs);
   assert.equal(await evaluate("document.getElementById('status').textContent"), 'Not connected');
   assert.equal(await evaluate('window.__companionCaptureCalls'), 0, 'saved preferences cannot silently re-share a screen');
@@ -215,6 +219,7 @@ try {
     const cache = await caches.open(name); return (await cache.keys()).map(request => request.url);
   }))).flat())`);
   assert.ok(cached.length > 0, 'service worker must cache the shell');
+  assert.ok(cached.some(url=>url.endsWith('/tabs.js')),'offline shell includes tab navigation');
   for (const url of cached) {
     const parsed = new URL(url);
     assert.equal(parsed.origin, origin, 'external map art should not be placed in shell cache');
@@ -224,10 +229,13 @@ try {
 
   // Reload offline while tracking: UI/preferences must reopen, but a previous
   // coordinate must never reappear as live and capture must require a new click.
+  await evaluate("document.getElementById('tab-updates').click()");
   await send('Network.emulateNetworkConditions', {offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0});
   offline = true;
   await reload({ignoreCache: false}, 'offline companion shell');
   assert.deepEqual(await readPrefs(), wantedPrefs);
+  assert.equal(await evaluate("document.getElementById('tab-updates').getAttribute('aria-selected')"),'true','Updates tab is remembered offline');
+  assert.equal(await evaluate("document.getElementById('updates-view').hidden"),false);
   assert.equal(await evaluate("document.getElementById('status').textContent"), 'Not connected');
   assert.equal(await evaluate("document.getElementById('coord-x').textContent"), '—');
   assert.equal(await evaluate("document.getElementById('coord-y').textContent"), '—');
@@ -236,7 +244,7 @@ try {
   await assertNoStoredPosition();
   assert.deepEqual(runtimeErrors, [], 'no uncaught browser exceptions');
 
-  console.log('Companion QA passed: parsed/installable manifest and icons, install fallback, service worker, persisted display preferences, map-only accessibility, desktop/mobile reconnect, local-only live data, offline shell, and fresh reconnect required after reload.');
+  console.log('Companion QA passed: parsed/installable manifest and icons, install fallback, service worker, persisted tabs and display preferences, offline tab navigation, map-only accessibility, desktop/mobile reconnect, local-only live data, offline shell, and fresh reconnect required after reload.');
 } finally {
   if (offline) await send('Network.emulateNetworkConditions', {offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1}).catch(() => {});
   await evaluate('if(window.__companionTimer)clearInterval(window.__companionTimer);if(window.__companionStream)window.__companionStream.getTracks().forEach(track=>track.stop())').catch(() => {});

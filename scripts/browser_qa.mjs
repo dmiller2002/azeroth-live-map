@@ -15,14 +15,16 @@ const mapReady=async name=>until(`document.getElementById('map-title').textConte
 const mouse=async(type,x,y,button='none',buttons=0)=>send('Input.dispatchMouseEvent',{type,x,y,button,buttons,clickCount:type==='mouseMoved'?0:1});
 const mapPixel=async(x,y)=>evaluate(`(async()=>{const {mapViewport}=await import('/navigation.js');const r=document.getElementById('map-stage').getBoundingClientRect();const v=mapViewport(r.width,r.height,1024,683,parseFloat(document.getElementById('zoom-label').textContent)/100);return {x:r.left+v.x+${x}/1024*v.w,y:r.top+v.y+${y}/683*v.h};})()`);
 const clickMap=async(x,y,button='left')=>{const p=await mapPixel(x,y);await mouse('mouseMoved',p.x,p.y);await mouse('mousePressed',p.x,p.y,button,button==='right'?2:1);await mouse('mouseReleased',p.x,p.y,button);};
-await send('Runtime.enable');await send('Page.enable');
+await send('Runtime.enable');await send('Page.enable');await send('Page.bringToFront');
 await send('Emulation.setDeviceMetricsOverride',{width:1440,height:960,deviceScaleFactor:1,mobile:false});
 await send('Page.addScriptToEvaluateOnNewDocument',{source:`
 localStorage.removeItem('azeroth-live-map.preferences.v1');
 window.__feed={valid:true,mapId:1944,x:.2345,y:.6789,facing:.6};
 window.__strip={x:123,y:82,cell:4.8};
 window.__quests={enabled:true,generation:1,status:1,count:3};
+window.__captureCalls=0;
 navigator.mediaDevices.getDisplayMedia=async()=>{
+ window.__captureCalls++;
  const {drawStrip,encodePacket,checksum}=await import('/protocol.js');
  const c=document.createElement('canvas');c.width=2048;c.height=1152;
  const ctx=c.getContext('2d');let seq=1,aux=0;
@@ -72,6 +74,43 @@ assert.equal(await evaluate("document.getElementById('map-title').textContent"),
 await until("document.getElementById('quest-list').textContent.includes('Quête des loups')",'Questie UTF-8 title through captured pixels');
 assert.ok(await evaluate("document.getElementById('quest-list').textContent.includes('3/8')"),'objective progress');
 assert.ok(await evaluate("document.getElementById('quest-status').textContent.includes('1/3')"),'partial sync is explicit');
+// Tabs share one capture and retain the actual map transform while hidden.
+await evaluate("document.getElementById('zoom-in').click();window.__originalMapDraw=document.getElementById('map').getContext('2d').drawImage;document.getElementById('map').getContext('2d').drawImage=function(...args){window.__mapTransform=args.slice(1);return window.__originalMapDraw.apply(this,args);};document.getElementById('zoom-in').click()");
+const mapTransform=await evaluate('window.__mapTransform');
+const mapZoom=await evaluate("document.getElementById('zoom-label').textContent");
+const clockBeforeTabs=await evaluate('window.__feed');
+await evaluate("document.getElementById('tab-character').click()");
+assert.equal(await evaluate("document.getElementById('map-view').hidden"),true);
+assert.equal(await evaluate("document.getElementById('character-panel').hidden"),false);
+await evaluate("document.getElementById('tab-updates').click()");
+assert.equal(await evaluate("document.getElementById('updates-view').hidden"),false);
+assert.equal(await evaluate("document.querySelectorAll('[role=tab][aria-selected=true]').length"),1);
+assert.equal(await evaluate("Array.from(window.__stream.getTracks()).every(track=>track.readyState==='live')"),true,'switching tabs never stops capture');
+assert.equal(await evaluate('window.__captureCalls'),1,'tabs reuse the same capture request');
+await evaluate('window.__feed.x=.3456;window.__paint()');
+await until("document.getElementById('coord-x').textContent==='34.6'",'captured position updates while Map is hidden');
+await evaluate('window.__feed.x=.2345;window.__paint()');
+await until("document.getElementById('coord-x').textContent==='23.5'",'hidden Map continues decoding');
+assert.equal(await evaluate("document.getElementById('status').textContent"),'Live position');
+assert.deepEqual(await evaluate('window.__feed'),clockBeforeTabs,'tab navigation never changes the captured player');
+await evaluate("document.getElementById('tab-map').click()");await wait(150);
+assert.equal(await evaluate("document.getElementById('zoom-label').textContent"),mapZoom);
+assert.deepEqual(await evaluate('window.__mapTransform'),mapTransform,'map pan/zoom geometry survives tab navigation');
+assert.equal(await evaluate("document.getElementById('zone').value"),'1944');
+await evaluate("document.getElementById('map').getContext('2d').drawImage=window.__originalMapDraw;document.getElementById('fit').click()");
+// Arrow keys activate tabs; inactive views stay outside keyboard navigation.
+await evaluate("document.getElementById('tab-map').focus()");
+await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
+await send('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
+assert.equal(await evaluate('document.activeElement.id'),'tab-character');
+assert.equal(await evaluate("document.getElementById('tab-character').getAttribute('aria-selected')"),'true');
+await send('Input.dispatchKeyEvent',{type:'keyDown',key:'End',code:'End',windowsVirtualKeyCode:35});
+await send('Input.dispatchKeyEvent',{type:'keyUp',key:'End',code:'End',windowsVirtualKeyCode:35});
+assert.equal(await evaluate('document.activeElement.id'),'tab-updates');
+await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Home',code:'Home',windowsVirtualKeyCode:36});
+await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Home',code:'Home',windowsVirtualKeyCode:36});
+assert.equal(await evaluate('document.activeElement.id'),'tab-map');
+assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).activeTab"),'map');
 await evaluate("document.getElementById('quest-list').querySelector('button').click()");
 await wait(300);
 // Map artwork is cross-origin: verify the rendered pin's hit region and save
@@ -158,5 +197,5 @@ await wait(300);assert.ok(await evaluate('document.documentElement.scrollWidth<=
 const minimapScreenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile('artifacts/minimap-commands.png',Buffer.from(minimapScreenshot.data,'base64'));
 await evaluate("document.getElementById('close-minimap').click()");
 assert.deepEqual(errors,[],'no browser runtime exceptions');
-console.log('Browser QA passed: minimap hide/show copy buttons, denied-clipboard fallback, commands available with controls hidden, mobile dialog; right-click parent navigation, left-click world/continent/zone/city selection, ocean clicks, hover regions, drag-vs-click, zoomed hit testing, breadcrumbs, keyboard/up button, saved browsing, follow pause/resume during live capture; Questie optical packets, UTF-8 names, objective progress, painted markers, layer toggle, partial sync, removed quests, missing/incompatible Questie, stale/disconnected cleanup; catalog, ZIP, setup, demo, fractional-scale capture, tiny strip relocation, coordinates, zones, zoom, frozen feed, unavailable coordinates, unsupported map, capture denial, responsive layout.');
+console.log('Browser QA passed: tabs, keyboard navigation, shared capture, hidden-view decoding, retained map geometry; minimap hide/show copy buttons, denied-clipboard fallback, commands available with controls hidden, mobile dialog; right-click parent navigation, left-click world/continent/zone/city selection, ocean clicks, hover regions, drag-vs-click, zoomed hit testing, breadcrumbs, keyboard/up button, saved browsing, follow pause/resume during live capture; Questie optical packets, UTF-8 names, objective progress, painted markers, layer toggle, partial sync, removed quests, missing/incompatible Questie, stale/disconnected cleanup; catalog, ZIP, setup, demo, fractional-scale capture, tiny strip relocation, coordinates, zones, zoom, frozen feed, unavailable coordinates, unsupported map, capture denial, responsive layout.');
 socket.close();
