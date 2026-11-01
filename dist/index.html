@@ -7,11 +7,13 @@
   <meta name="description" content="Your live World of Warcraft Anniversary map, on a second screen. Position tracking stays in your browser.">
   <title>Azeroth Live Map</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
-  <aside>
+  <aside id="controls-panel">
     <a class="brand" href="./" aria-label="Azeroth Live Map home"><img src="icon.svg" alt="" width="40" height="40"><span>AZEROTH<small>LIVE ATLAS</small></span></a>
     <div class="edition"><span></span> ANNIVERSARY EDITION</div>
     <section class="connection" aria-labelledby="connection-heading">
@@ -36,10 +38,22 @@
     <div class="sidebar-bottom"><button id="demo" class="text-button">Explore a simulated journey</button><p>Position is processed on this device.<br>Your screen is never uploaded by this app.</p></div>
   </aside>
   <main>
+    <div class="app-toolbar">
+      <span id="app-mode">SECOND-SCREEN COMPANION</span>
+      <div class="toolbar-actions">
+        <button id="install-app" class="toolbar-button">Open as an app <span aria-hidden="true">↗</span></button>
+        <button id="toggle-controls" class="toolbar-button" aria-controls="controls-panel" aria-expanded="true">Hide controls</button>
+      </div>
+    </div>
     <header>
       <div><div class="eyebrow" id="map-type">EASTERN KINGDOMS · ZONE MAP</div><h1 id="map-title">Elwynn Forest</h1></div>
       <div class="header-actions"><label class="sr-only" for="zone">Browse a zone</label><select id="zone" aria-label="Browse a zone"></select><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></div>
     </header>
+    <div id="quick-connection" class="quick-connection" hidden>
+      <span class="quick-signal"><span id="quick-status-dot" class="dot"></span><span id="quick-status">Not connected</span></span>
+      <span id="quick-coordinates">X — · Y —</span>
+      <button id="quick-connect">Connect WoW ↗</button>
+    </div>
     <div id="map-stage" tabindex="0" role="region" aria-label="Map. Drag to pan. Use plus and minus buttons to zoom.">
       <canvas id="map" aria-label="Zone map and player position"></canvas>
       <div class="map-top"><span class="map-badge" id="mode-badge">BROWSING · NO LIVE POSITION</span><span class="north" title="North">N<span>↑</span></span></div>
@@ -55,10 +69,19 @@
   <ol class="steps">
     <li><strong>Install the companion addon</strong><p>Extract <b>AzerothLiveMap</b> into your Anniversary <code>Interface/AddOns</code> folder. Restart WoW and enable it in the AddOns list.</p><a class="download" href="AzerothLiveMap.zip" download>↓ Download addon (.zip)</a></li>
     <li><strong>Keep the position strip visible</strong><p>A small black-and-white strip appears in WoW’s top-left corner. Use <code>/alm show</code> if it is hidden. You can close the in-game map.</p></li>
-    <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Keep this browser on your other monitor. The page reads the strip locally.</p></li>
+    <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Move this app to your other monitor. A new session needs a fresh sharing choice.</p></li>
   </ol>
   <div class="note">Use a desktop browser with screen sharing, such as Chromium on Linux. If detection fails, try <code>/alm size 8</code> or select the strip manually. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
   <p class="small-print">Built for Anniversary 2.5.6. Outdoor zones and cities are the initial target; position may be unavailable in instances. Questie overlays are not included. Live-client verification is still required.</p>
+</dialog>
+<dialog id="app-dialog">
+  <button class="dialog-close" id="close-app-dialog" aria-label="Close app instructions">×</button>
+  <div class="eyebrow">YOUR MAP, ITS OWN WINDOW</div>
+  <h2>A companion for your second screen.</h2>
+  <p>Launch <b>Azeroth Live Map</b> from your Linux application menu after installing the project’s companion launcher. It opens this map in a dedicated window.</p>
+  <p>Or, in Chrome or Chromium, open the browser menu and choose <b>Install Azeroth Live Map</b> if available. Installation options vary by browser.</p>
+  <div class="note">Move the window to your second monitor, choose <b>Connect WoW</b>, and select your game. Your map preferences are remembered; screen sharing starts only when you choose it.</div>
+  <p class="small-print">The app shell can reopen offline after its first successful load. Map artwork still needs an internet connection. Live tracking needs WoW and an active screen share.</p>
 </dialog>
 <dialog id="calibration-dialog">
   <button class="dialog-close" id="close-calibration" aria-label="Close selection">×</button>
@@ -69,5 +92,6 @@
 </dialog>
 <video id="capture-video" muted autoplay playsinline></video>
 <script type="module" src="app.js"></script>
+<script type="module" src="companion.js"></script>
 </body>
 </html>

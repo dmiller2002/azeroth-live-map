@@ -1,4 +1,5 @@
 import {decodeAt, findStrip, Freshness} from './protocol.js';
+import {loadPreferences, savePreferences} from './prefs.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('map'), ctx = canvas.getContext('2d');
@@ -11,15 +12,31 @@ let stream = null, roi = null, captureWidth = 0, captureHeight = 0, failures = 0
 let demo = false, demoStart = 0, last = null, trail = [], zoom = 1, pan = {x:0,y:0};
 let drag = null, selection = null, mapSize = {w:0,h:0};
 let statusOverride = null;
+const preferences = loadPreferences();
+for (const key of ['follow','trail','grid']) $(key).checked = preferences[key];
+
+function setMapOnly(enabled, save = true) {
+  document.body.classList.toggle('map-only', enabled);
+  $('controls-panel').inert = enabled;
+  $('toggle-controls').setAttribute('aria-expanded', String(!enabled));
+  $('toggle-controls').textContent = enabled ? 'Show controls' : 'Hide controls';
+  $('quick-connection').hidden = !enabled;
+  if (save) savePreferences({mapOnly:enabled});
+}
+setMapOnly(preferences.mapOnly, false);
+$('toggle-controls').onclick = () => setMapOnly(!document.body.classList.contains('map-only'));
+$('quick-connect').onclick = () => $('connect').click();
 
 function status(text, detail, kind = '') {
   $('status').textContent = text; $('status-detail').textContent = detail; $('status-dot').className = `dot ${kind}`;
+  $('quick-status').textContent = text; $('quick-status').title = detail; $('quick-status-dot').className = `dot ${kind}`;
 }
 function message(text) { $('map-message').hidden = !text; $('map-message').textContent = text || ''; }
 function mapName(id) { return mapById.get(id)?.name || `Map ${id}`; }
 
 async function selectMap(id, manual = false) {
   selected = Number(id); if (manual) $('follow').checked = false;
+  if (manual) savePreferences({zone:selected, follow:false});
   zoom = 1; pan = {x:0,y:0}; image = null;
   $('zone').value = String(selected);
   const meta = mapById.get(selected);
@@ -78,6 +95,9 @@ function tickStatus(now) {
     $('mode-badge').textContent = 'BROWSING · NO LIVE POSITION'; $('mode-badge').className = 'map-badge';
   }
   $('map-hint').textContent = demo ? 'Simulated journey · drag to explore' : !stream ? 'Connect WoW to see your character here' : last?.valid && selected !== last.mapId ? 'Browsing another zone · enable Follow my zone to return' : fresh && last?.valid ? 'Your position · drag to explore' : 'Waiting for a fresh position from WoW';
+  $('quick-coordinates').textContent = `X ${$('coord-x').textContent} · Y ${$('coord-y').textContent}`;
+  $('quick-connect').textContent = stream ? 'Disconnect ×' : 'Connect WoW ↗';
+  $('quick-connect').disabled = $('connect').disabled;
   draw();
 }
 
@@ -102,6 +122,7 @@ $('connect').addEventListener('click', async () => {
     statusOverride = true; status('Screen sharing unavailable', 'Open this page in desktop Chromium using HTTPS or localhost.', 'error'); return;
   }
   $('connect').disabled = true;
+  $('quick-connect').disabled = true;
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:10,max:15}},audio:false});
     video.srcObject = stream; await video.play();
@@ -111,7 +132,7 @@ $('connect').addEventListener('click', async () => {
   } catch (error) {
     stopCapture(); statusOverride = true;
     status(error.name === 'NotAllowedError' ? 'Sharing not started' : 'Capture unavailable', error.name === 'NotAllowedError' ? 'Select the WoW window or its monitor when you connect.' : 'Try a desktop Chromium tab and check Linux screen-sharing support.', 'error');
-  } finally { $('connect').disabled = false; }
+  } finally { $('connect').disabled = false; $('quick-connect').disabled = false; }
 });
 
 function readROI(rect) {
@@ -215,8 +236,8 @@ stage.addEventListener('pointermove',event=>{if(drag){pan={x:drag.pan.x+event.cl
 stage.addEventListener('pointerup',()=>drag=null);stage.addEventListener('pointercancel',()=>drag=null);
 stage.addEventListener('keydown',event=>{if(event.key==='+'||event.key==='=')zoomBy(1.25);else if(event.key==='-')zoomBy(.8);else if(event.key==='0')$('fit').click();});
 $('zone').onchange=event=>selectMap(event.target.value,true);
-$('follow').onchange=()=>{if($('follow').checked&&last?.valid)selectMap(last.mapId);};
-$('trail').onchange=draw;$('grid').onchange=draw;
+$('follow').onchange=()=>{savePreferences({follow:$('follow').checked});if($('follow').checked&&last?.valid)selectMap(last.mapId);};
+for (const key of ['trail','grid']) $(key).onchange=()=>{savePreferences({[key]:$(key).checked});draw();};
 $('setup').onclick=()=>$('setup-dialog').showModal();$('close-setup').onclick=()=>$('setup-dialog').close();
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{statusOverride=true;status('Fullscreen unavailable','You can maximize your browser window instead.','waiting');}};
 $('demo').onclick=()=>{
@@ -236,5 +257,5 @@ try {
   const response=await fetch('./maps.json');if(!response.ok)throw new Error('Map catalog unavailable');
   maps=await response.json();mapById=new Map(maps.map(map=>[map.uiMapId,map]));
   for(const map of maps){const option=document.createElement('option');option.value=map.uiMapId;option.textContent=map.name;$('zone').append(option);}
-  selectMap(1429);
+  selectMap(mapById.has(preferences.zone) ? preferences.zone : 1429);
 } catch {message('The map catalog could not load. Reload the page, or start the local server using the project instructions.');}

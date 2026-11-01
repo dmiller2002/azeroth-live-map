@@ -39,15 +39,30 @@ Interface/AddOns/AzerothLiveMap/Main.lua
 
 Restart WoW after adding the folder, enable **Azeroth Live Map** in the character selection screen's AddOns list, and log in. Look for the black-and-white position strip near the top-left corner.
 
-## Open the browser map
+## Open the standalone app on Linux
 
-For local use, run:
+The standalone launcher opens the map in its own Chromium window. It uses a separate browser profile and starts its local server when needed. Python 3, Chromium or Google Chrome, and `desktop-file-validate` (from `desktop-file-utils`) are required.
+
+Preview the installation, then install it:
 
 ```bash
-python3 scripts/serve.py
+python3 scripts/install_companion.py --dry-run
+python3 scripts/install_companion.py
 ```
 
-Open **http://localhost:8765** in Chromium on the same computer as WoW, then move the browser to your second monitor. The server listens only on this computer. Keep its terminal running while using the map; stop it with Ctrl+C.
+Open **Azeroth Live Map** from the application menu and move its window to your second monitor. Choose **Connect WoW** and approve the normal screen-sharing dialog. The app never grants itself capture access; choose the game window or game monitor again whenever you start a new capture session.
+
+App files are installed under `~/.local/share/azeroth-live-map/`, with a dedicated profile in its `browser-profile/` folder. The installer preserves that profile and backs up replaced app files under `~/.local/share/azeroth-live-map-backups/`. It creates `~/.local/share/applications/azeroth-live-map.desktop`; it does not install the addon or change game settings.
+
+The local address is **http://localhost:8766/**. The server serves only the app's `dist/` files on this computer, verifies its identity before the launcher opens it, and refuses to use a port occupied by an unrelated service. Closing the map window leaves the small local server running for the next launch. No startup service is installed. Startup diagnostics are saved in `~/.local/state/azeroth-live-map/server.log` and `browser.log`.
+
+To open the standalone app directly from this checkout:
+
+```bash
+python3 scripts/companion.py
+```
+
+For development, `python3 scripts/serve.py` remains available at **http://localhost:8765**. Keep that preview terminal running and stop it with Ctrl+C. Port 8765 is separate from the installed standalone app.
 
 The configured hosted address is **https://azeroth-live-map-dylan.spicyleaf18.chatgpt.site** (private to its owner). The local version does not depend on hosted access.
 
@@ -95,7 +110,7 @@ The ZIP is written to `dist/AzerothLiveMap.zip`. The position protocol has synch
 
 ### Verification
 
-23 automated protocol tests cover actual Lua emitter/browser interoperability, Lua 5.1 compatibility, addon rendering under mocked WoW APIs, fractional capture scaling, invalid packets, and frozen feeds. Browser integration tests use a synthetic canvas video stream through the real capture decoder and check live coordinates, zone transitions, missing coordinates, unsupported maps, capture denial, disconnection, and responsive layout. Screenshots of demo mode are labeled simulated. Actual WoW gameplay and map-art alignment have not yet been verified.
+23 automated protocol tests cover actual Lua emitter/browser interoperability, Lua 5.1 compatibility, addon rendering under mocked WoW APIs, fractional capture scaling, invalid packets, and frozen feeds. Browser integration tests use a synthetic canvas video stream through the real capture decoder and check live coordinates, zone transitions, missing coordinates, unsupported maps, capture denial, disconnection, and responsive layout. Screenshots of demo mode are labeled simulated. Actual WoW gameplay and map-art alignment have not yet been verified. The standalone server has also been checked for port collisions, authenticated reuse, traversal and symlink escapes, hidden files, directory listings, and invalid Host headers; the installer has been checked in a temporary directory for dry runs, backups, profile preservation, and desktop entry validation.
 
 `scripts/browser_qa.mjs` runs against a separate test Chromium instance with its debugging port at `127.0.0.1:9223` and the local server at port 8765. Never enable remote debugging on your normal browser profile for these tests.
 
