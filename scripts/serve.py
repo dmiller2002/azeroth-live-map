@@ -22,7 +22,7 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_GET()
 handler = partial(Handler, directory=str(root))
 server = ThreadingHTTPServer(('127.0.0.1', args.port), handler)
-print(f'Azeroth Live Map: http://localhost:{args.port}', flush=True)
+print(f'Drunks Azeroth UI: http://localhost:{args.port}', flush=True)
 try:
     server.serve_forever()
 except KeyboardInterrupt:

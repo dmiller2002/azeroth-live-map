@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Azeroth Live Map",
-  "short_name": "Live Map",
-  "description": "Your WoW Anniversary map in a dedicated companion window.",
+  "name": "Drunks Azeroth UI",
+  "short_name": "Drunks UI",
+  "description": "Your WoW Anniversary map, character, and inventory in a companion window.",
   "start_url": "./?app=1",
   "scope": "./",
   "display": "standalone",

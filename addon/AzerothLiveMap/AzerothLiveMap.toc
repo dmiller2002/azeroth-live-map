@@ -1,8 +1,8 @@
 ## Interface: 20506, 11509
-## Title: Azeroth Live Map
-## Notes: Displays a small, movable position strip for your companion map. /alm for help.
+## Title: Drunks Azeroth UI
+## Notes: Syncs your map, quests, character, and bags with Drunks Azeroth UI. /daui for help.
 ## Author: Dylan
-## Version: 0.7.0
+## Version: 0.7.1
 ## OptionalDeps: Questie
 ## SavedVariables: AzerothLiveMapDB
 Protocol.lua

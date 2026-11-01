@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Open Azeroth Live Map in a separate Chromium window with normal capture consent."""
+"""Open Drunks Azeroth UI in a separate Chromium window with normal capture consent."""
 import argparse
 import fcntl
 import hashlib
@@ -58,7 +58,7 @@ def make_server(root, port, key):
     root = root.resolve()
     root_id = identity(root)
     if not (root / 'index.html').is_file():
-        raise RuntimeError('The app files are missing. Reinstall Azeroth Live Map.')
+        raise RuntimeError('The app files are missing. Reinstall Drunks Azeroth UI.')
 
     class Handler(BaseHTTPRequestHandler):
         server_version = 'AzerothLiveMap'
@@ -174,7 +174,7 @@ def browser_binary():
     for name in ('chromium', 'chromium-browser', 'google-chrome-stable', 'google-chrome', 'chrome'):
         if path := shutil.which(name):
             return path
-    raise RuntimeError('Install Chromium or Google Chrome, then open Azeroth Live Map again.')
+    raise RuntimeError('Install Chromium or Google Chrome, then open Drunks Azeroth UI again.')
 
 
 def main():
@@ -207,7 +207,7 @@ def main():
         with log.open('a') as output:
             subprocess.Popen([browser, '--user-data-dir=' + str(PROFILE), '--no-first-run', '--no-default-browser-check', '--app=' + url],
                              stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
-    print('Azeroth Live Map: ' + url)
+    print('Drunks Azeroth UI: ' + url)
 
 
 if __name__ == '__main__':
@@ -215,10 +215,10 @@ if __name__ == '__main__':
         main()
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         message = str(error)
-        print('Azeroth Live Map: ' + message, file=sys.stderr)
+        print('Drunks Azeroth UI: ' + message, file=sys.stderr)
         if '--notify' in sys.argv:
             try:
-                subprocess.run(['notify-send', 'Azeroth Live Map', message], check=False, timeout=5)
+                subprocess.run(['notify-send', 'Drunks Azeroth UI', message], check=False, timeout=5)
             except (OSError, subprocess.SubprocessError):
                 pass
         sys.exit(1)

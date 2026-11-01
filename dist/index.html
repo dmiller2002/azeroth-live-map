@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#111817">
   <meta name="description" content="Your live World of Warcraft Anniversary map, on a second screen. Position tracking stays in your browser.">
-  <title>Azeroth Live Map</title>
+  <title>Drunks Azeroth UI</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -14,7 +14,7 @@
 <body>
 <div class="app">
   <aside id="controls-panel">
-    <a class="brand" href="./" aria-label="Azeroth Live Map home"><img src="icon.svg" alt="" width="40" height="40"><span>AZEROTH<small>LIVE ATLAS</small><small class="developer-credit">Developed by Drunk</small></span></a>
+    <a class="brand" href="./" aria-label="Drunks Azeroth UI home"><img src="icon.svg" alt="" width="40" height="40"><span>DRUNKS<small>AZEROTH UI</small><small class="developer-credit">Developed by Drunk</small></span></a>
     <div class="edition"><span></span> ANNIVERSARY EDITION</div>
     <section class="connection" aria-labelledby="connection-heading">
       <div class="eyebrow" id="connection-heading">YOUR CONNECTION</div>
@@ -148,10 +148,11 @@
       <p class="character-note">Hover or focus an item for details. Stack counts and contents sync from WoW. On touch screens, tap once for details and again to open Wowhead.</p>
     </section>
     <section id="updates-view" class="updates-view" role="tabpanel" aria-labelledby="tab-updates" tabindex="0" hidden>
-      <div class="eyebrow">AZEROTH LIVE ATLAS · LATEST IMPROVEMENTS</div>
+      <div class="eyebrow">DRUNKS AZEROTH UI · LATEST IMPROVEMENTS</div>
       <h1>What’s new</h1>
       <p class="updates-intro">Your companion is growing. Find new features and improvements here as they arrive.</p>
       <div class="updates-grid">
+        <article class="update-card"><span class="update-tag">ADDON 0.7.1</span><h2>Drunks Azeroth UI</h2><p>Your addon and companion have a new name. Existing settings carry over, and both /daui and /alm commands work.</p></article>
         <article class="update-card"><span class="update-tag">BAGS · ADDON 0.7.0</span><h2>Your inventory beside you</h2><p>See your backpack and four equipped bags, item icons, stack counts, free slots, and item details. Your WoW connection keeps running while you browse.</p></article>
         <article class="update-card"><span class="update-tag">CHARACTER · ADDON 0.6.0</span><h2>Your gear, at a glance</h2><p>See your character in 3D, all 19 equipment slots, quality colors, and core attributes. Hover an item for its stats, requirements, effects, and live durability.</p></article>
         <article class="update-card"><span class="update-tag">QUEST TRACKING</span><h2>Follow the color</h2><p>Quest pins match their sidebar colors across zones. Select a quest to highlight its locations, and browse areas with left-click and right-click.</p></article>
@@ -165,12 +166,12 @@
   <button class="dialog-close" id="close-setup" aria-label="Close setup">×</button>
   <div class="eyebrow">ONE-TIME SETUP</div><h2>Your world. A second screen.</h2>
   <ol class="steps">
-    <li><strong>Install the companion addon</strong><p>Extract <b>AzerothLiveMap</b> into your Anniversary <code>Interface/AddOns</code> folder. Restart WoW and enable it in the AddOns list.</p><a class="download" href="AzerothLiveMap.zip" download>↓ Download addon (.zip)</a></li>
+    <li><strong>Install the companion addon</strong><p>Extract <b>AzerothLiveMap</b> into your Anniversary <code>Interface/AddOns</code> folder. Restart WoW and enable it in the AddOns list.</p><a class="download" href="DrunksAzerothUI.zip" download>↓ Download addon (.zip)</a></li>
     <li><strong>Place your HUZZAH crest</strong><p>Use <code>/alm size 2</code> for a 128 × 136 animated crest. Type <code>/alm unlock</code>, drag its handle, then <code>/alm lock</code>. Keep the whole crest and the short locator line underneath visible. Use <code>/alm art off</code> for the plain strip. <a href="elephant-preview.html" target="_blank" rel="noreferrer">Preview the animation ↗</a></p></li>
     <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Move this app to your other monitor. A new session needs a fresh sharing choice.</p></li>
   </ol>
   <div class="note">If the tiny strip is hard to read, try <code>/alm size 3</code> or <code>/alm size 4</code>. Use <code>/alm show</code> if hidden or <code>/alm reset</code> to return it to the top-left. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
-  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.7.0 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four data packets at once, shared by quests, character equipment, and bag contents; overall quest progress and packet rate appear in the sidebar. Use Character for equipment and attributes, and Bags for your inventory. Initial sync depends on total data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
+  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.7.1 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four data packets at once, shared by quests, character equipment, and bag contents; overall quest progress and packet rate appear in the sidebar. Use Character for equipment and attributes, and Bags for your inventory. Initial sync depends on total data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
 </dialog>
 <dialog id="minimap-dialog" aria-labelledby="minimap-heading">
   <button class="dialog-close" id="close-minimap" aria-label="Close minimap commands">×</button>
@@ -185,8 +186,8 @@
   <button class="dialog-close" id="close-app-dialog" aria-label="Close app instructions">×</button>
   <div class="eyebrow">YOUR MAP, ITS OWN WINDOW</div>
   <h2>A companion for your second screen.</h2>
-  <p>Launch <b>Azeroth Live Map</b> from your Linux application menu after installing the project’s companion launcher. It opens this map in a dedicated window.</p>
-  <p>Or, in Chrome or Chromium, open the browser menu and choose <b>Install Azeroth Live Map</b> if available. Installation options vary by browser.</p>
+  <p>Launch <b>Drunks Azeroth UI</b> from your Linux application menu after installing the project’s companion launcher. It opens this map in a dedicated window.</p>
+  <p>Or, in Chrome or Chromium, open the browser menu and choose <b>Install Drunks Azeroth UI</b> if available. Installation options vary by browser.</p>
   <div class="note">Move the window to your second monitor, choose <b>Connect WoW</b>, and select your game. Your map preferences are remembered; screen sharing starts only when you choose it.</div>
   <p class="small-print">The app shell can reopen offline after its first successful load. Map artwork still needs an internet connection. Live tracking needs WoW and an active screen share.</p>
 </dialog>

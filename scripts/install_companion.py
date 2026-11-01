@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 
-APP = 'azeroth-live-map'
+APP = 'azeroth-live-map'  # Preserve the existing installation, browser profile, and desktop entry.
 SOURCE = Path(__file__).resolve().parent.parent
 
 
@@ -38,11 +38,11 @@ def no_symlinks(path):
 
 
 def desktop_text(data_dir):
-    return ('[Desktop Entry]\nType=Application\nName=Azeroth Live Map\n'
-            'Comment=Your WoW Anniversary map on a second monitor\n'
+    return ('[Desktop Entry]\nType=Application\nName=Drunks Azeroth UI\n'
+            'Comment=Your WoW map, character, and inventory on a second monitor\n'
             f'Exec={exec_quote(sys.executable)} {exec_quote(data_dir / "scripts/companion.py")} --notify\n'
             f'Icon={data_dir / "dist/icon.svg"}\nTerminal=false\nCategories=Game;\n'
-            'Keywords=WoW;Warcraft;Anniversary;Map;\n')
+            'Keywords=Drunks;Azeroth;UI;WoW;Warcraft;Anniversary;Map;\n')
 
 
 def main():
@@ -116,7 +116,7 @@ def main():
     updater = shutil.which('update-desktop-database')
     if updater:
         subprocess.run([updater, str(applications)], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print('Installed Azeroth Live Map. Open it from the application menu.')
+    print('Installed Drunks Azeroth UI. Open it from the application menu.')
     print('App files: ' + str(data_dir))
     if backup_dir.exists():
         print('Replaced files were backed up to: ' + str(backup_dir))

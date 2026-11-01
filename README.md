@@ -1,4 +1,6 @@
-# Azeroth Live Map
+# Drunks Azeroth UI
+
+The addon and companion are named **Drunks Azeroth UI** as of 0.7.1. The existing `AzerothLiveMap` addon folder/TOC, `AzerothLiveMapDB` saved variables, local installation paths, and browser preference keys are retained so updating preserves settings and does not install a second copy. Type `/reload` after updating the existing addon. Both `/alm` and `/daui` run the same commands.
 
 A browser map for World of Warcraft Anniversary. Keep playing on one monitor and watch your position, direction, and recent trail on another. The in-game world map can stay closed.
 
@@ -6,7 +8,7 @@ This is a prototype. The addon targets the installed Anniversary **2.5.6.70577**
 
 ## How it works
 
-The `AzerothLiveMap` addon sends map, quest, character, and bag data through an animated HUZZAH crest near the upper-left corner of WoW. Its colored pixels carry the packets; a short black-and-white locator sits underneath. Use `/alm art off` for the original plain strip. When you select **Connect WoW** in the browser, the browser asks you to share the WoW window or the monitor containing the game. The page decodes the strip locally and updates your marker.
+The **Drunks Azeroth UI** addon sends map, quest, character, and bag data through an animated HUZZAH crest near the upper-left corner of WoW. Its colored pixels carry the packets; a short black-and-white locator sits underneath. Use `/alm art off` for the original plain strip. When you select **Connect WoW** in the browser, the browser asks you to share the WoW window or the monitor containing the game. The page decodes the strip locally and updates your marker.
 
 With **Questie** enabled, the same strip also sends quest pickups, objective locations and counts, turn-in locations, and quest titles across all zones represented by Questie’s pins for your character. Use the **Questie markers** toggle, hover a pin for details, or select a quest in the sidebar to highlight its locations. The in-game world map can stay closed.
 
@@ -31,7 +33,7 @@ python3 scripts/install_addon.py \
 
 The installer copies only `addon/AzerothLiveMap` into that AddOns directory. If an `AzerothLiveMap` folder already exists, it preserves that folder under `.AzerothLiveMap-backups/<UTC timestamp>/AzerothLiveMap` before installing the replacement. It does not edit game configuration or other addons. A dry run does not create files or backups.
 
-Alternatively, copy `addon/AzerothLiveMap` manually, or extract the downloadable `AzerothLiveMap.zip` from the map page. The resulting layout must be:
+Alternatively, copy `addon/AzerothLiveMap` manually, or extract the downloadable `DrunksAzerothUI.zip` from the map page. The resulting layout must be:
 
 ```text
 Interface/AddOns/AzerothLiveMap/AzerothLiveMap.toc
@@ -45,11 +47,11 @@ Interface/AddOns/AzerothLiveMap/Elephant.tga
 Interface/AddOns/AzerothLiveMap/Main.lua
 ```
 
-Restart WoW after adding the folder, enable **Azeroth Live Map** in the character selection screen's AddOns list, and log in. Look for the black-and-white position strip near the top-left corner.
+Restart WoW after adding the folder, enable **Drunks Azeroth UI** in the character selection screen's AddOns list, and log in. Look for the black-and-white position strip near the top-left corner.
 
 ## Transfer to a Windows computer
 
-Use [`dist/AzerothLiveMap-Windows.zip`](dist/AzerothLiveMap-Windows.zip). It contains the addon, a copy of the browser companion, a `START-MAP.cmd` launcher, and a Windows `README.txt` with installation and troubleshooting steps. Extract the entire ZIP, then follow that README. The companion requires Python 3.10 or newer and Chrome or Edge on the Windows computer; the addon itself does not require Python. WoW and the companion run on the same computer, with internet access for map artwork. The bundle does not depend on access to the private hosted site.
+Use [`dist/DrunksAzerothUI-Windows.zip`](dist/DrunksAzerothUI-Windows.zip). It contains the addon, a copy of the browser companion, a `START-MAP.cmd` launcher, and a Windows `README.txt` with installation and troubleshooting steps. Extract the entire ZIP, then follow that README. The companion requires Python 3.10 or newer and Chrome or Edge on the Windows computer; the addon itself does not require Python. WoW and the companion run on the same computer, with internet access for map artwork. The bundle does not depend on access to the private hosted site.
 
 Rebuild the bundle from this checkout with `python3 scripts/package_windows.py`. Native Windows launching and live game capture still need verification on the destination PC.
 
@@ -64,7 +66,7 @@ python3 scripts/install_companion.py --dry-run
 python3 scripts/install_companion.py
 ```
 
-Open **Azeroth Live Map** from the application menu and move its window to your second monitor. Choose **Connect WoW** and approve the normal screen-sharing dialog. The app never grants itself capture access; choose the game window or game monitor again whenever you start a new capture session.
+Open **Drunks Azeroth UI** from the application menu and move its window to your second monitor. Choose **Connect WoW** and approve the normal screen-sharing dialog. The app never grants itself capture access; choose the game window or game monitor again whenever you start a new capture session.
 
 App files are installed under `~/.local/share/azeroth-live-map/`, with a dedicated profile in its `browser-profile/` folder. The installer preserves that profile and backs up replaced app files under `~/.local/share/azeroth-live-map-backups/`. It creates `~/.local/share/applications/azeroth-live-map.desktop`; it does not install the addon or change game settings.
 
@@ -108,7 +110,7 @@ Manual navigation switches off **Follow my zone** and remembers the map you sele
 
 ## Questie integration
 
-Keep Questie installed and enabled alongside **Azeroth Live Map 0.5.2**. Questie is an optional dependency; this project does not bundle or modify it. Update the companion addon and browser app together, then type `/reload` in WoW and reopen/reconnect the app. Version 0.4.0 supplies the original fast all-zone strip; version 0.3.0 still supplies its slower current-zone quest feed; earlier addons supply positions only.
+Keep Questie installed and enabled alongside **Drunks Azeroth UI 0.7.1**. Questie is an optional dependency; this project does not bundle or modify it. Update the companion addon and browser app together, then type `/reload` in WoW and reopen/reconnect the app. Version 0.4.0 supplies the original fast all-zone strip; version 0.3.0 still supplies its slower current-zone quest feed; earlier addons supply positions only.
 
 The adapter reads Questie’s generated world-map frames (`QuestieMap.questIdFrames`, `UiMapID`, percent coordinates, and `data.QuestData`/`ObjectiveData`), matching the installed Questie implementation and [upstream QuestieMap](https://github.com/Questie/Questie/blob/master/Modules/Map/QuestieMap.lua). It honors Questie’s map visibility filters without requiring its map window to be shown. Yellow **!** pins are pickups, blue diamonds are objectives, and **?** pins are turn-in locations (including incomplete turn-ins shown by Questie).
 
@@ -164,6 +166,8 @@ Version 5 bag packets use the existing auxiliary lanes, alongside v4 character a
 
 ## Addon commands
 
+`/daui` is the Drunks Azeroth UI command alias; every `/alm` command below also works with `/daui`.
+
 | Command | Effect |
 | --- | --- |
 | `/alm` | Show help. |
@@ -189,7 +193,7 @@ Version 5 bag packets use the existing auxiliary lanes, alongside v4 character a
 - **No position available:** the game may not expose coordinates in that area or during a loading screen. Return to an outdoor zone to establish the initial connection.
 - **Unsupported map:** the artwork catalog covers 65 Classic and Burning Crusade zones, cities, and selected battlegrounds, plus Kalimdor, Eastern Kingdoms, Outland, Azeroth, and Worlds overviews. Dungeon interiors are not included. Coordinates should never be plotted on unrelated artwork.
 - **Map artwork does not load:** the browser needs access to `wow.zamimg.com`. This app does not bundle or claim ownership of Blizzard's map artwork.
-- **Questie markers are missing:** enable Questie and Azeroth Live Map 0.5.2, type `/reload`, refresh the companion, reconnect, and enable **Questie markers**. Check Questie’s map filters and the sidebar’s sync status. Keep the whole crest and locator visible, or all five rows of the plain fast strip. All Questie-generated zones are shared; check the overall sync progress and observed packet rate.
+- **Questie markers are missing:** enable Questie and Drunks Azeroth UI 0.7.1, type `/reload`, refresh the companion, reconnect, and enable **Questie markers**. Check Questie’s map filters and the sidebar’s sync status. Keep the whole crest and locator visible, or all five rows of the plain fast strip. All Questie-generated zones are shared; check the overall sync progress and observed packet rate.
 
 Use demo mode to inspect the browser interface without WoW. Demo positions are explicitly simulated; stop demo mode and connect the game to see your real location.
 
@@ -202,7 +206,7 @@ npm test
 python3 scripts/package_addon.py
 ```
 
-The ZIP is written to `dist/AzerothLiveMap.zip`. The position protocol has synchronization rows, a checksum, and a changing sequence/clock so a frozen screen does not remain labeled live. Source data and trail history are held locally by the browser.
+The ZIP is written to `dist/DrunksAzerothUI.zip`; the Windows bundle is `dist/DrunksAzerothUI-Windows.zip`. The older archive filenames are also refreshed as compatibility aliases for existing links. The position protocol has synchronization rows, a checksum, and a changing sequence/clock so a frozen screen does not remain labeled live. Source data and trail history are held locally by the browser.
 
 ### Verification
 

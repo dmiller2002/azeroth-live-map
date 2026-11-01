@@ -21,7 +21,7 @@ def main():
         if path.relative_to(ROOT / 'dist').parts[0] in ('server', '.openai'):
             continue
         # Never embed older Windows bundles (or a previous copy of this ZIP).
-        if path.is_file() and (path.suffix.lower() != '.zip' or path.name == 'AzerothLiveMap.zip'):
+        if path.is_file() and (path.suffix.lower() != '.zip' or path.name == 'DrunksAzerothUI.zip'):
             files['Companion/' + path.relative_to(ROOT).as_posix()] = path
     files['Companion/scripts/serve.py'] = ROOT / 'scripts/serve.py'
     files['Companion/scripts/model_assets.py'] = ROOT / 'scripts/model_assets.py'
@@ -32,7 +32,7 @@ def main():
     for path in files.values():
         if path.is_symlink():
             raise RuntimeError('Refusing to package a symlink: ' + str(path))
-    target = ROOT / 'dist/AzerothLiveMap-Windows.zip'
+    target = ROOT / 'dist/DrunksAzerothUI-Windows.zip'
     with ZipFile(target, 'w', ZIP_DEFLATED) as archive:
         for name, path in files.items():
             if name in ('README.txt', 'START-MAP.cmd'):
@@ -41,6 +41,7 @@ def main():
             else:
                 archive.write(path, name)
     print(target)
+    copyfile(target, ROOT / 'dist/AzerothLiveMap-Windows.zip')
     named_target = ROOT / 'dist/Drunks_Azeroth_live_Atlas.zip'
     copyfile(target, named_target)
     print(named_target)

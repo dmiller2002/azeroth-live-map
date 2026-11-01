@@ -48,7 +48,7 @@ const until = async (expression, label, milliseconds = 12000) => {
     try { if (await evaluate(expression)) return; }
     catch (error) {
       // Navigation destroys the old execution context during reload.
-      if (!/context|frame|document is not defined/i.test(String(error))) throw error;
+      if (!/context|frame|navigated|document is not defined/i.test(String(error))) throw error;
     }
     await wait(100);
   }
@@ -140,7 +140,7 @@ try {
   assert.ok(manifestResult.data, 'Chromium must discover the linked app manifest');
   const manifest = JSON.parse(manifestResult.data);
   assert.equal(manifest.display, 'standalone');
-  assert.ok(manifest.name.includes('Azeroth'));
+  assert.equal(manifest.name,'Drunks Azeroth UI');
   assert.equal(new URL(manifest.start_url, manifestResult.url).origin, origin, 'standalone launch must stay on the site');
   assert.ok(manifest.icons.some(icon => icon.sizes.split(' ').includes('192x192')), '192px installation icon');
   assert.ok(manifest.icons.some(icon => icon.sizes.split(' ').includes('512x512')), '512px installation icon');

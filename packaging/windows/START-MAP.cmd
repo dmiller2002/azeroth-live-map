@@ -1,7 +1,7 @@
 @echo off
 setlocal DisableDelayedExpansion
-title Azeroth Live Map
-echo Azeroth Live Map - Windows companion
+title Drunks Azeroth UI
+echo Drunks Azeroth UI - Windows companion
 echo.
 echo Leave this window open while using the map.
 echo Once the server starts, open Chrome or Edge at:

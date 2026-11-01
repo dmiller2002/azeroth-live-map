@@ -1,10 +1,15 @@
-AZEROTH LIVE MAP - WINDOWS SETUP
+DRUNKS AZEROTH UI - WINDOWS SETUP
 ===============================
 
 This ZIP includes the WoW addon and its browser map companion. Copy the ZIP
 to your Windows computer, right-click it, choose Extract All, and open the
 extracted folder. Keep this README and START-MAP.cmd together with the
 AzerothLiveMap and Companion folders.
+
+The addon appears as Drunks Azeroth UI in WoW. The internal AzerothLiveMap
+folder and saved-variable name stay the same to preserve existing settings.
+Replace that existing folder; do not install a second copy under a new name.
+Both /alm and /daui run the same addon commands.
 
 The map and WoW must run on the SAME computer. A second monitor is optional.
 This package does not stream your character's location to a different PC.
@@ -37,15 +42,17 @@ REQUIREMENTS
    ...\Interface\AddOns\AzerothLiveMap\AzerothLiveMap.toc
    ...\Interface\AddOns\AzerothLiveMap\Protocol.lua
    ...\Interface\AddOns\AzerothLiveMap\Questie.lua
+   ...\Interface\AddOns\AzerothLiveMap\Character.lua
+   ...\Interface\AddOns\AzerothLiveMap\Bags.lua
    ...\Interface\AddOns\AzerothLiveMap\Elephant.lua
    ...\Interface\AddOns\AzerothLiveMap\Art.lua
    ...\Interface\AddOns\AzerothLiveMap\Elephant.tga
    ...\Interface\AddOns\AzerothLiveMap\Main.lua
 
    Do not copy the whole Windows package into AddOns, and do not leave an
-   extra AzerothLiveMap folder between AddOns and those seven files.
-6) Start WoW. At character selection, open AddOns and enable Azeroth Live
-   Map for your character. Log in, then type /alm show in game chat.
+   extra AzerothLiveMap folder between AddOns and the addon files.
+6) Start WoW. At character selection, open AddOns and enable Drunks Azeroth UI
+   for your character. Log in, then type /alm show in game chat.
    A small black-and-white strip should appear near the upper-left corner.
 
 2. OPEN THE COMPANION MAP
@@ -59,7 +66,7 @@ REQUIREMENTS
 2) Keep the extracted Windows package in a permanent location, such as
    Documents\AzerothLiveMap. The Companion folder stays here, outside AddOns.
 3) Double-click START-MAP.cmd. Leave its command window open while playing.
-   Wait until it displays: Azeroth Live Map: http://localhost:8765
+   Wait until it displays: Drunks Azeroth UI: http://localhost:8765
 4) Open Chrome or Edge and enter this address:
 
    http://localhost:8765/
@@ -109,7 +116,7 @@ The browser cannot control WoW directly; the copied command must be run in game.
 
 QUESTIE OVERLAY
 --------------
-Enable Questie alongside Azeroth Live Map 0.5.2. Questie is optional and
+Enable Questie alongside Drunks Azeroth UI 0.7.1. Questie is optional and
 must be installed separately. Update both the addon and Companion folder
 from this package, then /reload in WoW and refresh the browser map.
 

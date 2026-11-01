@@ -5,7 +5,7 @@ const localWindow = new URLSearchParams(location.search).get('app') === '1';
 
 function appMode() {
   const inApp = standalone.matches || navigator.standalone === true || localWindow;
-  $('app-mode').textContent = inApp ? 'AZEROTH LIVE MAP · COMPANION APP' : 'SECOND-SCREEN COMPANION';
+  $('app-mode').textContent = inApp ? 'DRUNKS AZEROTH UI · COMPANION APP' : 'SECOND-SCREEN COMPANION';
   $('install-app').hidden = inApp;
 }
 standalone.addEventListener('change', appMode);

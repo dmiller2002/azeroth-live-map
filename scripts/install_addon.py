@@ -9,7 +9,7 @@ import sys
 import tempfile
 
 
-ADDON_NAME = "AzerothLiveMap"
+ADDON_NAME = "AzerothLiveMap"  # Stable folder/TOC identity preserves existing saved variables.
 SOURCE = Path(__file__).resolve().parent.parent / "addon" / ADDON_NAME
 
 
@@ -64,9 +64,9 @@ def install(addons_dir: Path, dry_run: bool = False) -> None:
             raise
 
     if backup is not None:
-        print("Updated AzerothLiveMap. Type /reload in WoW to load the update.")
+        print("Updated Drunks Azeroth UI. Type /reload in WoW to load the update.")
     else:
-        print("Installed AzerothLiveMap. Restart WoW, then enable it in the AddOns list.")
+        print("Installed Drunks Azeroth UI. Restart WoW, then enable it in the AddOns list.")
 
 
 def main() -> int:

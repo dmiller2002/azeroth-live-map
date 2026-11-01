@@ -79,7 +79,7 @@ local function ScreenSize()
 end
 
 local function Tell(text)
-    print("|cff67d9baAzeroth Live Map:|r " .. text)
+    print("|cff67d9baDrunks Azeroth UI:|r " .. text)
 end
 
 local function ApplyMinimap(hidden, notify)
@@ -266,6 +266,7 @@ frame:SetScript("OnUpdate", function(_, dt)
     if elapsed >= 0.1 and AzerothLiveMapDB then elapsed = 0; Update() end
 end)
 SLASH_AZEROTHLIVEMAP1 = "/alm"
+SLASH_AZEROTHLIVEMAP2 = "/daui"
 SlashCmdList.AZEROTHLIVEMAP = function(message)
     if not AzerothLiveMapDB then return end
     local command, arg = message:match("^(%S*)%s*(.-)$")

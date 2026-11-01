@@ -59,7 +59,9 @@ await until("document.getElementById('minimap-copy-status').textContent.includes
 assert.equal(await evaluate("document.activeElement.id"),'minimap-hide-command');
 assert.deepEqual(await evaluate("(()=>{const input=document.getElementById('minimap-hide-command');return [input.selectionStart,input.selectionEnd];})()"),[0,17]);
 await evaluate("document.getElementById('close-minimap').click()");
-assert.equal(await evaluate("fetch('/AzerothLiveMap.zip').then(r=>r.status)"),200);
+assert.equal(await evaluate("fetch('/DrunksAzerothUI.zip').then(r=>r.status)"),200);
+assert.equal(await evaluate("document.title"),'Drunks Azeroth UI');
+assert.equal(await evaluate("document.querySelector('.download').getAttribute('href')"),'DrunksAzerothUI.zip');
 await evaluate("document.getElementById('setup').click()");assert.equal(await evaluate("document.getElementById('setup-dialog').open"),true);
 await evaluate("document.getElementById('close-setup').click();document.getElementById('demo').click()");
 await until("document.getElementById('mode-badge').textContent.includes('SIMULATED')",'explicit demo');
