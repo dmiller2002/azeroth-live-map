@@ -101,6 +101,17 @@ try{
   assert.equal(await evaluate("document.getElementById('location').textContent"),'Hellfire Peninsula');
   assert.equal(await evaluate("document.getElementById('quest-list').children.length"),7);
   assert.equal(await evaluate("document.getElementById('follow').checked"),false);
+  const questColors=await evaluate("Array.from(document.querySelectorAll('.quest-entry'),entry=>entry.style.getPropertyValue('--quest-color'))");
+  assert.equal(new Set(questColors).size,7,'separate quests have distinct sidebar accents');
+  const painted=await evaluate(`(()=>{
+    const context=document.getElementById('map').getContext('2d'),fill=context.fill,painted=[];
+    context.fill=function(...args){painted.push({color:this.fillStyle,alpha:this.globalAlpha});return fill.apply(this,args);};
+    try{document.querySelector('.quest-entry').click();}finally{context.fill=fill;}
+    return painted;
+  })()`);
+  for(const color of questColors)assert.ok(painted.some(pin=>pin.color===color),'each sidebar color appears on the actual map');
+  assert.equal(painted.filter(pin=>pin.color===questColors[0] && pin.alpha===1).length,10,'all selected quest locations stay highlighted');
+  assert.equal(painted.filter(pin=>questColors.includes(pin.color) && pin.alpha<1).length,60,'other quests dim when selecting a colored quest');
   await mkdir('artifacts',{recursive:true});
   const screenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile(artMode?'artifacts/elephant-live-synthetic.png':'artifacts/all-zone-quests.png',Buffer.from(screenshot.data,'base64'));
   // Move the full 100×80 data block to the bottom-right screen edge.
@@ -119,6 +130,7 @@ try{
   await until("document.getElementById('quest-sync').textContent.includes('140/140 pins')",'overall totals reflect remote removal');
   await evaluate("(()=>{const zone=document.getElementById('zone');zone.value='1946';zone.dispatchEvent(new Event('change'));})()");
   await until("document.getElementById('quest-status').textContent.includes('70/70')",'sibling zone retained after remote deletion');
+  assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.quest-entry'),entry=>entry.style.getPropertyValue('--quest-color'))"),questColors,'quest colors stay consistent across zones');
   await evaluate("clearInterval(window.__timer)");
   await until("document.getElementById('status').textContent==='Signal paused'",'frozen multi-lane capture');
   assert.equal(await evaluate("document.getElementById('quest-list').children.length"),0);

@@ -1,7 +1,7 @@
 import {decodeAt, decodeBlock, decodeBytes, findStrip, Freshness, HEADER} from './protocol.js';
 import {artGeometry, decodeArtAt} from './art.js';
 import {loadPreferences, savePreferences} from './prefs.js';
-import {QuestFeed, QUEST_KINDS} from './quests.js';
+import {QuestFeed, QUEST_KINDS, questColor} from './quests.js';
 import {buildMapCatalog, mapViewport, hitTestMap} from './navigation.js';
 
 const $ = id => document.getElementById(id);
@@ -199,6 +199,7 @@ function updateQuests(now) {
   }
   for (const marker of groups.values()) {
     const button = document.createElement('button'); button.className = 'quest-entry';
+    button.style.setProperty('--quest-color', questColor(marker.questId));
     const title = document.createElement('span'); title.textContent = marker.title;
     const detail = document.createElement('small');
     detail.textContent = `${QUEST_KINDS[marker.markerKind]}${marker.markerKind === 2 && marker.objective ? ` ${marker.objective}` : ''}${marker.needed ? ` · ${marker.collected}/${marker.needed}` : ''}`;
@@ -381,12 +382,12 @@ function draw() {
     ctx.save(); ctx.translate(x,y);
     ctx.globalAlpha = focusedQuest && marker.questId !== focusedQuest ? .35 : 1;
     ctx.shadowColor = '#09130c'; ctx.shadowBlur = 4;
-    ctx.fillStyle = marker.markerKind === 2 ? '#9cddff' : '#ffe074'; ctx.strokeStyle = '#35280e'; ctx.lineWidth = 2;
+    ctx.fillStyle = questColor(marker.questId); ctx.strokeStyle = '#14201b'; ctx.lineWidth = 2;
     ctx.beginPath();
     if (marker.markerKind === 2) { ctx.moveTo(0,-7); ctx.lineTo(7,0); ctx.lineTo(0,7); ctx.lineTo(-7,0); ctx.closePath(); }
     else ctx.arc(0,0,10,0,Math.PI*2);
     ctx.fill(); ctx.stroke();
-    if (marker.markerKind !== 2) { ctx.shadowBlur = 0; ctx.fillStyle='#30280e'; ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(marker.markerKind === 1 ? '!' : '?',0,0); }
+    if (marker.markerKind !== 2) { ctx.shadowBlur = 0; ctx.fillStyle='#14201b'; ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(marker.markerKind === 1 ? '!' : '?',0,0); }
     if (focusedQuest === marker.questId) { ctx.strokeStyle='#fff8d2'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.stroke(); }
     ctx.restore();
   }
@@ -431,6 +432,7 @@ stage.addEventListener('pointermove',event=>{
   if (hoveredMap !== child) { hoveredMap=child;draw(); }
   stage.style.cursor=child || marker ? 'pointer' : '';
   if(marker){
+    tooltip.style.borderColor=questColor(marker.questId);
     tooltip.textContent=`${marker.title} · ${QUEST_KINDS[marker.markerKind]}${marker.markerKind === 2 && marker.objective ? ` ${marker.objective}` : ''}${marker.needed ? ` · ${marker.collected}/${marker.needed}` : ''} · ${(marker.x*100).toFixed(1)}, ${(marker.y*100).toFixed(1)}`;
     tooltip.style.left=`${Math.max(8,Math.min(r.width-250,x+16))}px`;tooltip.style.top=`${Math.max(8,y-50)}px`;tooltip.hidden=false;
   } else if (child) {

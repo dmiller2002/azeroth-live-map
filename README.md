@@ -116,6 +116,8 @@ Fast sync emits four quest packets alongside each position update, nominally **4
 
 Questie is sampled every two seconds. Locations and titles use separate repeating queues; titles are shared between zones, active objectives/turn-ins precede pickups within a zone, and finished small zones give the remaining bandwidth to larger snapshots. Progress updates preserve snapshot cursors, and removed quests produce empty replacement snapshots in affected zones. Repeats rotate their starting pin to avoid repeatedly losing the same location with periodic capture drops. Busy structural changes and dropped frames can still delay completion.
 
+Quest pins use a stable eight-color palette keyed by quest ID. Pins for the same quest keep their color across zones and reloads, and match the sidebar title, accent, and tooltip border. Colors repeat when needed; the `!`, diamond, and `?` shapes still distinguish pickups, objectives, and turn-ins. Select a sidebar quest or map pin to highlight all its pins and dim other quests.
+
 Quest data stays in browser memory through player zone changes and while browsing. A replacement snapshot clears only its affected zone; disconnects, reconnects, or a new addon session clear the character feed. A global quest heartbeat keeps remote zones usable during long transmission cycles. Stale captures hide pins. Missing or incompatible Questie reports its status while position tracking continues. This bridge uses Questie internals, so a future Questie update may require an adapter change. Actual gameplay, game performance, update latency, and alignment still need an in-game check.
 
 ## Hide or restore WoW’s minimap

@@ -1,5 +1,11 @@
 export const QUEST_KINDS = {1:'Pickup', 2:'Objective', 3:'Turn-in'};
 
+// Keep a quest's color stable across zones, sync order, and page reloads.
+const QUEST_COLORS = ['#ffda70', '#79cfff', '#ff91be', '#a8e477', '#c7a0ff', '#ffac70', '#72e5cf', '#f0ed98'];
+export function questColor(questId) {
+  return QUEST_COLORS[(Number(questId) >>> 0) % QUEST_COLORS.length];
+}
+
 function zoneState(packet) {
   return {mapId:packet.mapId,generation:packet.generation,count:packet.count,status:packet.status,
     limited:packet.limited,markers:new Map(),fragments:new Map(),receivedAt:-Infinity};
