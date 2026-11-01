@@ -17,13 +17,16 @@ export default {
       try{
         // Fetch only the fixed public CDN. No user headers or cookies are sent.
         const upstream=await fetch(target,{redirect:'error',signal:AbortSignal.timeout(15000)});
-        if(!upstream.ok)return new Response('Model asset unavailable',{status:upstream.status===404?404:502});
+        if(!upstream.ok){
+          console.warn('Public model CDN response',upstream.status,url.pathname);
+          return new Response('Model asset unavailable',{status:upstream.status===404?404:502});
+        }
         if(Number(upstream.headers.get('Content-Length'))>MAX_ASSET_BYTES)return new Response('Model asset too large',{status:502});
         const body=await upstream.arrayBuffer();
         if(body.byteLength>MAX_ASSET_BYTES)return new Response('Model asset too large',{status:502});
         const response=new Response(body,{headers:{'Content-Type':url.pathname.endsWith('viewer.js')?'text/javascript; charset=utf-8':upstream.headers.get('Content-Type')||'application/octet-stream','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'}});
         return head?new Response(null,{headers:response.headers}):response;
-      }catch{return new Response('Model asset unavailable',{status:502});}
+      }catch(error){console.warn('Public model CDN fetch failed',String(error));return new Response('Model asset unavailable',{status:502});}
     }
     let path;
     try{path=decodeURIComponent(url.pathname);}catch{return new Response('Not found',{status:404});}
