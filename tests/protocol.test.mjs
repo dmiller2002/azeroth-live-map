@@ -586,13 +586,13 @@ const ADDON_MOCK = `
   end
 `;
 
-test('animated elephant renders and decodes five actual Lua packets in every animation frame',async()=>{
+test('animated HUZZAH crest renders and decodes five actual Lua packets in every animation frame',async()=>{
   const {readFileSync}=await import('node:fs');
   const {decodeArtAt}=await import('../dist/art.js');
   const art=JSON.parse(readFileSync(new URL('../dist/elephant-art.json',import.meta.url)));
   const rows=runLua(`${ADDON_MOCK}
     boot(nil,true,true)
-    assert(strip.width==100 and strip.height==136,'full mascot must fit its frame')
+    assert(strip.width==${art.width}*2 and strip.height==136,'full crest must fit its frame')
     assert(frames.AzerothLiveMapArt:IsShown() and frames.AzerothLiveMapLocator:IsShown())
     for _,tick in ipairs({0,12,15,17,18,21,23,26}) do
       now=(tick+.01)/10;strip.scripts.OnUpdate(strip,.1)
@@ -602,7 +602,7 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
       for i=2,#a.textures do for channel=1,3 do colors[#colors+1]=math.floor(a.textures[i].color[channel]*255+.5) end end
       originalPrint(index..';'..table.concat(colors,','))
     end
-    command('unlock');dragTo(1910,1070);assertPosition(1820,944)
+    command('unlock');dragTo(1910,1070);assertPosition(1920-${art.width}*2,944)
     command('lock');assert(not strip:IsMouseEnabled(),'art must remain click-through')
     command('art off');assert(strip.height==80 and not frames.AzerothLiveMapArt:IsShown())
     command('art on');assert(strip.height==136)
@@ -616,16 +616,16 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
     assert.equal(frame,expectedFrame);assert.equal(rgb.length,960*3);
     const carrier=new Map(art.positions.map((position,i)=>[position,rgb.slice(i*3,i*3+3)]));
     for(const cell of [2,2.4,3.6]){
-      const left=31,top=29,width=Math.ceil(left+50*cell+20),height=Math.ceil(top+68*cell+20);
+      const left=31,top=29,width=Math.ceil(left+art.width*cell+20),height=Math.ceil(top+68*cell+20);
       const data=new Uint8ClampedArray(width*height*4);
       for(let y=0;y<height;y++)for(let x=0;x<width;x++){
         let color=[57,76,64];
         const gx=Math.floor((x+.5-left)/cell),gy=Math.floor((y+.5-top)/cell);
-        if(gx>=0&&gx<50&&gy>=0&&gy<68){
+        if(gx>=0&&gx<art.width&&gy>=0&&gy<68){
           if(gy<64){
-            const position=gy*50+gx,base=art.palette[art.frames[frame][position]];
+            const position=gy*art.width+gx,base=art.palette[art.frames[frame][position]];
             if(base[3])color=carrier.get(position)??base.slice(0,3);
-          }else{
+          }else if(gx<50){
             const fy=gy-64,white=gx>0&&gx<49&&((fy===1&&bit(HEADER,gx-1))||(fy===2&&!bit(HEADER,gx-1)));
             color=white?[255,255,255]:[0,0,0];
           }
@@ -652,7 +652,7 @@ test('animated elephant renders and decodes five actual Lua packets in every ani
           assert.equal(decodeArtAt(adjusted,rect,art,decodeBytes,HEADER)?.packets.length,5,`gamma ${gamma}`);
         }
         const damaged={...image,data:new Uint8ClampedArray(data)},position=art.positions[384];
-        const px=left+(position%50)*cell,py=top+Math.floor(position/50)*cell;
+        const px=left+(position%art.width)*cell,py=top+Math.floor(position/art.width)*cell;
         const base=art.palette[art.frames[frame][position]].slice(0,3).map(value=>Math.max(48,Math.min(207,value)));
         const opposite=base.map((value,i)=>2*value-carrier.get(position)[i]);
         for(let yy=py;yy<py+cell;yy++)for(let xx=px;xx<px+cell;xx++)damaged.data.set(opposite,(yy*width+xx)*4);

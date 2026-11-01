@@ -102,7 +102,8 @@ local function Layout()
     local lanes = ns.QuestiePacket and (db.fastSync and 4 or (artMode and 1 or 0)) or 0
     local rows = artMode and (ns.Elephant.height+ns.Elephant.footerRows) or ns.ROWS*(1+lanes)
     db.size = math.max(2,math.min(db.size,math.floor(height/rows)))
-    local stripWidth = ns.COLUMNS * db.size
+    local columns = artMode and math.max(ns.COLUMNS,ns.Elephant.width) or ns.COLUMNS
+    local stripWidth = columns * db.size
     local stripHeight = rows * db.size
     -- Stored offsets are physical pixels, independent of the game's UI scale.
     db.x = math.floor(math.max(0, math.min(math.max(0, width - stripWidth), Number(db.x, 12))) + 0.5)
@@ -244,7 +245,7 @@ frame:SetScript("OnEvent", function(_, event)
         if db.hideMinimap then ApplyMinimap(true,false) end
         -- Never unexpectedly intercept clicks after a reload or a new login.
         db.locked = true
-        Tell("Position and quest sync ready. /alm art on|off for elephant/plain strip, /alm unlock to move, /alm lock when finished.")
+        Tell("Position and quest sync ready. /alm art on|off for HUZZAH/plain strip, /alm unlock to move, /alm lock when finished.")
     end
     if dragging then dragging = false; frame:StopMovingOrSizing() end
     if AzerothLiveMapDB then Layout(); Update() end
@@ -278,7 +279,7 @@ SlashCmdList.AZEROTHLIVEMAP = function(message)
     elseif command == "art" and (arg == "on" or arg == "off") then
         AzerothLiveMapDB.art = arg == "on"
         Layout(); Update()
-        Tell(AzerothLiveMapDB.art and "Animated elephant enabled. Keep the elephant and its short locator line visible." or "Plain data strip enabled.")
+        Tell(AzerothLiveMapDB.art and "Animated HUZZAH crest enabled. Keep the crest and its short locator line visible." or "Plain data strip enabled.")
     elseif command == "minimap" and (arg == "hide" or arg == "show") then
         AzerothLiveMapDB.hideMinimap = arg == "hide"
         ApplyMinimap(AzerothLiveMapDB.hideMinimap,true)

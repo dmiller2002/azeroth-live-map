@@ -2,7 +2,7 @@
 ## Title: Azeroth Live Map
 ## Notes: Displays a small, movable position strip for your companion map. /alm for help.
 ## Author: Dylan
-## Version: 0.6.0
+## Version: 0.6.1
 ## OptionalDeps: Questie
 ## SavedVariables: AzerothLiveMapDB
 Protocol.lua

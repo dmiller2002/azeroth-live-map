@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pink elephant · Azeroth Live Map</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HUZZAH crest · Azeroth Live Map</title>
 <style>html{color-scheme:dark;font:15px system-ui;background:#111817;color:#e9ece2}body{max-width:700px;margin:48px auto;padding:0 24px}a{color:#8ae0be}h1{font:32px Georgia,serif;color:#ede5d1}.preview{display:flex;justify-content:center;align-items:center;min-height:360px;border:1px solid #344b40;border-radius:12px;background:repeating-conic-gradient(#203028 0% 25%,#1b2721 0% 50%) 50%/24px 24px}canvas{image-rendering:pixelated;width:200px;height:272px}p{line-height:1.7;color:#aab9ac}code{color:#e9ece2}small{color:#91a894}button{font:inherit;background:#233a2d;color:#e9ece2;padding:8px 12px;border:1px solid #496a54;border-radius:6px;cursor:pointer}</style></head>
-<body><a href="./">← Back to the live map</a><h1>Your pink elephant</h1><p>A quiet blink, bob, and ear wiggle. The colored pixels carry the live data; the short locator line underneath helps the companion find it.</p>
-<div class="preview"><canvas id="elephant" width="100" height="136" aria-label="Animated pink elephant with a red bow tie"></canvas></div>
+<body><a href="./">← Back to the live map</a><h1>Your HUZZAH crest</h1><p>A purple-and-gold banner, gently fluttering flags, and a quiet gold glint. The colored pixels carry the live data; the short locator line underneath helps the companion find it.</p>
+<div class="preview"><canvas id="elephant" width="128" height="136" style="width:256px;height:272px" aria-label="Animated purple and gold HUZZAH crest"></canvas></div>
 <p><button id="size">Show actual size</button> <button id="pause">Pause animation</button></p><small>This preview uses simulated position and quest packets.</small>
-<p>In WoW, use <code>/alm art on</code>. Use <code>/alm art off</code> to return to the plain strip. Keep the whole elephant and its locator line visible while sharing the game.</p>
+<p>In WoW, use <code>/alm art on</code>. Use <code>/alm art off</code> to return to the plain strip. Keep the whole crest and its locator line visible while sharing the game.</p>
 <script type="module">
 import {encodePacket,checksum,HEADER} from './protocol.js';import {drawArtBlock} from './art.js';
 const art=await(await fetch('./elephant-art.json')).json(),canvas=document.getElementById('elephant'),ctx=canvas.getContext('2d');
@@ -12,7 +12,7 @@ let tick=0,sequence=0,paused=false;
 const paint=()=>{if(paused)return;let time=tick++%art.durations.reduce((sum,n)=>sum+n,0),frame=0;while(time>=art.durations[frame]){time-=art.durations[frame];frame++;}
 const packets=[encodePacket({mapId:1429,x:.5+Math.sin(tick/30)*.1,y:.6,facing:0,sequence:++sequence,clock:tick*100,questLanes:4,questSession:1,artMode:true})];
 for(let lane=0;lane<4;lane++){sequence++;const b=[167,3,0,sequence>>8&255,sequence&255,5,149,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0];b.push(...checksum(b));packets.push(b);}
-ctx.clearRect(0,0,100,136);drawArtBlock(ctx,packets,art,frame,0,0,2,HEADER);};paint();setInterval(paint,100);
+ctx.clearRect(0,0,canvas.width,canvas.height);drawArtBlock(ctx,packets,art,frame,0,0,2,HEADER);};paint();setInterval(paint,100);
 document.getElementById('pause').onclick=event=>{paused=!paused;event.target.textContent=paused?'Resume animation':'Pause animation';};
-document.getElementById('size').onclick=event=>{const actual=canvas.style.width!=='100px';canvas.style.width=actual?'100px':'200px';canvas.style.height=actual?'136px':'272px';event.target.textContent=actual?'Enlarge preview':'Show actual size';};
+document.getElementById('size').onclick=event=>{const actual=canvas.style.width!=='128px';canvas.style.width=actual?'128px':'256px';canvas.style.height=actual?'136px':'272px';event.target.textContent=actual?'Enlarge preview':'Show actual size';};
 </script></body></html>

@@ -114,12 +114,13 @@ try{
   assert.equal(painted.filter(pin=>questColors.includes(pin.color) && pin.alpha<1).length,60,'other quests dim when selecting a colored quest');
   await mkdir('artifacts',{recursive:true});
   const screenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile(artMode?'artifacts/elephant-live-synthetic.png':'artifacts/all-zone-quests.png',Buffer.from(screenshot.data,'base64'));
-  // Move the full 100×80 data block to the bottom-right screen edge.
-  await evaluate(`window.__strip={x:540,y:${artMode?224:280},cell:2}`);
+  // Move the complete artwork or plain block to the bottom-right screen edge.
+  const edgeX=artMode?512:540;
+  await evaluate(`window.__strip={x:${edgeX},y:${artMode?224:280},cell:2}`);
   await wait(3000);
   await until("document.getElementById('status').textContent==='Live position' && parseInt(document.getElementById('quest-sync').textContent.split(' · ').at(-1))>0",'taller block reacquired at edge');
   await evaluate("document.getElementById('calibrate').click()");
-  const selection=await evaluate(`(()=>{const r=document.getElementById('capture-preview').getBoundingClientRect();return {x1:r.left+538/640*r.width,y1:r.top+${artMode?222:278}/360*r.height,x2:r.right,y2:r.bottom};})()`);
+  const selection=await evaluate(`(()=>{const r=document.getElementById('capture-preview').getBoundingClientRect();return {x1:r.left+${edgeX-2}/640*r.width,y1:r.top+${artMode?222:278}/360*r.height,x2:r.right,y2:r.bottom};})()`);
   await send('Input.dispatchMouseEvent',{type:'mousePressed',x:selection.x1,y:selection.y1,button:'left',buttons:1,clickCount:1});
   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:selection.x2,y:selection.y2,button:'left',buttons:1});
   await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:selection.x2,y:selection.y2,button:'left',buttons:0,clickCount:1});
@@ -138,5 +139,5 @@ try{
   assert.equal(await evaluate("window.__stream.getTracks().every(track=>track.readyState==='ended')"),true);
   assert.equal(await evaluate("document.getElementById('quest-sync').textContent"),'');
   assert.deepEqual(errors,[]);
-  console.log(`${artMode?'Animated elephant':'Plain strip'}${yuv420?' through native I420 video conversion':''} browser QA passed: actual Lua v3 packets, four simultaneous quest packets, remote-zone pins, shared UTF-8 names, live rate/progress, complete-block edge relocation and manual calibration, removed remote zone, retained sibling zone, frozen capture, disconnect cleanup.`);
+  console.log(`${artMode?'Animated HUZZAH crest':'Plain strip'}${yuv420?' through native I420 video conversion':''} browser QA passed: actual Lua v3 packets, four simultaneous quest packets, remote-zone pins, shared UTF-8 names, live rate/progress, complete-block edge relocation and manual calibration, removed remote zone, retained sibling zone, frozen capture, disconnect cleanup.`);
 }finally{socket.close();}
