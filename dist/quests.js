@@ -1,52 +1,98 @@
 export const QUEST_KINDS = {1:'Pickup', 2:'Objective', 3:'Turn-in'};
 
-// The strip repeats a bounded snapshot, tolerating skipped frames and joining
-// mid-cycle. A new generation drops removed quests before any new pins appear.
-export class QuestFeed {
-  constructor() { this.reset(); }
-  reset() {
-    this.mapId = null; this.generation = null; this.count = 0; this.status = null;
-    this.limited = false; this.markers = new Map(); this.fragments = new Map();
-    this.titles = new Map(); this.receivedAt = -Infinity; this.lastSequence = null;
+function zoneState(packet) {
+  return {mapId:packet.mapId,generation:packet.generation,count:packet.count,status:packet.status,
+    limited:packet.limited,markers:new Map(),fragments:new Map(),receivedAt:-Infinity};
+}
+function joinTitle(parts) {
+  if(parts.final===null)return null;
+  const bytes=[];
+  for(let i=0;i<=parts.final;i++) {
+    if(!parts.chunks.has(i))return null;
+    bytes.push(...parts.chunks.get(i));
   }
-  accept(packet, now) {
-    if (packet.type !== 'quest') return false;
-    if (packet.kind === 0) {
-      if (this.mapId !== packet.mapId || this.generation !== packet.generation) {
-        this.reset(); this.mapId = packet.mapId; this.generation = packet.generation;
+  const end=bytes.indexOf(0);
+  return new TextDecoder().decode(new Uint8Array(end<0?bytes:bytes.slice(0,end)));
+}
+function fragment(store,key,packet) {
+  const parts=store.get(key)||{chunks:new Map(),final:null};
+  parts.chunks.set(packet.fragment,packet.textBytes);
+  if(packet.final)parts.final=packet.fragment;
+  store.set(key,parts);
+  return joinTitle(parts);
+}
+
+// v3 keeps independent zone generations and shares titles across all zones.
+// Everything stays in memory; disconnect/reconnect starts a fresh character feed.
+export class QuestFeed {
+  constructor(){this.reset();}
+  reset(){
+    this.zones=new Map();this.titles=new Map();this.fragments=new Map();
+    this.global=null;this.version=null;this.mapId=null;this.receivedAt=-Infinity;
+    this.sequences=new Set();this.sequenceQueue=[];this.times=[];
+  }
+  accept(packet,now){
+    if(packet.type!=='quest')return false;
+    const version=packet.version||2;
+    if(this.version!==null && version!==this.version)this.reset();
+    if(version===3 && packet.kind===3 && this.global && packet.generation!==this.global.generation)this.reset();
+    this.version=version;
+    if(this.sequences.has(packet.sequence))return false;
+    if(version===3 && packet.kind===3){
+      this.global=packet;
+      if(packet.status!==1){this.zones.clear();this.titles.clear();this.fragments.clear();}
+    } else if(version===3 && packet.kind===2){
+      if(this.global?.status!==1)return false;
+      const title=fragment(this.fragments,packet.questId,packet);
+      if(title!==null)this.titles.set(packet.questId,title);
+    } else {
+      let zone=this.zones.get(packet.mapId);
+      if(packet.kind===0){
+        if(zone && zone.generation!==packet.generation && ((packet.generation-zone.generation+65536)%65536)>32768)return false;
+        if(!zone || zone.generation!==packet.generation){zone=zoneState(packet);this.zones.set(packet.mapId,zone);}
+        zone.count=packet.count;zone.status=packet.status;zone.limited=packet.limited;
+        if(!zone.count || zone.status!==1){zone.markers.clear();zone.fragments.clear();}
+      } else if(!zone || zone.generation!==packet.generation || zone.status!==1 || packet.index>zone.count){
+        return false;
       }
-      this.count = packet.count; this.status = packet.status; this.limited = packet.limited;
-    } else if (this.mapId !== packet.mapId || this.generation !== packet.generation || this.status !== 1 || packet.index > this.count) {
-      return false;
-    }
-    if (this.lastSequence === packet.sequence) return false;
-    this.lastSequence = packet.sequence; this.receivedAt = now;
-    if (packet.kind === 1) this.markers.set(packet.index, packet);
-    if (packet.kind === 2) {
-      const parts = this.fragments.get(packet.index) || {chunks:new Map(), final:null};
-      parts.chunks.set(packet.fragment, packet.textBytes);
-      if (packet.final) parts.final = packet.fragment;
-      this.fragments.set(packet.index, parts);
-    }
-    // A label can arrive before its marker because a frame was skipped.
-    for (const [index, parts] of this.fragments) {
-      const marker = this.markers.get(index);
-      if (!marker || parts.final === null) continue;
-      const bytes = [];
-      for (let i=0; i<=parts.final; i++) {
-        if (!parts.chunks.has(i)) break;
-        bytes.push(...parts.chunks.get(i));
-        if (i === parts.final) {
-          const end = bytes.indexOf(0);
-          this.titles.set(marker.questId, new TextDecoder().decode(new Uint8Array(end < 0 ? bytes : bytes.slice(0,end))));
-        }
+      this.mapId=packet.mapId;
+      if(packet.kind===1)zone.markers.set(packet.index,packet);
+      if(packet.kind===2)fragment(zone.fragments,packet.index,packet);
+      // Legacy labels may arrive before their marker after a dropped frame.
+      for(const [index,parts] of zone.fragments){
+        const marker=zone.markers.get(index),title=joinTitle(parts);
+        if(marker && title!==null)this.titles.set(marker.questId,title);
       }
+      zone.receivedAt=now;
     }
+    this.sequences.add(packet.sequence);this.sequenceQueue.push(packet.sequence);
+    if(this.sequenceQueue.length>512)this.sequences.delete(this.sequenceQueue.shift());
+    this.receivedAt=now;this.times.push(now);
+    while(this.times.length && this.times[0]<now-4000)this.times.shift();
     return true;
   }
-  isFresh(now) { return now - this.receivedAt < 6000; }
-  visible(mapId, now) {
-    if (this.mapId !== mapId || this.status !== 1 || !this.isFresh(now)) return [];
-    return [...this.markers.values()].map(marker => ({...marker, title:this.titles.get(marker.questId) || `Quest #${marker.questId}`}));
+  isFresh(now){return now-this.receivedAt<6000;}
+  zone(mapId){return this.zones.get(mapId);}
+  // Legacy aliases retain compatibility with the old single-zone feed API.
+  get markers(){return this.zone(this.mapId)?.markers||new Map();}
+  get generation(){return this.zone(this.mapId)?.generation??null;}
+  get count(){return this.zone(this.mapId)?.count||0;}
+  get status(){return this.global?.status??this.zone(this.mapId)?.status??null;}
+  get limited(){return this.global?.limited??this.zone(this.mapId)?.limited??false;}
+  progress(now){
+    let received=0,expected=0,zones=0,named=0;
+    for(const zone of this.zones.values()){
+      received+=zone.markers.size;expected+=zone.count;if(zone.count)zones++;
+      for(const marker of zone.markers.values())if(this.titles.has(marker.questId))named++;
+    }
+    const recent=this.times.filter(time=>time>=now-4000);
+    const seconds=recent.length>1?Math.max(1,(now-recent[0])/1000):1;
+    return {received,expected:this.global?.totalCount??expected,zones,zoneCount:this.global?.zoneCount??zones,
+      named,rate:Math.round(recent.length/seconds)};
+  }
+  visible(mapId,now){
+    const zone=this.zones.get(mapId);
+    if(!zone || zone.status!==1 || !this.isFresh(now) || (this.version===2 && now-zone.receivedAt>=6000) || (this.global && this.global.status!==1))return [];
+    return [...zone.markers.values()].map(marker=>({...marker,title:this.titles.get(marker.questId)||`Quest #${marker.questId}`}));
   }
 }

@@ -13,13 +13,23 @@ export function decodeBytes(bytes) {
   const [a, b] = checksum(bytes.slice(0, 22));
   if (bytes[22] !== a || bytes[23] !== b) return null;
   const u16 = i => bytes[i] * 256 + bytes[i + 1];
-  if (bytes[1] === 2) {
-    const base = {type:'quest', kind:bytes[2], sequence:u16(3), mapId:u16(5), generation:u16(7), index:u16(9)};
+  if (bytes[1] === 2 || bytes[1] === 3) {
+    const version = bytes[1], maxMarkers = version === 3 ? 65535 : 96;
+    const base = {type:'quest', version, kind:bytes[2], sequence:u16(3), mapId:u16(5), generation:u16(7), index:u16(9)};
+    if (version === 3 && base.kind === 3) {
+      if (base.mapId || bytes[11]>2 || bytes[12]>1 || (bytes[11]!==1 && base.index)) return null;
+      return {...base, zoneCount:base.index, status:bytes[11], limited:Boolean(bytes[12]), totalCount:u16(13)*65536+u16(15)};
+    }
+    if (version === 3 && base.kind === 2) {
+      const questId = base.mapId*65536+base.index;
+      if (!questId || base.mapId>255 || (bytes[11]&127)>=8) return null;
+      return {...base, questId, fragment:bytes[11]&127, final:Boolean(bytes[11]&128), textBytes:Array.from(bytes.slice(12,22))};
+    }
     if (base.kind === 0) {
-      if (base.index > 96 || bytes[11] > 2 || bytes[12] > 1 || (bytes[11] !== 1 && base.index)) return null;
+      if (base.index > maxMarkers || bytes[11] > 2 || bytes[12] > 1 || (bytes[11] !== 1 && base.index)) return null;
       return {...base, count:base.index, status:bytes[11], limited:Boolean(bytes[12])};
     }
-    if (!base.index || base.index > 96) return null;
+    if (!base.index || base.index > maxMarkers) return null;
     if (base.kind === 1) {
       const questId = bytes[11] * 65536 + u16(12);
       if (!questId || bytes[18] < 1 || bytes[18] > 3) return null;
@@ -35,17 +45,17 @@ export function decodeBytes(bytes) {
     valid: Boolean(bytes[2] & 1) && u16(5) !== 0,
     sequence: u16(3), mapId: u16(5), x: u16(7) / 65535, y: u16(9) / 65535,
     facing: (bytes[2] & 2) ? u16(11) / 65535 * Math.PI * 2 : null,
-    clock: u16(13) * 65536 + u16(15),
+    clock: u16(13) * 65536 + u16(15), questLanes:bytes[17] <= 4 ? bytes[17] : 0, questSession:u16(18),
   };
 }
 
-export function encodePacket({mapId = 1429, x = .5, y = .5, facing = 0, sequence = 1, clock = 1000, valid = true} = {}) {
+export function encodePacket({mapId = 1429, x = .5, y = .5, facing = 0, sequence = 1, clock = 1000, valid = true, questLanes = 0, questSession = 0} = {}) {
   const bytes = [167, 1, valid ? (facing === null ? 1 : 3) : 0];
   const put = n => { n = Math.floor(n) & 65535; bytes.push(n >> 8, n & 255); };
   put(sequence); put(valid ? mapId : 0); put(Math.round(x * 65535)); put(Math.round(y * 65535));
   put(Math.round(((facing || 0) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * 65535));
   put(Math.floor(clock / 65536)); put(clock % 65536);
-  bytes.push(0, 0, 0, 0, 0); bytes.push(...checksum(bytes));
+  bytes.push(questLanes, questSession>>8&255, questSession&255, 0, 0); bytes.push(...checksum(bytes));
   return bytes;
 }
 
@@ -74,6 +84,18 @@ export function decodeAt(image, rect) {
     bytes[i >> 3] |= v << (7 - (i & 7));
   }
   return decodeBytes(bytes);
+}
+
+// A damaged quest lane must not interrupt the position row or its siblings.
+export function decodeBlock(image, rect) {
+  const first=decodeAt(image,rect);
+  if (!first) return [];
+  const packets=[first];
+  for(let lane=1;lane<=(first.questLanes||0);lane++) {
+    const packet=decodeAt(image,{...rect,y:rect.y+rect.height*lane});
+    if(packet?.type==='quest')packets.push(packet);
+  }
+  return packets;
 }
 
 // Search for the header's distinctive 11010011... run pattern, then require

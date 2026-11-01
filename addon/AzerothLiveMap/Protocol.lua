@@ -4,8 +4,9 @@ ns.COLUMNS, ns.ROWS = 50, 8
 
 -- 24 bytes, big endian. Monochrome bits survive gamma and color correction.
 -- Magic/version/flags, sequence:u16, map:u16, x:u16, y:u16,
--- facing:u16, monotonicMilliseconds:u32, five reserved bytes, Fletcher16.
-function ns.Encode(mapID, x, y, facing, sequence, milliseconds)
+-- facing:u16, monotonicMilliseconds:u32, questLanes:u8, questSession:u16,
+-- two reserved bytes, Fletcher16. Older position decoders ignore these fields.
+function ns.Encode(mapID, x, y, facing, sequence, milliseconds, questLanes, questSession)
     local valid = type(mapID) == "number" and type(x) == "number" and type(y) == "number"
         and mapID > 0 and mapID <= 65535 and x >= 0 and x <= 1 and y >= 0 and y <= 1
     local hasFacing = valid and type(facing) == "number"
@@ -23,7 +24,9 @@ function ns.Encode(mapID, x, y, facing, sequence, milliseconds)
     milliseconds = math.floor(milliseconds) % 4294967296
     put16(math.floor(milliseconds / 65536))
     put16(milliseconds % 65536)
-    for _ = 1, 5 do bytes[#bytes + 1] = 0 end
+    bytes[#bytes + 1] = questLanes or 0
+    put16(questSession or 0)
+    for _ = 1, 2 do bytes[#bytes + 1] = 0 end
     local a, b = 0, 0
     for i = 1, #bytes do a = (a + bytes[i]) % 255; b = (b + a) % 255 end
     bytes[#bytes + 1], bytes[#bytes + 2] = a, b
@@ -37,8 +40,11 @@ end
 -- Auxiliary packets share the same 24-byte rectangle as v1 positions.
 -- v2: magic/version/type, sequence:u16, map:u16, generation:u16,
 -- index:u16, payload:11 bytes, Fletcher16. Positions remain v1-compatible.
-function ns.EncodeQuest(kind, sequence, mapID, generation, index, payload)
-    local bytes = { 167, 2, kind }
+-- v3 kind 0/1: independent zone metadata/pins (up to 65535 per zone).
+-- v3 kind 2: map/index encode the 24-bit quest ID; text is shared globally.
+-- v3 kind 3: global status, zone count, pin total, and addon session epoch.
+function ns.EncodeQuest(kind, sequence, mapID, generation, index, payload, version)
+    local bytes = { 167, version or 2, kind }
     for _, n in ipairs({ sequence, mapID or 0, generation, index }) do
         n = math.floor(n) % 65536
         bytes[#bytes + 1] = math.floor(n / 256)

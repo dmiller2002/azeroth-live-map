@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   HEADER, COLS, ROWS, encodePacket, decodeBytes, decodeAt, findStrip, Freshness,
-  checksum,
+  checksum, decodeBlock,
 } from '../dist/protocol.js';
 import {QuestFeed} from '../dist/quests.js';
 
@@ -47,52 +47,52 @@ test('actual Questie bridge exports filtered world pins, progress, UTF-8 titles,
     assert(qm.questIdFrames[126] and _G.QuestPin123_40_monster_nil.x==40,'Questie data is never modified')
   `, 'luajit'));
   const feed = new QuestFeed(); packets.forEach((p,i) => feed.accept(p,i*400));
-  assert.equal(feed.count,3); assert.equal(feed.markers.size,3);
-  const markers = feed.visible(1429,48000);
+  assert.equal(feed.zone(1429).count,3); assert.equal(feed.zone(1429).markers.size,3);
+  const markers = feed.visible(1429,48000).sort((a,b)=>a.questId-b.questId);
   assert.deepEqual(markers.map(m => m.questId),[123,124,125]);
   assert.deepEqual(markers.map(m => m.markerKind),[2,1,3]);
   close(markers[0].x,.4); close(markers[0].y,.6);
   assert.equal(markers[0].collected,3); assert.equal(markers[0].needed,8);
   assert.equal(markers[0].title,'Quête des loups');
-  assert.deepEqual(feed.visible(1944,48000),[]);
+  assert.equal(feed.visible(1944,48000)[0].questId,127,'remote-zone pin is exported without visiting');
 });
 
-test('Questie snapshot replacement clears completed/removed quests and interrupts on zone changes', () => {
+test('Questie snapshot replacement clears removed quests without flushing other zones', () => {
   const packets = readPackets(runLua(`${QUESTIE_MOCK}
     add(123,'monster',40,60)
     for i=1,40 do emit(i) end
     qm.questIdFrames={}
     for i=41,80 do emit(i) end
-    emit(81,1944)
+    for i=81,120 do emit(i,1944) end
   `, 'luajit'));
   const feed = new QuestFeed();
   for (const packet of packets.slice(0,40)) feed.accept(packet,1);
   assert.equal(feed.markers.size,1); const generation = feed.generation;
   for (const packet of packets.slice(40,80)) feed.accept(packet,2);
   assert.notEqual(feed.generation,generation); assert.equal(feed.count,0); assert.equal(feed.markers.size,0);
-  feed.accept(packets[80],3); assert.equal(feed.mapId,1944); assert.equal(feed.count,0);
+  for(const packet of packets.slice(80))feed.accept(packet,3); assert.equal(feed.zone(1429).count,0); assert.equal(feed.zone(1944).count,0);
 });
 
 test('Questie absence and incompatible internals send explicit status without breaking the stream', () => {
   for (const [setup,status] of [[`QuestieLoader=nil`,0],[`QuestieLoader.ImportModule=function() error('changed API') end`,2]]) {
     const packet = readPackets(runLua(`${QUESTIE_MOCK}${setup}; emit(1)`, 'luajit'))[0];
-    assert.equal(packet.kind,0); assert.equal(packet.count,0); assert.equal(packet.status,status);
+    assert.equal(packet.kind,3); assert.equal(packet.totalCount,0); assert.equal(packet.status,status);
   }
 });
 
-test('Questie exports bounded nearby samples while retaining a stable order', () => {
+test('Questie exports every spawn and more than 96 markers without sampling', () => {
   const packets = readPackets(runLua(`${QUESTIE_MOCK}
     for i=1,20 do add(123,'monster',i,60) end
     for i=1,120 do add(1000+i,'available',i%100,35) end
     for i=1,1200 do emit(i) end
   `, 'luajit'));
   const feed = new QuestFeed(); packets.forEach(p => feed.accept(p,1));
-  assert.equal(feed.count,96); assert.equal(feed.markers.size,96); assert.equal(feed.limited,true);
-  assert.equal([...feed.markers.values()].filter(p=>p.questId===123).length,4);
+  assert.equal(feed.count,140); assert.equal(feed.markers.size,140); assert.equal(feed.limited,false);
+  assert.equal([...feed.markers.values()].filter(p=>p.questId===123).length,20);
 });
 
 test('v2 auxiliary packets survive optical detection and reject corruption and invalid bounds', () => {
-  const bytes = runLua(`${QUESTIE_MOCK}add(123,'monster',40,60); emit(1)`, 'luajit').split(',').map(Number);
+  const bytes = runLua(`${QUESTIE_MOCK}print(table.concat(ns.EncodeQuest(0,1,1429,1,1,{1,0}),','))`, 'luajit').split(',').map(Number);
   const {image,rect} = fixture(bytes,{cell:2.4,antialias:true});
   assert.equal(decodeAt(image,rect).type,'quest'); assert.equal(findStrip(image).packet.count,1);
   for (let i=0;i<24;i++) { const bad=[...bytes]; bad[i]^=1; assert.equal(decodeBytes(bad),null); }
@@ -101,39 +101,122 @@ test('v2 auxiliary packets survive optical detection and reject corruption and i
   }
 });
 
-test('Questie feed tolerates dropped metadata, reordered label fragments, duplicate frames, and reconnect', () => {
-  const packets = readPackets(runLua(`${QUESTIE_MOCK}add(123,'monster',40,60); for i=1,20 do emit(i) end`, 'luajit'));
-  const feed = new QuestFeed(), meta=packets.find(p=>p.kind===0), marker=packets.find(p=>p.kind===1), labels=packets.filter(p=>p.kind===2).slice(0,2);
-  assert.equal(feed.accept(marker,0),false,'must wait for snapshot metadata');
-  feed.accept(meta,1);
-  labels.reverse().forEach((p,i)=>feed.accept(p,10+i));
-  feed.accept(marker,20);
+test('Questie feed tolerates lost metadata, reordered titles, frozen blocks, and generation replacement', () => {
+  const packets=readPackets(runLua(`${QUESTIE_MOCK}add(123,'monster',40,60); for i=1,40 do emit(i) end`,'luajit'));
+  const feed=new QuestFeed(),global=packets.find(p=>p.kind===3),meta=packets.find(p=>p.kind===0),marker=packets.find(p=>p.kind===1);
+  const labels=packets.filter(p=>p.kind===2).slice(0,2);
+  assert.equal(feed.accept(marker,0),false,'wait for zone metadata');
+  feed.accept(global,1);feed.accept(meta,2);
+  labels.reverse().forEach((p,i)=>feed.accept(p,10+i));feed.accept(marker,20);
   assert.equal(feed.visible(1429,21)[0].title,'Quête des loups');
-  assert.equal(feed.accept(marker,5000),false,'frozen frame cannot refresh the feed');
-  assert.equal(feed.isFresh(6020),false); assert.deepEqual(feed.visible(1429,6020),[]);
-  feed.accept({...meta,sequence:300,generation:2,count:0,index:0},7000);
-  assert.equal(feed.markers.size,0); assert.equal(feed.titles.size,0);
-  assert.equal(feed.accept({...marker,sequence:301},7001),false,'old generation is ignored');
-  feed.reset(); assert.equal(feed.status,null); assert.equal(feed.isFresh(7002),false);
+  for(let time=100;time<6500;time+=100)for(const p of [global,meta,marker,...labels])assert.equal(feed.accept(p,time),false,'frozen multi-lane block cannot refresh');
+  assert.equal(feed.isFresh(6500),false);assert.deepEqual(feed.visible(1429,6500),[]);
+  feed.accept({...meta,sequence:300,generation:meta.generation+1,count:0,index:0},7000);
+  assert.equal(feed.zone(1429).markers.size,0);
+  assert.equal(feed.accept({...marker,sequence:301},7001),false,'old generation ignored');
+  assert.equal(feed.accept({...meta,sequence:302},7002),false,'old metadata cannot roll back generation');
+  feed.reset();assert.equal(feed.status,null);assert.equal(feed.isFresh(7002),false);
 });
 
-test('real addon renderer multiplexes Questie packets with fresh v1 player positions in the same tiny strip', () => {
-  const output = runLua(`${ADDON_MOCK}
+test('real addon emits four quest packets per position update and supports compact mode', () => {
+  const output=runLua(`${ADDON_MOCK}
     boot(nil,true)
-    for i=1,8 do
-      now=10+i*.2; strip.scripts.OnUpdate(strip,.2)
+    local function dump(f)
       local bits={}
-      for j=98,#strip.textures do bits[#bits+1]=strip.textures[j].value end
+      for j=98,#f.textures do bits[#bits+1]=f.textures[j].value end
       originalPrint(table.concat(bits,''))
     end
-    assert(strip.width==100 and strip.height==16)
+    for i=1,10 do
+      now=10+i*.1; strip.scripts.OnUpdate(strip,.1); dump(strip)
+      for _,child in ipairs(strip.children) do if child.kind=='Frame' and #child.textures==289 and child:IsShown() then dump(child) end end
+    end
+    assert(strip.width==100 and strip.height==80)
+    command('unlock');dragTo(1900,1060);assertPosition(1820,1000)
+    command('sync compact');assert(strip.height==16)
+    assert(AzerothLiveMapDB.fastSync==false)
+    command('sync fast');assert(strip.height==80)
+    command('lock');assert(not strip:IsMouseEnabled())
   `,'luajit');
-  const packets = output.split('\n').map(row=>decodeBytes(row.match(/.{8}/g).map(bits=>parseInt(bits,2))));
-  assert.ok(packets.every(Boolean));
-  assert.equal(packets.filter(p=>p.type==='quest').length,4);
-  const positions=packets.filter(p=>p.type!=='quest'); assert.equal(positions.length,4);
-  positions.forEach(p=>{assert.equal(p.valid,true);close(p.x,.2345);});
-  assert.ok(positions[3].clock>positions[0].clock);
+  const packets=output.split('\n').map(row=>decodeBytes(row.match(/.{8}/g).map(bits=>parseInt(bits,2))));
+  assert.ok(packets.every(Boolean));assert.equal(packets.length,50);
+  assert.equal(packets.filter(p=>p.type==='quest').length,40,'40 quest packets in one simulated second');
+  const positions=packets.filter(p=>p.type!=='quest');assert.equal(positions.length,10);
+  positions.forEach(p=>{assert.equal(p.questLanes,4);assert.equal(p.valid,true);close(p.x,.2345);});
+  assert.ok(positions.at(-1).clock>positions[0].clock);
+});
+
+test('all-zone snapshots finish with 300 pins and shared titles at the fast-strip packet rate', t => {
+  const packets=readPackets(runLua(`${QUESTIE_MOCK}
+    for zone=1,3 do
+      for quest=1,20 do
+        for spawn=1,5 do add(1000+quest,'monster',zone*20+spawn,30+quest,{UiMapID=({1429,1944,1946})[zone]}) end
+      end
+    end
+    for i=1,1600 do emit(i,1429,i/40) end
+  `,'luajit'));
+  const feed=new QuestFeed();let complete=null;
+  for(let i=0;i<packets.length;i++){
+    feed.accept(packets[i],i*25);
+    const progress=feed.progress(i*25);
+    if(progress.received===300 && progress.named===300){complete=i/40;break;}
+  }
+  assert.ok(complete!==null && complete<16,`all 300 pins/titles should arrive within 16 simulated seconds; got ${complete}`);
+  for(const id of [1429,1944,1946])assert.equal(feed.visible(id,complete*1000).length,100);
+  assert.equal(feed.titles.size,20,'one shared name per quest across three zones');
+  t.diagnostic(`300 pins in three zones, including all names: ${complete.toFixed(2)} simulated seconds at 40 packets/s`);
+  const lossy=new QuestFeed();
+  packets.forEach((packet,i)=>{if(i%5!==0)lossy.accept(packet,i*25);});
+  assert.equal(lossy.progress(40000).received,300,'repeats repair 20% deterministic frame loss');
+});
+
+test('progress changes do not starve late pins; a removed remote zone clears without resetting siblings',()=>{
+  const packets=readPackets(runLua(`${QUESTIE_MOCK}
+    local pin=add(123,'monster',40,60)
+    for i=1,250 do add(1000+i,'available',i%100,35,{UiMapID=1944}) end
+    for i=1,800 do
+      pin.data.ObjectiveData.Collected=math.floor(i/80)%8
+      if i==600 then qm.questIdFrames[123]=nil end
+      emit(i,1429,i/40)
+    end
+  `,'luajit'));
+  const feed=new QuestFeed();const seen=new Set();
+  for(let i=0;i<packets.length;i++){
+    feed.accept(packets[i],i*25);
+    if(packets[i].kind===1 && packets[i].mapId===1944)seen.add(packets[i].questId);
+  }
+  assert.equal(seen.size,250);assert.equal(feed.zone(1944).markers.size,250);
+  assert.equal(feed.visible(1429,20000).length,0,'removed zone uses an empty replacement snapshot');
+  assert.equal(feed.visible(1944,20000).length,250,'remote zone remains usable');
+});
+
+test('a new addon session clears old character zones even when its sequence restarts',()=>{
+  const packets=readPackets(runLua(`${QUESTIE_MOCK}add(123,'monster',40,60); for i=1,40 do emit(i) end`,'luajit'));
+  const feed=new QuestFeed();packets.forEach((p,i)=>feed.accept(p,i*25));assert.equal(feed.zone(1429).markers.size,1);
+  const global=packets.find(p=>p.kind===3);
+  assert.equal(feed.accept({...global,generation:global.generation+1,totalCount:0,zoneCount:0},2000),true);
+  assert.equal(feed.zones.size,0);assert.equal(feed.titles.size,0);
+});
+
+test('parallel optical lanes survive fractional scaling and isolate a corrupt quest row',()=>{
+  const rows=runLua(`${QUESTIE_MOCK}
+    print(table.concat(ns.Encode(1429,.4,.6,0,1,1000,4,12),','))
+    for i=2,5 do print(table.concat(ns.QuestiePacket(1429,.4,.6,i,1),',')) end
+  `,'luajit').split('\n').map(row=>row.split(',').map(Number));
+  for(const cell of [2,2.4,4.8]){
+    const fixtures=rows.map(bytes=>fixture(bytes,{cell,x:0,y:0,width:Math.ceil(COLS*cell),height:Math.ceil(ROWS*cell),margin:0,antialias:true}));
+    // Rasterize each lane independently, including its antialiased border.
+    const width=fixtures[0].image.width,laneHeight=fixtures[0].image.height;
+    const data=new Uint8ClampedArray(width*laneHeight*5*4);
+    fixtures.forEach((f,i)=>data.set(f.image.data,i*width*laneHeight*4));
+    const image={data,width,height:laneHeight*5};
+    // Whole-pixel row offsets are representative of capture scaling, while
+    // width retains subpixel cell spacing for decoding each individual lane.
+    const rect={x:0,y:0,width:COLS*cell,height:laneHeight};
+    assert.equal(decodeBlock(image,rect).length,5);
+    data.fill(128,width*laneHeight*2*4,width*laneHeight*3*4);
+    const decoded=decodeBlock(image,rect);
+    assert.equal(decoded.length,4);assert.equal(decoded[0].questLanes,4);
+  }
 });
 
 const root = fileURLToPath(new URL('../', import.meta.url));

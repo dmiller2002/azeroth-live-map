@@ -81,32 +81,40 @@ to Windows startup. The local server listens only on this computer.
 /alm             Show command help.
 /alm show        Show the strip.
 /alm hide        Hide it; live tracking will stop.
-/alm size 2      Smallest strip, 100 x 16 pixels (default for new installs).
+/alm size 2      Smallest cells: 100 x 80 fast block (100 x 16 compact).
+/alm sync fast   Four quest rows below the position row (default).
+/alm sync compact One small row, with slower quest sync.
 /alm size 3      Slightly larger strip if capture scaling makes it hard to read.
-/alm size 4      Larger strip, 200 x 32 pixels.
+/alm size 4      Larger block: 200 x 160 fast (200 x 32 compact).
 /alm unlock      Show the drag handle and allow moving the strip.
 /alm lock        Hide the handle and let clicks pass through to the game.
-/alm reset       Restore the small strip to the top-left corner and lock it.
+/alm reset       Restore size 2 at the top-left corner and lock the block.
 
 The strip saves its position and locks again after login or /reload.
 
 QUESTIE OVERLAY
 --------------
-Enable Questie alongside Azeroth Live Map 0.3.0. Questie is optional and
+Enable Questie alongside Azeroth Live Map 0.4.0. Questie is optional and
 must be installed separately. Update both the addon and Companion folder
 from this package, then /reload in WoW and refresh the browser map.
 
 Enable Questie markers in the map controls. Pickups (!), objective diamonds,
-and turn-in locations (?) appear for your character's current zone. Hover
+and turn-in locations (?) sync across all Questie-generated zones. Hover
 pins for titles and objective counts; select a sidebar quest to highlight
 its locations. Questie's map filters apply even when its map is closed.
 
-Pins and names arrive progressively through the strip; allow several minutes
-for a full cycle in busy zones. Quest changes appear on a subsequent cycle.
-Up to 96 markers and four nearby spawns per quest/objective are shared. The
-sidebar says when locations are sampled. Quest data remains in browser
-memory, and stale or disconnected captures hide the pins. Live gameplay
-and alignment still need checking on your PC.
+Keep the entire five-row data block visible. Fast mode sends up to 40 quest
+packets per second, versus 2.5 in addon 0.3.0. Pins and names arrive
+progressively; the sidebar shows overall pins, zones, names, and observed
+packet rate. Browse another zone to see its received quests without moving
+your character there. Questie's character/map filters still apply.
+
+The former 96-pin and four-spawn sampling limits are removed. Questie is
+sampled every two seconds; changed quests replace only their affected zone.
+All-zone data stays in browser memory while changing zones, and clears on
+disconnect or a new addon session. Stale capture hides the pins. Initial sync
+time depends on total pins/titles and delivered capture frames. Live gameplay,
+performance, and alignment still need checking on your PC.
 
 MAP NAVIGATION
 --------------

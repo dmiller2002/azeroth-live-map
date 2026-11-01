@@ -1,4 +1,4 @@
-import {decodeAt, findStrip, Freshness} from './protocol.js';
+import {decodeAt, decodeBlock, findStrip, Freshness} from './protocol.js';
 import {loadPreferences, savePreferences} from './prefs.js';
 import {QuestFeed, QUEST_KINDS} from './quests.js';
 import {buildMapCatalog, mapViewport, hitTestMap} from './navigation.js';
@@ -17,6 +17,7 @@ let demo = false, demoStart = 0, last = null, trail = [], zoom = 1, pan = {x:0,y
 let drag = null, selection = null, mapSize = {w:0,h:0};
 let viewport = null, mapChildren = [], hoveredMap = null;
 let statusOverride = null;
+let lastCaptureKey = null;
 const preferences = loadPreferences();
 for (const key of ['follow','trail','grid','quests']) $(key).checked = preferences[key];
 
@@ -91,9 +92,10 @@ $('map-up').onclick = navigateUp;
 function accept(packet, now, simulated = false) {
   if (packet.type === 'quest') { questFeed.accept(packet, now); return; }
   if (!freshness.accept(packet, now)) return;
-  if (last && packet.mapId !== last.mapId) { questFeed.reset(); focusedQuest = null; }
+  if(last && packet.questSession!==last.questSession){questFeed.reset();focusedQuest=null;}
+  if (last && packet.mapId !== last.mapId) focusedQuest = null;
   last = packet;
-  if (!packet.valid) { trail = []; questFeed.reset(); draw(); return; }
+  if (!packet.valid) { trail = []; draw(); return; }
   if ($('follow').checked && selected !== packet.mapId) selectMap(packet.mapId);
   if (trail.length && trail[trail.length-1].mapId !== packet.mapId) trail = [];
   const previous = trail[trail.length-1];
@@ -142,25 +144,31 @@ function tickStatus(now) {
 }
 
 function currentQuests(now) {
-  if (demo || !stream || !last?.valid || !freshness.isFresh(now) || !mapById.has(selected) || last.mapId !== selected || !$('quests').checked) return [];
+  if (demo || !stream || !last || !freshness.isFresh(now) || !mapById.has(selected) || !$('quests').checked) return [];
   return questFeed.visible(selected, now);
 }
 
 function updateQuests(now) {
   const markers = currentQuests(now);
+  const zone = questFeed.zone(selected), progress = questFeed.progress(now);
   let text;
   if (!$('quests').checked) text = 'Questie layer hidden.';
   else if (demo) text = 'Connect WoW for your real Questie markers.';
   else if (!stream) text = 'Connect WoW to receive Questie markers.';
-  else if (!last?.valid || !freshness.isFresh(now)) text = 'Waiting for a live position; quest markers are hidden.';
-  else if (last.mapId !== selected) text = 'Questie markers are shared for your character’s current zone.';
+  else if (!last || !freshness.isFresh(now)) text = 'Waiting for a live signal; quest markers are hidden.';
   else if (!mapById.has(selected)) text = 'Quest markers need map artwork for this zone.';
-  else if (!questFeed.isFresh(now) || questFeed.mapId !== selected) text = 'Waiting for Questie data. Enable Questie and update the companion addon.';
+  else if (!questFeed.isFresh(now)) text = 'Waiting for Questie data. Keep every data row visible and update the companion addon.';
   else if (questFeed.status === 0) text = 'Questie is not loaded. Enable it in WoW, then /reload.';
   else if (questFeed.status === 2) text = 'Questie is loading or its marker format is unsupported. Try /reload.';
-  else if (!questFeed.count) text = 'No Questie markers in this zone. Questie’s map filters apply.';
-  else text = `${markers.length}/${questFeed.count} markers${markers.length < questFeed.count ? ' · syncing…' : ' · synced'}${questFeed.limited ? ' · nearby samples' : ''}`;
+  else if (['cosmic','world','continent'].includes(mapById.get(selected)?.kind)) text = 'Open a zone to see its quest markers.';
+  else if (questFeed.version===2 && !zone) text = 'Update the companion addon for all-zone quest sync.';
+  else if (!zone) text = 'This zone has not arrived yet, or Questie has no markers here.';
+  else if (!zone.count) text = 'No Questie markers in this zone. Questie’s map filters apply.';
+  else text = `${markers.length}/${zone.count} markers${markers.length < zone.count ? ' · syncing…' : ' · synced'}${zone.limited ? ' · protocol limit reached' : ''}`;
   $('quest-status').textContent = text;
+  $('quest-sync').textContent = stream && !demo && questFeed.isFresh(now) && questFeed.status===1
+    ? `${questFeed.version===3?'All zones':'Legacy sync'}: ${progress.received}/${progress.expected} pins · ${progress.zones}/${progress.zoneCount} zones · ${progress.named}/${progress.received} named · ${progress.rate} packets/s`
+    : '';
   if (!markers.length) $('quest-tooltip').hidden = true;
   const key = JSON.stringify(markers.map(m => [m.questId,m.title,m.markerKind,m.objective,m.collected,m.needed]));
   if (key === questListKey) return;
@@ -185,9 +193,10 @@ function updateQuests(now) {
 
 function resetPosition() {
   freshness.reset(); last = null; trail = [];
+  lastCaptureKey = null;
   questFeed.reset(); focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true;
   $('location').textContent = 'Waiting for your character'; $('coord-x').textContent = $('coord-y').textContent = '—';
-  $('updated').textContent = 'No position received'; draw();
+  $('updated').textContent = 'No position received'; updateQuests(performance.now()); draw();
 }
 function stopCapture() {
   if (stream) stream.getTracks().forEach(track => track.stop());
@@ -207,7 +216,7 @@ $('connect').addEventListener('click', async () => {
   $('connect').disabled = true;
   $('quick-connect').disabled = true;
   try {
-    stream = await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:10,max:15}},audio:false});
+    stream = await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:30,max:30}},audio:false});
     video.srcObject = stream; await video.play();
     stream.getVideoTracks()[0].addEventListener('ended', () => { stopCapture(); statusOverride = true; status('Sharing stopped', 'Connect WoW again to resume your live position.'); });
     $('connect').innerHTML = 'Disconnect <span aria-hidden="true">×</span>'; $('calibrate').hidden = false;
@@ -225,6 +234,26 @@ function readROI(rect) {
   return decodeAt(readCtx.getImageData(0, 0, 500, 80), {x:0,y:0,width:500,height:80});
 }
 
+function readDataBlock(rect) {
+  const first = readROI(rect);
+  if (!first) return [];
+  if (!first.questLanes) return [first];
+  const height = rect.height * (first.questLanes + 1);
+  if (rect.y + height > video.videoHeight + 1) return [first];
+  readCanvas.width=500;readCanvas.height=80*(first.questLanes+1);
+  readCtx.imageSmoothingEnabled=false;
+  readCtx.drawImage(video,rect.x,rect.y,rect.width,height,0,0,readCanvas.width,readCanvas.height);
+  return decodeBlock(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height),{x:0,y:0,width:500,height:80});
+}
+
+function acceptBlock(packets,now) {
+  if (!packets.length) return;
+  const key=`${packets[0].type||'position'}:${packets[0].sequence}:${packets[0].clock??''}`;
+  if (key===lastCaptureKey) return;
+  lastCaptureKey=key;
+  for(const packet of packets)accept(packet,now);
+}
+
 function captureTick(now) {
   if (!stream || video.readyState < 2 || !video.videoWidth) return;
   if (captureWidth !== video.videoWidth || captureHeight !== video.videoHeight) {
@@ -232,8 +261,8 @@ function captureTick(now) {
   }
   try {
     if (roi) {
-      const packet = readROI(roi);
-      if (packet) { failures = 0; accept(packet, now); }
+      const packets = readDataBlock(roi);
+      if (packets.length) { failures = 0; acceptBlock(packets, now); }
       else if (++failures > 8) { roi = null; failures = 0; }
     } else if (now >= nextSearch) {
       nextSearch = now + 1200;
@@ -241,7 +270,7 @@ function captureTick(now) {
       readCanvas.width = Math.round(captureWidth * scale); readCanvas.height = Math.round(captureHeight * scale);
       readCtx.drawImage(video, 0, 0, readCanvas.width, readCanvas.height);
       const found = findStrip(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height));
-      if (found) { roi = Object.fromEntries(Object.entries(found.rect).map(([k,v]) => [k,v / scale])); accept(found.packet, now); }
+      if (found) { roi = Object.fromEntries(Object.entries(found.rect).map(([k,v]) => [k,v / scale])); acceptBlock(readDataBlock(roi), now); }
     }
     if ($('calibration-dialog').open) renderPreview();
   } catch { roi = null; }
@@ -274,8 +303,16 @@ preview.onpointerup = event => {
   const scale = video.videoWidth/preview.width;
   const rect = {x:Math.min(selection.x,selection.endX)*scale,y:Math.min(selection.y,selection.endY)*scale,width:Math.abs(selection.endX-selection.x)*scale,height:Math.abs(selection.endY-selection.y)*scale};
   if (rect.width < 50 || rect.height < 8) { $('calibration-result').textContent = 'Select the whole strip, including its black border.'; return; }
-  const packet = readROI(rect);
-  if (packet) { roi=rect; accept(packet,performance.now()); $('calibration-dialog').close(); }
+  let packets = readDataBlock(rect), detectedRect=rect;
+  if(!packets.length){
+    // Accept a selection around the entire taller block as well as just its
+    // top row. Search the crop for the original position-row header.
+    readCanvas.width=Math.ceil(rect.width);readCanvas.height=Math.ceil(rect.height);
+    readCtx.drawImage(video,rect.x,rect.y,rect.width,rect.height,0,0,readCanvas.width,readCanvas.height);
+    const found=findStrip(readCtx.getImageData(0,0,readCanvas.width,readCanvas.height));
+    if(found){detectedRect={...found.rect,x:rect.x+found.rect.x,y:rect.y+found.rect.y};packets=readDataBlock(detectedRect);}
+  }
+  if (packets.length) { roi=detectedRect; acceptBlock(packets,performance.now()); $('calibration-dialog').close(); }
   else $('calibration-result').textContent = 'Could not read that selection. Include the entire black border, or try /alm size 8 in WoW.';
 };
 
@@ -405,9 +442,15 @@ $('demo').onclick=()=>{
 setInterval(()=>{
   const now=performance.now();
   if(demo){const t=(now-demoStart)/12000;accept({valid:true,mapId:1429,x:.44+Math.sin(t)*.13,y:.59+Math.sin(t*.7)*.11,facing:Math.atan2(-.13*Math.cos(t),-.077*Math.cos(t*.7)),sequence:Math.floor(now/100)%65536,clock:Math.floor(now)},now,true);}
-  else captureTick(now);
+  else if (!video.requestVideoFrameCallback) captureTick(now);
   tickStatus(now);
 },150);
+// Decode each delivered capture frame, independently of the slower UI refresh.
+// Repeated/frozen frames cannot refresh either the position or quest feed.
+if(video.requestVideoFrameCallback){
+  const onFrame=now=>{if(!demo)captureTick(now);video.requestVideoFrameCallback(onFrame);};
+  video.requestVideoFrameCallback(onFrame);
+}
 window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(track=>track.stop());});
 
 try {
