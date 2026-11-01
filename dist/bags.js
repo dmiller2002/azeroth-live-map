@@ -86,7 +86,7 @@ export function createBagsPanel(feed){
     $('combined-bag-capacity').textContent=available?`${progress.used}/${progress.total} slots used${progress.complete?'':' · syncing…'}`:'Waiting…';
     $('combined-bag-empty').hidden=available && progress.total>0;
     $('combined-bag-empty').textContent=available?'Syncing your bag slots…':'Waiting for bag data…';
-    const visible=document.body.dataset.activeTab==='bags';
+    const visible=!$('bags-view').hidden;
     if(!visible){tooltip.hide();lastKey='';return;}
     const key=`${available}:${feed.version}`;if(key===lastKey)return;lastKey=key;
     if(!available)tooltip.hide();

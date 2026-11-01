@@ -6,17 +6,51 @@ export function createTabs(onChange=()=>{}){
   const list=document.getElementById('app-tabs');
   const tabs=Array.from(list.querySelectorAll('[role="tab"][data-view]'));
   const views=new Map(tabs.map(tab=>[tab.dataset.view,{tab,panel:document.getElementById(tab.getAttribute('aria-controls'))}]));
+  const saved=loadPreferences(),toggle=document.getElementById('split-view-toggle');
+  const primarySelect=document.getElementById('split-primary'),secondarySelect=document.getElementById('split-secondary');
+  let primary=views.has(saved.activeTab)?saved.activeTab:'map';
+  let secondary=views.has(saved.secondaryTab)?saved.secondaryTab:'bags',split=saved.splitView;
+  if(secondary===primary)secondary=tabs.find(tab=>tab.dataset.view!==primary).dataset.view;
+  for(const [name,{tab}] of views)for(const select of [primarySelect,secondarySelect]){
+    const option=document.createElement('option');option.value=name;option.textContent=tab.textContent;select.append(option);
+  }
+  function render({focus=false,persist=true}={}){
+    const visible=[primary,...(split?[secondary]:[])];
+    for(const [name,{tab,panel}] of views){
+      const shown=visible.includes(name);
+      tab.setAttribute('aria-selected',String(shown));tab.tabIndex=name===primary?0:-1;panel.hidden=!shown;
+      if(split)tab.setAttribute('aria-expanded',String(shown));else tab.removeAttribute('aria-expanded');
+    }
+    const panels=document.getElementById('viewer-panels');
+    const ordered=[...visible,...[...views.keys()].filter(name=>!visible.includes(name))];
+    ordered.forEach((name,index)=>{
+      const panel=views.get(name).panel;
+      if(panels.children[index]!==panel)panels.insertBefore(panel,panels.children[index]||null);
+    });
+    list.setAttribute('aria-multiselectable',String(split));
+    document.body.dataset.activeTab=primary;
+    document.body.dataset.mapVisible=String(visible.includes('map'));
+    document.body.classList.toggle('split-view',split);
+    toggle.setAttribute('aria-pressed',String(split));toggle.textContent=split?'Single view':'Split view';
+    document.getElementById('split-view-options').hidden=!split;
+    primarySelect.value=primary;secondarySelect.value=secondary;
+    if(focus)views.get(primary).tab.focus();
+    if(persist)savePreferences({activeTab:primary,secondaryTab:secondary,splitView:split});
+    onChange(primary);
+  }
   function select(view,{focus=true,persist=true}={}){
     if(!views.has(view))view='map';
-    for(const [name,{tab,panel}] of views){
-      const selected=name===view;
-      tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;panel.hidden=!selected;
-    }
-    document.body.dataset.activeTab=view;
-    if(focus)views.get(view).tab.focus();
-    if(persist)savePreferences({activeTab:view});
-    onChange(view);
+    if(view===secondary)secondary=primary;
+    primary=view;render({focus,persist});
   }
+  toggle.addEventListener('click',()=>{split=!split;render();});
+  primarySelect.addEventListener('change',()=>select(primarySelect.value,{focus:false}));
+  secondarySelect.addEventListener('change',()=>{
+    const next=secondarySelect.value;if(!views.has(next))return;
+    if(next===primary)primary=secondary;
+    secondary=next;render();
+  });
+  document.getElementById('split-view-swap').addEventListener('click',()=>{[primary,secondary]=[secondary,primary];render();});
   for(const tab of tabs)tab.addEventListener('click',()=>select(tab.dataset.view));
   list.addEventListener('keydown',event=>{
     if(event.altKey || event.ctrlKey || event.metaKey)return;
@@ -29,6 +63,6 @@ export function createTabs(onChange=()=>{}){
     else return;
     event.preventDefault();select(tabs[next].dataset.view);
   });
-  select(loadPreferences().activeTab,{focus:false,persist:false});
+  render({persist:false});
   return {select};
 }

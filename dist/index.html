@@ -62,11 +62,20 @@
       <button id="tab-bags" role="tab" data-view="bags" aria-controls="bags-view" aria-selected="false" tabindex="-1">Bags</button>
       <button id="tab-updates" role="tab" data-view="updates" aria-controls="updates-view" aria-selected="false" tabindex="-1">Updates</button>
     </nav>
+    <div class="viewer-layout-controls">
+      <button id="split-view-toggle" class="toolbar-button" aria-pressed="false" aria-controls="split-view-options">Split view</button>
+      <div id="split-view-options" class="split-view-options" hidden>
+        <label>First view <select id="split-primary" aria-label="First split view"></select></label>
+        <label>Second view <select id="split-secondary" aria-label="Second split view"></select></label>
+        <button id="split-view-swap" class="toolbar-button" aria-label="Swap split views">Swap</button>
+      </div>
+    </div>
     <div id="quick-connection" class="quick-connection" hidden>
       <span class="quick-signal"><span id="quick-status-dot" class="dot"></span><span id="quick-status">Not connected</span></span>
       <span id="quick-coordinates">X — · Y —</span>
       <button id="quick-connect">Connect WoW ↗</button>
     </div>
+    <div id="viewer-panels" class="viewer-panels">
     <section id="map-view" class="map-view" role="tabpanel" aria-labelledby="tab-map" tabindex="0">
     <header>
       <div><div class="eyebrow" id="map-type">EASTERN KINGDOMS · ZONE MAP</div><h1 id="map-title">Elwynn Forest</h1></div>
@@ -149,6 +158,7 @@
       </div>
       <div class="updates-next"><span class="eyebrow">MORE TO COME</span><p>Future additions will have their own place here alongside Map and Character.</p></div>
     </section>
+    </div>
   </main>
 </div>
 <dialog id="setup-dialog">

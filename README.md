@@ -124,7 +124,9 @@ Quest data stays in browser memory through player zone changes and while browsin
 
 ## App tabs
 
-Use **Map**, **Character**, **Bags**, and **Updates** at the top of the app. Map contains zone navigation, position, and Questie tracking; Character has a full equipment and attributes view; Updates lists recent improvements and has space for future additions. The connection, minimap commands, fullscreen, and Show/Hide controls remain shared. Map-specific sidebar controls appear only on Map.
+Use **Map**, **Character**, **Bags**, and **Updates** at the top of the app. Map contains zone navigation, position, and Questie tracking; Character has a full equipment and attributes view; Updates lists recent improvements and has space for future additions. The connection, minimap commands, fullscreen, and Show/Hide controls remain shared. Map-specific sidebar controls appear whenever Map is visible, including the second split pane.
+
+Choose **Split view** to show any two distinct views together. **First view** and **Second view** select the pair; **Swap** reverses them, and **Single view** returns to one panel. Clicking a tab changes the first view; choosing the view already in the other pane swaps the pair. Both panes share one capture and keep receiving live map, character, and bag data. The selected pair and split mode are saved as display preferences. Narrow windows stack the panes vertically. Each pane scrolls independently, and the 3D renderer runs while Character is visible in either pane.
 
 Changing tabs keeps the capture running and retains the selected map, zoom and pan. Character, bag, and quest data continue syncing in the background. The last selected tab is remembered as a display preference; refreshing still requires a new screen-sharing choice. Use Left/Right arrows, Home, and End when a tab has focus; hidden panels are excluded from keyboard navigation. Future views use the same tab/panel navigation without creating a new capture connection.
 
@@ -221,6 +223,8 @@ The crest test rasterizes the actual Lua renderer in all eight poses at integer 
 `scripts/quest_sync_qa.mjs` sends actual Lua packets through a synthetic browser capture and checks remote-zone pins, names, the overall rate, complete-block relocation, remote-zone removal, retained sibling zones, frozen feeds, and disconnect cleanup.
 
 `scripts/browser_qa.mjs` runs against a separate test Chromium instance with its debugging port at `127.0.0.1:9223` and the local server at port 8765. Never enable remote debugging on your normal browser profile for these tests.
+
+`scripts/split_view_qa.mjs` checks all 12 ordered view pairs, duplicate-choice swapping, map sidebar/zoom preservation, saved layout, responsive stacking, and return to single view. `scripts/bags_qa.mjs --art --split` checks live bags and the 3D model as secondary panes; the companion offline check restores both saved panes.
 
 ## Map sources and attribution
 

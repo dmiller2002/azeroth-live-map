@@ -44,7 +44,7 @@ createTabs(view=>{
   characterPanel.hideTooltip();
   bagsPanel.hideTooltip();
   $('quest-tooltip').hidden=true;$('area-tooltip').hidden=true;
-  if(view==='map')requestAnimationFrame(draw);
+  if(!$('map-view').hidden)requestAnimationFrame(draw);
 });
 $('wow-minimap').onclick = () => { $('minimap-copy-status').textContent='';$('minimap-dialog').showModal(); };
 $('close-minimap').onclick = () => $('minimap-dialog').close();

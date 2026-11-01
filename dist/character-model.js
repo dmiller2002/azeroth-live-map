@@ -132,7 +132,7 @@ export function createCharacterModel(){
   $('model-retry').onclick=()=>{failed=false;start();};
   return {update({available,currentFeed}){
     feed=currentFeed;
-    const visible=available && document.body.dataset.activeTab==='character';
+    const visible=available && !$('character-panel').hidden;
     if(!visible){if(active || viewer || loading)destroy();active=false;failed=false;message(available?'Open Character to view your 3D model.':'Connect WoW to load your character’s model.','waiting');return;}
     active=true;
     if(!feed.identity?.info || !feed.identity.text || Array.from({length:19},(_,i)=>feed.slot(i+1)?.info).some(item=>!item)){message('Waiting for your character and equipment to sync…','waiting');return;}

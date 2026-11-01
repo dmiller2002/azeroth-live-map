@@ -237,12 +237,17 @@ try {
   // Reload offline while tracking: UI/preferences must reopen, but a previous
   // coordinate must never reappear as live and capture must require a new click.
   await evaluate("document.getElementById('tab-updates').click()");
+  await evaluate("document.getElementById('split-view-toggle').click();document.getElementById('split-secondary').value='bags';document.getElementById('split-secondary').dispatchEvent(new Event('change'))");
   await send('Network.emulateNetworkConditions', {offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0});
   offline = true;
   await reload({ignoreCache: false}, 'offline companion shell');
   assert.deepEqual(await readPrefs(), wantedPrefs);
   assert.equal(await evaluate("document.getElementById('tab-updates').getAttribute('aria-selected')"),'true','Updates tab is remembered offline');
   assert.equal(await evaluate("document.getElementById('updates-view').hidden"),false);
+  assert.equal(await evaluate("document.body.classList.contains('split-view')"),true,'split mode is remembered offline');
+  assert.equal(await evaluate("document.getElementById('split-primary').value"),'updates');
+  assert.equal(await evaluate("document.getElementById('split-secondary').value"),'bags');
+  assert.equal(await evaluate("document.getElementById('bags-view').hidden"),false,'both saved panes reopen offline');
   assert.equal(await evaluate("document.getElementById('status').textContent"), 'Not connected');
   assert.equal(await evaluate("document.getElementById('coord-x').textContent"), '—');
   assert.equal(await evaluate("document.getElementById('coord-y').textContent"), '—');

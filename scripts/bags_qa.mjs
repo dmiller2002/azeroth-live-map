@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir,writeFile} from 'node:fs/promises';
 const artMode=process.argv.includes('--art');
+const splitMode=process.argv.includes('--split');
 const lua=`local ns={};local clock=0
 GetTime=function()return clock end
 for _,name in ipairs({'Protocol','Questie','Character','Bags'})do assert(loadfile('addon/AzerothLiveMap/'..name..'.lua'))('AzerothLiveMap',ns) end
@@ -61,6 +62,11 @@ try{
  await send('Page.navigate',{url:'http://localhost:8765'});
  await until("document.querySelectorAll('#zone option').length===70",'app ready');
  await evaluate("document.getElementById('tab-bags').click()");
+ if(splitMode){
+  await evaluate("document.getElementById('split-view-toggle').click();document.getElementById('split-primary').value='map';document.getElementById('split-primary').dispatchEvent(new Event('change'))");
+  assert.equal(await evaluate("document.body.dataset.activeTab"),'map');
+  assert.equal(await evaluate("document.getElementById('split-secondary').value"),'bags');
+ }
  assert.equal(await evaluate("document.getElementById('bags-view').hidden"),false);
  assert.match(await evaluate("document.getElementById('bags-status').textContent"),/Connect WoW/);
  await evaluate("document.getElementById('connect').click()");
@@ -108,6 +114,16 @@ try{
  assert.equal(await evaluate("document.querySelectorAll('#combined-bag-items .bag-slot').length"),52,'combined bag removes replaced bag slots');
  assert.equal(await evaluate(`${slot(0,3)}.hasAttribute('href')`),false,'moved item clears its old slot');
  assert.equal(await evaluate(`${slot(0,8)}.getAttribute('href')`),'https://www.wowhead.com/tbc/item=27854');
+ if(splitMode){
+  await evaluate("document.getElementById('split-secondary').value='character';document.getElementById('split-secondary').dispatchEvent(new Event('change'))");
+  await until("document.getElementById('model-viewport').dataset.state==='ready' && document.querySelector('#model-viewport canvas')",'3D character renders in second pane');
+  await evaluate("window.__splitModelCanvas=document.querySelector('#model-viewport canvas');document.getElementById('tab-map').click()");
+  await new Promise(resolve=>setTimeout(resolve,400));
+  assert.equal(await evaluate("window.__splitModelCanvas===document.querySelector('#model-viewport canvas')"),true,'model stays alive while visible in second pane');
+  await evaluate("document.getElementById('split-secondary').value='updates';document.getElementById('split-secondary').dispatchEvent(new Event('change'))");
+  await until("!document.querySelector('#model-viewport canvas')",'hidden Character releases 3D renderer');
+  await evaluate("document.getElementById('split-secondary').value='bags';document.getElementById('split-secondary').dispatchEvent(new Event('change'))");
+ }
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false});
  assert.equal(await evaluate('document.documentElement.scrollWidth<=390'),true,'mobile layout fits');
  await evaluate(`${slot(0,2)}.focus()`);
@@ -122,7 +138,7 @@ try{
  assert.equal(await evaluate("document.querySelectorAll('.bag-slot[href]').length"),0);
  await evaluate("document.getElementById('connect').click()");
  await until("document.getElementById('bags-status').textContent.includes('Connect WoW')",'disconnect cleanup');
- assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).activeTab"),'bags');
+ assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).activeTab"),splitMode?'map':'bags');
  assert.equal(await evaluate("JSON.parse(localStorage.getItem('azeroth-live-map.preferences.v1')).bagView"),'combined');
  assert.equal(await evaluate("localStorage.getItem('azeroth-live-map.preferences.v1').includes('Hearthstone')"),false,'live inventory is not persisted');
  assert.deepEqual(errors,[]);
