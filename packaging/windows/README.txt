@@ -86,6 +86,8 @@ to Windows startup. The local server listens only on this computer.
 /alm hide        Hide it; live tracking will stop.
 /alm size 2      Smallest artwork: 100 x 136 pixels, including locator.
 /alm art on      Animated pink elephant (default).
+/alm minimap hide Hide the built-in minimap; remember this after reload/login.
+/alm minimap show Restore the built-in minimap.
 /alm art off     Plain strip: 100 x 80 fast, or 100 x 16 compact at size 2.
 /alm sync fast   Four quest packets per update (default).
 /alm sync compact Fewer quest packets; slower all-zone sync.
@@ -97,9 +99,17 @@ to Windows startup. The local server listens only on this computer.
 
 The strip saves its position and locks again after login or /reload.
 
+WOW MINIMAP BUTTON
+------------------
+Select WoW minimap in the browser toolbar, then Copy hide command. Paste it
+into WoW chat and press Enter. Copy show command restores it. If copying is
+blocked, copy the selected command manually. Requires addon 0.5.2 and /reload
+after updating. Changes requested during combat apply when combat ends.
+The browser cannot control WoW directly; the copied command must be run in game.
+
 QUESTIE OVERLAY
 --------------
-Enable Questie alongside Azeroth Live Map 0.5.1. Questie is optional and
+Enable Questie alongside Azeroth Live Map 0.5.2. Questie is optional and
 must be installed separately. Update both the addon and Companion folder
 from this package, then /reload in WoW and refresh the browser map.
 

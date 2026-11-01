@@ -42,6 +42,21 @@ await send('Page.navigate',{url:'http://localhost:8765'});
 await until("document.querySelectorAll('#zone option').length === 70",'map catalog');
 assert.equal(await evaluate("document.getElementById('status').textContent"),'Not connected');
 assert.equal(await evaluate("document.getElementById('coord-x').textContent"),'—');
+// Commands are copied for an explicit user action in WoW; opening/copying must
+// never claim the game has already changed. Avoid touching the real clipboard.
+await evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.__copiedCommand=text;}}});document.getElementById('wow-minimap').click()");
+assert.equal(await evaluate("document.getElementById('minimap-dialog').open"),true);
+await evaluate("document.getElementById('copy-minimap-hide').click()");
+await until("document.getElementById('minimap-copy-status').textContent.includes('Hide command copied')",'copy minimap hide command');
+assert.equal(await evaluate('window.__copiedCommand'),'/alm minimap hide');
+await evaluate("document.getElementById('copy-minimap-show').click()");
+await until("document.getElementById('minimap-copy-status').textContent.includes('Show command copied')",'copy minimap show command');
+assert.equal(await evaluate('window.__copiedCommand'),'/alm minimap show');
+await evaluate("navigator.clipboard.writeText=async()=>{throw new DOMException('denied','NotAllowedError')};document.getElementById('copy-minimap-hide').click()");
+await until("document.getElementById('minimap-copy-status').textContent.includes('Clipboard unavailable')",'manual clipboard fallback');
+assert.equal(await evaluate("document.activeElement.id"),'minimap-hide-command');
+assert.deepEqual(await evaluate("(()=>{const input=document.getElementById('minimap-hide-command');return [input.selectionStart,input.selectionEnd];})()"),[0,17]);
+await evaluate("document.getElementById('close-minimap').click()");
 assert.equal(await evaluate("fetch('/AzerothLiveMap.zip').then(r=>r.status)"),200);
 await evaluate("document.getElementById('setup').click()");assert.equal(await evaluate("document.getElementById('setup-dialog').open"),true);
 await evaluate("document.getElementById('close-setup').click();document.getElementById('demo').click()");
@@ -137,7 +152,11 @@ assert.equal(await evaluate("document.getElementById('quest-list').children.leng
 await evaluate("navigator.mediaDevices.getDisplayMedia=async()=>{throw new DOMException('denied','NotAllowedError')};document.getElementById('connect').click()");
 await until("document.getElementById('status').textContent==='Sharing not started'",'permission denied');
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false});
+await evaluate("document.getElementById('toggle-controls').click();document.getElementById('wow-minimap').click()");
+assert.equal(await evaluate("document.getElementById('minimap-dialog').open"),true,'minimap button remains available with controls hidden');
 await wait(300);assert.ok(await evaluate('document.documentElement.scrollWidth<=390'),'no mobile horizontal overflow');
+const minimapScreenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile('artifacts/minimap-commands.png',Buffer.from(minimapScreenshot.data,'base64'));
+await evaluate("document.getElementById('close-minimap').click()");
 assert.deepEqual(errors,[],'no browser runtime exceptions');
-console.log('Browser QA passed: right-click parent navigation, left-click world/continent/zone/city selection, ocean clicks, hover regions, drag-vs-click, zoomed hit testing, breadcrumbs, keyboard/up button, saved browsing, follow pause/resume during live capture; Questie optical packets, UTF-8 names, objective progress, painted markers, layer toggle, partial sync, removed quests, missing/incompatible Questie, stale/disconnected cleanup; catalog, ZIP, setup, demo, fractional-scale capture, tiny strip relocation, coordinates, zones, zoom, frozen feed, unavailable coordinates, unsupported map, capture denial, responsive layout.');
+console.log('Browser QA passed: minimap hide/show copy buttons, denied-clipboard fallback, commands available with controls hidden, mobile dialog; right-click parent navigation, left-click world/continent/zone/city selection, ocean clicks, hover regions, drag-vs-click, zoomed hit testing, breadcrumbs, keyboard/up button, saved browsing, follow pause/resume during live capture; Questie optical packets, UTF-8 names, objective progress, painted markers, layer toggle, partial sync, removed quests, missing/incompatible Questie, stale/disconnected cleanup; catalog, ZIP, setup, demo, fractional-scale capture, tiny strip relocation, coordinates, zones, zoom, frozen feed, unavailable coordinates, unsupported map, capture denial, responsive layout.');
 socket.close();

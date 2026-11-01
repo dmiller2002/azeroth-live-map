@@ -6,6 +6,11 @@
 #app-mode{font-size:8px;letter-spacing:1.4px;color:var(--muted);line-height:1.6}
 .toolbar-actions{display:flex;gap:8px;flex-shrink:0}
 .toolbar-button{font-size:10px;padding:7px 10px;background:transparent;white-space:nowrap}
+.minimap-command{display:flex;gap:10px;align-items:center;margin:14px 0}
+.minimap-command input{min-width:0;flex:1;padding:10px;background:#111a15;border:1px solid var(--line);border-radius:5px;color:var(--text);font-family:ui-monospace,monospace;font-size:12px}
+.minimap-command button{padding:10px;font-size:11px;white-space:nowrap}
+#minimap-copy-status{min-height:20px;color:var(--accent)}
+@media(max-width:450px){.minimap-command{align-items:stretch;flex-direction:column}}
 .map-navigation{display:flex;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap;flex-shrink:0}
 #map-up{padding:7px 11px;font-size:11px;white-space:nowrap}
 #map-up:disabled{cursor:default}

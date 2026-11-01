@@ -35,6 +35,21 @@ function setMapOnly(enabled, save = true) {
 setMapOnly(preferences.mapOnly, false);
 $('toggle-controls').onclick = () => setMapOnly(!document.body.classList.contains('map-only'));
 $('quick-connect').onclick = () => $('connect').click();
+$('wow-minimap').onclick = () => { $('minimap-copy-status').textContent='';$('minimap-dialog').showModal(); };
+$('close-minimap').onclick = () => $('minimap-dialog').close();
+for(const action of ['hide','show']){
+  $(`copy-minimap-${action}`).onclick = async () => {
+    const input=$(`minimap-${action}-command`);
+    try{
+      if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(input.value);
+      $('minimap-copy-status').textContent=`${action==='hide'?'Hide':'Show'} command copied. Paste into WoW chat and press Enter.`;
+    }catch{
+      input.focus();input.select();
+      $('minimap-copy-status').textContent='Clipboard unavailable. Copy the selected command, then paste it into WoW chat and press Enter.';
+    }
+  };
+}
 
 function status(text, detail, kind = '') {
   $('status').textContent = text; $('status-detail').textContent = detail; $('status-dot').className = `dot ${kind}`;

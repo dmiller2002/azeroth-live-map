@@ -696,6 +696,50 @@ test('actual tiny addon login and timer render a readable position; unavailable 
   assert.ok(missing.clock > live.clock);
 });
 
+test('minimap commands persist hiding across reload and restore the game UI without affecting the bridge',()=>{
+  runLua(`${ADDON_MOCK}
+    MinimapCluster=object(UIParent,nil,'Frame')
+    local calls=0
+    function MinimapCluster:SetShown(value) calls=calls+1; self.visible=value end
+    boot(nil,true,true)
+    assert(calls==0 and MinimapCluster:IsShown(),'default installation leaves the minimap alone')
+    command('minimap hide')
+    assert(not MinimapCluster:IsShown() and AzerothLiveMapDB.hideMinimap==true)
+    assert(strip:IsShown() and frames.AzerothLiveMapArt:IsShown(),'minimap hiding must not hide the position/quest bridge')
+    local saved=AzerothLiveMapDB
+    MinimapCluster:Show();boot(saved,true,true)
+    assert(not MinimapCluster:IsShown(),'saved hidden preference survives reload')
+    command('minimap show')
+    assert(MinimapCluster:IsShown() and AzerothLiveMapDB.hideMinimap==false)
+    local previous=calls
+    MinimapCluster.visible=false;boot(AzerothLiveMapDB,true,true)
+    assert(calls==previous and not MinimapCluster:IsShown(),'a disabled hide preference must not override other minimap customization')
+    command('minimap show');assert(MinimapCluster:IsShown())
+    MinimapCluster=nil;command('minimap hide')
+    assert(strip:IsShown(),'missing minimap frame must not break tracking')
+  `,'luajit');
+});
+
+test('minimap changes wait for combat to end and apply the latest requested state',()=>{
+  runLua(`${ADDON_MOCK}
+    local combat=false
+    InCombatLockdown=function()return combat end
+    MinimapCluster=object(UIParent,nil,'Frame')
+    local calls=0
+    function MinimapCluster:SetShown(value) calls=calls+1; self.visible=value end
+    boot(nil)
+    combat=true;command('minimap hide')
+    assert(MinimapCluster:IsShown() and calls==0,'never change protected UI in combat')
+    combat=false;event('PLAYER_REGEN_ENABLED')
+    assert(not MinimapCluster:IsShown() and calls==1)
+    combat=true;command('minimap hide');command('minimap show')
+    assert(not MinimapCluster:IsShown() and calls==1)
+    combat=false;event('PLAYER_REGEN_ENABLED')
+    assert(MinimapCluster:IsShown() and calls==2 and not AzerothLiveMapDB.hideMinimap)
+    event('PLAYER_REGEN_ENABLED');assert(calls==2,'completed changes do not repeat')
+  `,'luajit');
+});
+
 test('a saved custom size and physical position survive login and UI scale changes', () => {
   runLua(`${ADDON_MOCK}
     boot({size=8,x=327,y=219,enabled=true,locked=false})

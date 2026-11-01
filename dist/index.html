@@ -49,6 +49,7 @@
     <div class="app-toolbar">
       <span id="app-mode">SECOND-SCREEN COMPANION</span>
       <div class="toolbar-actions">
+        <button id="wow-minimap" class="toolbar-button" aria-haspopup="dialog">WoW minimap</button>
         <button id="install-app" class="toolbar-button">Open as an app <span aria-hidden="true">↗</span></button>
         <button id="toggle-controls" class="toolbar-button" aria-controls="controls-panel" aria-expanded="true">Hide controls</button>
       </div>
@@ -87,7 +88,16 @@
     <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Move this app to your other monitor. A new session needs a fresh sharing choice.</p></li>
   </ol>
   <div class="note">If the tiny strip is hard to read, try <code>/alm size 3</code> or <code>/alm size 4</code>. Use <code>/alm show</code> if hidden or <code>/alm reset</code> to return it to the top-left. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
-  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.5.1 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four quest packets at once; overall progress and packet rate appear in the sidebar. Initial sync depends on total quest data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
+  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.5.2 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four quest packets at once; overall progress and packet rate appear in the sidebar. Initial sync depends on total quest data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
+</dialog>
+<dialog id="minimap-dialog" aria-labelledby="minimap-heading">
+  <button class="dialog-close" id="close-minimap" aria-label="Close minimap commands">×</button>
+  <div class="eyebrow">IN-GAME DISPLAY</div><h2 id="minimap-heading">WoW minimap</h2>
+  <p>Copy a command, paste it into WoW chat, then press Enter. The browser cannot change game UI directly.</p>
+  <div class="minimap-command"><label class="sr-only" for="minimap-hide-command">Hide WoW minimap command</label><input id="minimap-hide-command" value="/alm minimap hide" readonly spellcheck="false"><button id="copy-minimap-hide">Copy hide command</button></div>
+  <div class="minimap-command"><label class="sr-only" for="minimap-show-command">Show WoW minimap command</label><input id="minimap-show-command" value="/alm minimap show" readonly spellcheck="false"><button id="copy-minimap-show">Copy show command</button></div>
+  <p id="minimap-copy-status" role="status" aria-live="polite"></p>
+  <p class="small-print">Requires addon 0.5.2. Your choice is remembered after /reload and login. Changes requested during combat apply when combat ends.</p>
 </dialog>
 <dialog id="app-dialog">
   <button class="dialog-close" id="close-app-dialog" aria-label="Close app instructions">×</button>

@@ -11,6 +11,7 @@ background:SetAllPoints()
 background:SetColorTexture(0, 0, 0, 1)
 local cells, sequence, elapsed, dragging = {}, 0, 0, false
 local auxiliary = false
+local pendingMinimap = nil
 local questFrames = {}
 local art = ns.Elephant and ns.CreateArt(frame)
 for row = 1, 6 do
@@ -66,6 +67,22 @@ end
 
 local function Tell(text)
     print("|cff67d9baAzeroth Live Map:|r " .. text)
+end
+
+local function ApplyMinimap(hidden, notify)
+    if InCombatLockdown and InCombatLockdown() then
+        pendingMinimap = hidden
+        if notify then Tell("Minimap change queued until combat ends.") end
+        return
+    end
+    local minimap = MinimapCluster
+    if not minimap or type(minimap.SetShown) ~= "function" then
+        if notify then Tell("The built-in minimap is not available in this client.") end
+        return
+    end
+    minimap:SetShown(not hidden)
+    pendingMinimap = nil
+    if notify then Tell(hidden and "WoW minimap hidden. /alm minimap show to restore it." or "WoW minimap shown.") end
 end
 
 local function Layout()
@@ -200,7 +217,12 @@ end
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("UI_SCALE_CHANGED")
 frame:RegisterEvent("DISPLAY_SIZE_CHANGED")
+frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_REGEN_ENABLED" then
+        if pendingMinimap ~= nil then ApplyMinimap(pendingMinimap,true) end
+        return
+    end
     if event == "PLAYER_LOGIN" then
         AzerothLiveMapDB = type(AzerothLiveMapDB) == "table" and AzerothLiveMapDB or {}
         local db = AzerothLiveMapDB
@@ -208,6 +230,9 @@ frame:SetScript("OnEvent", function(_, event)
         if type(db.enabled) ~= "boolean" then db.enabled = true end
         if type(db.fastSync) ~= "boolean" then db.fastSync = true end
         if type(db.art) ~= "boolean" then db.art = true end
+        if type(db.hideMinimap) ~= "boolean" then db.hideMinimap = nil end
+        -- Leave other minimap customization alone until the user opts in.
+        if db.hideMinimap then ApplyMinimap(true,false) end
         -- Never unexpectedly intercept clicks after a reload or a new login.
         db.locked = true
         Tell("Position and quest sync ready. /alm art on|off for elephant/plain strip, /alm unlock to move, /alm lock when finished.")
@@ -245,10 +270,13 @@ SlashCmdList.AZEROTHLIVEMAP = function(message)
         AzerothLiveMapDB.art = arg == "on"
         Layout(); Update()
         Tell(AzerothLiveMapDB.art and "Animated elephant enabled. Keep the elephant and its short locator line visible." or "Plain data strip enabled.")
+    elseif command == "minimap" and (arg == "hide" or arg == "show") then
+        AzerothLiveMapDB.hideMinimap = arg == "hide"
+        ApplyMinimap(AzerothLiveMapDB.hideMinimap,true)
     elseif command == "size" and Number(arg, nil) then
         AzerothLiveMapDB.size = math.max(2, math.min(12, math.floor(Number(arg, 2)))); Layout()
         Tell("Data block: " .. frame:GetWidth() .. " x " .. frame:GetHeight() .. " pixels. Keep every row visible. If sharing scales it down too far, try /alm size 3 or 4.")
     else
-        Tell("/alm art on|off · /alm size 2 (2–12) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep the full artwork/data block visible while sharing WoW.")
+        Tell("/alm minimap hide|show · /alm art on|off · /alm size 2 (2–12) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep the full artwork/data block visible while sharing WoW.")
     end
 end
