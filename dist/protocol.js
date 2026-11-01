@@ -14,6 +14,19 @@ export function decodeBytes(bytes) {
   const [a, b] = checksum(bytes.slice(0, 22));
   if (bytes[22] !== a || bytes[23] !== b) return null;
   const u16 = i => bytes[i] * 256 + bytes[i + 1];
+  if (bytes[1] === 4) {
+    const kind=bytes[2], index=u16(9), base={type:'character',version:4,kind,sequence:u16(3),session:u16(5),generation:u16(7),index};
+    const u24=i=>bytes[i]*65536+u16(i+1);
+    if(kind===0 && index===0 && u16(11)<=255 && bytes[13]<=13 && bytes[15]<=3)
+      return {...base,level:u16(11),classId:bytes[13],raceId:bytes[14],sex:bytes[15],powerType:bytes[16]};
+    if(kind===1 && index>=1 && index<=19 && (bytes[14]<=7 || bytes[14]===255))
+      return {...base,itemId:u24(11),quality:bytes[14]===255?null:bytes[14],itemLevel:u16(15),durability:u16(17),maxDurability:u16(19)};
+    if(kind===2 && index<=19 && (bytes[11]&127)<16)
+      return {...base,fragment:bytes[11]&127,final:Boolean(bytes[11]&128),textBytes:Array.from(bytes.slice(12,22))};
+    if(kind===3 && index===1)return {...base,stats:[11,13,15,17,19].map(u16)};
+    if(kind===3 && index===2)return {...base,armor:u24(11),maxHealth:u24(14),maxPower:u24(17)};
+    return null;
+  }
   if (bytes[1] === 2 || bytes[1] === 3) {
     const version = bytes[1], maxMarkers = version === 3 ? 65535 : 96;
     const base = {type:'quest', version, kind:bytes[2], sequence:u16(3), mapId:u16(5), generation:u16(7), index:u16(9)};
@@ -94,7 +107,7 @@ export function decodeBlock(image, rect) {
   const packets=[first];
   for(let lane=1;lane<=(first.questLanes||0);lane++) {
     const packet=decodeAt(image,{...rect,y:rect.y+rect.height*lane});
-    if(packet?.type==='quest')packets.push(packet);
+    if(packet?.type==='quest' || packet?.type==='character')packets.push(packet);
   }
   return packets;
 }

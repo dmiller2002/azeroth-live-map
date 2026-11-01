@@ -3,6 +3,7 @@ import {artGeometry, decodeArtAt} from './art.js';
 import {loadPreferences, savePreferences} from './prefs.js';
 import {QuestFeed, QUEST_KINDS, questColor} from './quests.js';
 import {buildMapCatalog, mapViewport, hitTestMap} from './navigation.js';
+import {CharacterFeed, createCharacterPanel} from './character.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('map'), ctx = canvas.getContext('2d');
@@ -11,6 +12,7 @@ const readCanvas = document.createElement('canvas'), readCtx = readCanvas.getCon
 const preview = $('capture-preview'), previewCtx = preview.getContext('2d');
 const freshness = new Freshness();
 const questFeed = new QuestFeed();
+const characterFeed = new CharacterFeed(), characterPanel = createCharacterPanel(characterFeed);
 let questPins = [], questListKey = '', focusedQuest = null;
 let maps = [], mapById = new Map(), selected = 1429, image = null, imageRequest = 0;
 let stream = null, roi = null, captureWidth = 0, captureHeight = 0, failures = 0, nextSearch = 0;
@@ -109,8 +111,12 @@ $('map-up').onclick = navigateUp;
 
 function accept(packet, now, simulated = false) {
   if (packet.type === 'quest') { questFeed.accept(packet, now); return; }
+  if (packet.type === 'character') {
+    if(last && packet.session===last.questSession)characterFeed.accept(packet,now);
+    return;
+  }
   if (!freshness.accept(packet, now)) return;
-  if(last && packet.questSession!==last.questSession){questFeed.reset();focusedQuest=null;}
+  if(last && packet.questSession!==last.questSession){questFeed.reset();characterFeed.reset();focusedQuest=null;}
   if (last && packet.mapId !== last.mapId) focusedQuest = null;
   last = packet;
   if (!packet.valid) { trail = []; draw(); return; }
@@ -128,6 +134,7 @@ function accept(packet, now, simulated = false) {
 
 function tickStatus(now) {
   const fresh = freshness.isFresh(now);
+  characterPanel.update(now,{connected:Boolean(stream),fresh,demo});
   if (demo) {
     $('mode-badge').textContent = 'DEMO · SIMULATED POSITION'; $('mode-badge').className = 'map-badge demo';
     $('updated').textContent = 'Simulated data · not connected to WoW';
@@ -213,7 +220,7 @@ function updateQuests(now) {
 function resetPosition() {
   freshness.reset(); last = null; trail = [];
   lastCaptureKey = null;
-  questFeed.reset(); focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true;
+  questFeed.reset(); characterFeed.reset(); focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true;
   $('location').textContent = 'Waiting for your character'; $('coord-x').textContent = $('coord-y').textContent = '—';
   $('updated').textContent = 'No position received'; updateQuests(performance.now()); draw();
 }

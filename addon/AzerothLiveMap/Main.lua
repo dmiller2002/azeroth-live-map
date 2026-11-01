@@ -11,6 +11,15 @@ background:SetAllPoints()
 background:SetColorTexture(0, 0, 0, 1)
 local cells, sequence, elapsed, dragging = {}, 0, 0, false
 local auxiliary = false
+local auxiliaryCount = 0
+local function AuxiliaryPacket(mapID, x, y, sequence, now)
+    auxiliaryCount = auxiliaryCount + 1
+    if ns.CharacterPacket and auxiliaryCount % 4 == 0 then
+        local packet = ns.CharacterPacket(sequence, now)
+        if packet then return packet end
+    end
+    return ns.QuestiePacket(mapID, x, y, sequence, now)
+end
 local pendingMinimap = nil
 local questFrames = {}
 local art = ns.Elephant and ns.CreateArt(frame)
@@ -192,11 +201,11 @@ local function Update()
     local packets = {bytes}
     if ns.QuestiePacket and lanes == 0 then
         auxiliary = not auxiliary
-        if auxiliary then bytes = ns.QuestiePacket(mapID, x, y, sequence, GetTime()) end
+        if auxiliary then bytes = AuxiliaryPacket(mapID, x, y, sequence, GetTime()) end
     end
     for lane = 1, lanes do
         sequence = (sequence + 1) % 65536
-        local packet = ns.QuestiePacket(mapID,x,y,sequence,GetTime())
+        local packet = AuxiliaryPacket(mapID,x,y,sequence,GetTime())
         packets[#packets+1] = packet
         if not artMode then for row = 3, 6 do
             for col = 1, 48 do

@@ -548,11 +548,15 @@ const ADDON_MOCK = `
   end
   function CreateFrame(kind,name,parent) return object(parent or UIParent,name,kind) end
   SlashCmdList={}
-  local function boot(saved, withQuestie, withArt)
+  local function boot(saved, withQuestie, withArt, withCharacter)
     AzerothLiveMapDB=saved; frames={}
     local ns={}
     assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
     if withQuestie then assert(loadfile('addon/AzerothLiveMap/Questie.lua'))('AzerothLiveMap',ns) end
+    if withCharacter then
+      assert(loadfile('addon/AzerothLiveMap/Character.lua'))('AzerothLiveMap',ns)
+      assert(loadfile('tests/fixtures/character.lua'))()
+    end
     if withArt then
       assert(loadfile('addon/AzerothLiveMap/Elephant.lua'))('AzerothLiveMap',ns)
       assert(loadfile('addon/AzerothLiveMap/Art.lua'))('AzerothLiveMap',ns)
@@ -852,4 +856,30 @@ test('malformed saved state cannot create NaN geometry or a permanently unreacha
     command('size nope'); command('size 1e999')
     assert(strip.width==strip.width and strip.width>=100 and strip.width<=600,'invalid commands remain finite and bounded')
   `, 'luajit');
+});
+
+test('the full addon shares existing fast and compact lanes between character and Questie data',()=>{
+  const output=runLua(`${ADDON_MOCK}
+    boot(nil,true,false,true)
+    local function dump(f)
+      local bits={}
+      for j=98,#f.textures do bits[#bits+1]=f.textures[j].value end
+      originalPrint(table.concat(bits,''))
+    end
+    for i=1,10 do
+      now=10+i*.1;strip.scripts.OnUpdate(strip,.1);dump(strip)
+      for _,child in ipairs(strip.children) do if child.kind=='Frame' and #child.textures==289 and child:IsShown() then dump(child) end end
+    end
+    command('sync compact')
+    for i=1,80 do now=20+i*.1;strip.scripts.OnUpdate(strip,.1);dump(strip) end
+  `,'luajit');
+  const packets=output.split('\n').map(row=>decodeBytes(row.match(/.{8}/g).map(bits=>parseInt(bits,2))));
+  assert.ok(packets.every(Boolean));
+  const fast=packets.slice(0,50),compact=packets.slice(50);
+  assert.equal(fast.filter(p=>p.type==='character').length,10);
+  assert.equal(fast.filter(p=>p.type==='quest').length,30);
+  assert.equal(fast.filter(p=>!p.type).length,10,'position cadence stays unchanged');
+  assert.ok(compact.some(p=>p.type==='character'));
+  assert.ok(compact.some(p=>p.type==='quest'));
+  assert.ok(compact.some(p=>!p.type && p.questLanes===0));
 });

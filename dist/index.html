@@ -50,6 +50,7 @@
     <div class="app-toolbar">
       <span id="app-mode">SECOND-SCREEN COMPANION</span>
       <div class="toolbar-actions">
+        <button id="toggle-character" class="toolbar-button" aria-controls="character-panel" aria-expanded="false">Character</button>
         <button id="wow-minimap" class="toolbar-button" aria-haspopup="dialog">WoW minimap</button>
         <button id="install-app" class="toolbar-button">Open as an app <span aria-hidden="true">↗</span></button>
         <button id="toggle-controls" class="toolbar-button" aria-controls="controls-panel" aria-expanded="true">Hide controls</button>
@@ -79,6 +80,27 @@
     </div>
     <footer><span><i class="legend-dot"></i> You <span class="trail-legend">―</span> Recent trail</span><span>Map art © Blizzard Entertainment · <a href="https://www.wowhead.com/tbc" target="_blank" rel="noreferrer">Wowhead</a></span></footer>
   </main>
+  <section id="character-panel" class="character-panel" aria-labelledby="character-name" hidden>
+    <div class="character-panel-top"><span class="eyebrow">CHARACTER · EQUIPMENT</span><button id="close-character" aria-label="Close character panel">×</button></div>
+    <h2 id="character-name">Your character</h2>
+    <p id="character-subtitle" class="character-subtitle">Equipment & attributes</p>
+    <p id="character-status" class="character-status" role="status">Connect WoW to sync your character and equipment.</p>
+    <div class="paper-doll">
+      <div id="equipment-left" class="equipment-column"></div>
+      <div class="equipment-silhouette" aria-hidden="true"><svg viewBox="0 0 80 300"><circle cx="40" cy="42" r="16"/><path d="M19 69 Q40 57 61 69 L73 142 L61 147 L52 105 L54 172 L63 260 L45 260 L40 187 L35 260 L17 260 L26 172 L28 105 L19 147 L7 142 Z"/></svg></div>
+      <div id="equipment-right" class="equipment-column"></div>
+      <div id="equipment-weapons" class="equipment-weapons"></div>
+    </div>
+    <p id="character-gear-count" class="character-gear-count">Waiting for equipment</p>
+    <div class="eyebrow character-stats-heading">ATTRIBUTES</div>
+    <dl class="character-stats">
+      <div><dt>Strength</dt><dd id="stat-strength">—</dd></div><div><dt>Agility</dt><dd id="stat-agility">—</dd></div>
+      <div><dt>Stamina</dt><dd id="stat-stamina">—</dd></div><div><dt>Intellect</dt><dd id="stat-intellect">—</dd></div>
+      <div><dt>Spirit</dt><dd id="stat-spirit">—</dd></div><div><dt>Armor</dt><dd id="stat-armor">—</dd></div>
+      <div><dt>Max health</dt><dd id="stat-health">—</dd></div><div><dt id="stat-power-label">Power</dt><dd id="stat-power">—</dd></div>
+    </dl>
+    <p class="character-note">Hover an item for its level and durability. Select an equipped item to open its Wowhead page. Icons load from Wowhead; equipment names and stats sync from WoW.</p>
+  </section>
 </div>
 <dialog id="setup-dialog">
   <button class="dialog-close" id="close-setup" aria-label="Close setup">×</button>
@@ -89,7 +111,7 @@
     <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Move this app to your other monitor. A new session needs a fresh sharing choice.</p></li>
   </ol>
   <div class="note">If the tiny strip is hard to read, try <code>/alm size 3</code> or <code>/alm size 4</code>. Use <code>/alm show</code> if hidden or <code>/alm reset</code> to return it to the top-left. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
-  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.5.2 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four quest packets at once; overall progress and packet rate appear in the sidebar. Initial sync depends on total quest data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
+  <p class="small-print">Built for Anniversary 2.5.6. Enable Questie alongside companion addon 0.6.0 for quest pickups, objectives, and turn-ins across all Questie-generated zones. Browse a zone to see its received pins. Fast mode sends four data packets at once, shared by quests and character equipment; overall quest progress and packet rate appear in the sidebar. Use Character in the toolbar for equipment and attributes. Initial sync depends on total data and capture quality. Questie’s character and map filters apply. Update the addon and companion together, then /reload and reconnect.</p>
 </dialog>
 <dialog id="minimap-dialog" aria-labelledby="minimap-heading">
   <button class="dialog-close" id="close-minimap" aria-label="Close minimap commands">×</button>
