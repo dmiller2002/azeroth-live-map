@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111817">
+  <meta name="description" content="Your live World of Warcraft Anniversary map, on a second screen. Position tracking stays in your browser.">
+  <title>Azeroth Live Map</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside>
+    <a class="brand" href="./" aria-label="Azeroth Live Map home"><img src="icon.svg" alt="" width="40" height="40"><span>AZEROTH<small>LIVE ATLAS</small></span></a>
+    <div class="edition"><span></span> ANNIVERSARY EDITION</div>
+    <section class="connection" aria-labelledby="connection-heading">
+      <div class="eyebrow" id="connection-heading">YOUR CONNECTION</div>
+      <div class="status-line"><span id="status-dot" class="dot"></span><strong id="status" role="status">Not connected</strong></div>
+      <p id="status-detail">Bring your journey to a second screen.</p>
+      <button class="primary" id="connect">Connect WoW <span aria-hidden="true">↗</span></button>
+      <button id="calibrate" class="text-button" hidden>Select position strip manually</button>
+    </section>
+    <section class="position" aria-labelledby="position-heading">
+      <div class="eyebrow" id="position-heading">YOUR LOCATION</div>
+      <h2 id="location">Waiting for your character</h2>
+      <div class="coords"><div><span>X COORDINATE</span><strong id="coord-x">—</strong></div><div><span>Y COORDINATE</span><strong id="coord-y">—</strong></div></div>
+      <div class="updated" id="updated">No position received</div>
+    </section>
+    <section class="options" aria-label="Map options">
+      <label><span>Follow my zone</span><input type="checkbox" id="follow" checked></label>
+      <label><span>Show recent trail</span><input type="checkbox" id="trail" checked></label>
+      <label><span>Coordinate grid</span><input type="checkbox" id="grid"></label>
+    </section>
+    <button id="setup" class="setup-button"><span aria-hidden="true">ⓘ</span> Setup & addon download <span aria-hidden="true">→</span></button>
+    <div class="sidebar-bottom"><button id="demo" class="text-button">Explore a simulated journey</button><p>Position is processed on this device.<br>Your screen is never uploaded by this app.</p></div>
+  </aside>
+  <main>
+    <header>
+      <div><div class="eyebrow" id="map-type">EASTERN KINGDOMS · ZONE MAP</div><h1 id="map-title">Elwynn Forest</h1></div>
+      <div class="header-actions"><label class="sr-only" for="zone">Browse a zone</label><select id="zone" aria-label="Browse a zone"></select><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></div>
+    </header>
+    <div id="map-stage" tabindex="0" role="region" aria-label="Map. Drag to pan. Use plus and minus buttons to zoom.">
+      <canvas id="map" aria-label="Zone map and player position"></canvas>
+      <div class="map-top"><span class="map-badge" id="mode-badge">BROWSING · NO LIVE POSITION</span><span class="north" title="North">N<span>↑</span></span></div>
+      <div id="map-message" class="map-message" role="status" hidden></div>
+      <div class="map-bottom"><span id="map-hint">Connect WoW to see your character here</span><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit" aria-label="Fit map" title="Fit map">⌖</button></div></div>
+    </div>
+    <footer><span><i class="legend-dot"></i> You <span class="trail-legend">―</span> Recent trail</span><span>Map art © Blizzard Entertainment · <a href="https://www.wowhead.com/tbc" target="_blank" rel="noreferrer">Wowhead</a></span></footer>
+  </main>
+</div>
+<dialog id="setup-dialog">
+  <button class="dialog-close" id="close-setup" aria-label="Close setup">×</button>
+  <div class="eyebrow">ONE-TIME SETUP</div><h2>Your world. A second screen.</h2>
+  <ol class="steps">
+    <li><strong>Install the companion addon</strong><p>Extract <b>AzerothLiveMap</b> into your Anniversary <code>Interface/AddOns</code> folder. Restart WoW and enable it in the AddOns list.</p><a class="download" href="AzerothLiveMap.zip" download>↓ Download addon (.zip)</a></li>
+    <li><strong>Keep the position strip visible</strong><p>A small black-and-white strip appears in WoW’s top-left corner. Use <code>/alm show</code> if it is hidden. You can close the in-game map.</p></li>
+    <li><strong>Connect your game</strong><p>Choose <b>Connect WoW</b> here, then share the WoW window or its monitor. Keep this browser on your other monitor. The page reads the strip locally.</p></li>
+  </ol>
+  <div class="note">Use a desktop browser with screen sharing, such as Chromium on Linux. If detection fails, try <code>/alm size 8</code> or select the strip manually. Minimized, hidden, or frozen capture sources cannot provide live updates.</div>
+  <p class="small-print">Built for Anniversary 2.5.6. Outdoor zones and cities are the initial target; position may be unavailable in instances. Questie overlays are not included. Live-client verification is still required.</p>
+</dialog>
+<dialog id="calibration-dialog">
+  <button class="dialog-close" id="close-calibration" aria-label="Close selection">×</button>
+  <div class="eyebrow">POSITION STRIP</div><h2>Select the black-and-white rectangle</h2>
+  <p>Drag from one corner to the opposite corner, including the full black border.</p>
+  <canvas id="capture-preview" aria-label="Shared game preview. Drag to select the position strip."></canvas>
+  <p id="calibration-result" role="status">Only this page can see this preview.</p>
+</dialog>
+<video id="capture-video" muted autoplay playsinline></video>
+<script type="module" src="app.js"></script>
+</body>
+</html>

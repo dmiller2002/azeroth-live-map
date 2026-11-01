@@ -1,0 +1,10 @@
+{
+  "name": "azeroth-live-map",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.mjs",
+    "start": "python3 scripts/serve.py",
+    "package:addon": "python3 scripts/package_addon.py"
+  }
+}
