@@ -1,4 +1,5 @@
 import {getItemDetails, createEquipmentTooltip} from './equipment-tooltip.js';
+import {createCharacterModel} from './character-model.js';
 
 export const EQUIPMENT_SLOTS = {
   1:'Head',2:'Neck',3:'Shoulders',4:'Shirt',5:'Chest',6:'Waist',7:'Legs',8:'Feet',9:'Wrists',10:'Hands',
@@ -44,6 +45,7 @@ export class CharacterFeed {
 export function createCharacterPanel(feed){
   const $=id=>document.getElementById(id),slots=new Map();
   const tooltip=createEquipmentTooltip();
+  const model=createCharacterModel();
   const columns=[['equipment-left',[1,2,3,15,5,4,19,9]],['equipment-right',[10,6,7,8,11,12,13,14]],['equipment-weapons',[16,17,18]]];
   for(const [container,indices] of columns)for(const index of indices){
     const link=document.createElement('a');link.className='equipment-slot';link.dataset.slot=index;link.target='_blank';link.rel='noopener noreferrer';
@@ -57,6 +59,7 @@ export function createCharacterPanel(feed){
   let lastKey='';
   return {hideTooltip:()=>tooltip.hide(),update(now,{connected,fresh,demo}){
     const available=connected && fresh && !demo && feed.isFresh(now);
+    model.update({available,currentFeed:feed});
     let state=demo?'Connect WoW to see your real character.':!connected?'Connect WoW to sync your character and equipment.':!fresh?'Signal paused. Character data is hidden until live capture resumes.':!feed.isFresh(now)?'Waiting for character data. Requires addon 0.6.0; /reload after updating.':!feed.identity?.info?'Syncing character details…':'Live character · equipment updates automatically';
     $('character-status').textContent=state;
     const key=`${available}:${feed.version}`;if(lastKey===key)return;lastKey=key;

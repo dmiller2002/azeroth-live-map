@@ -18,10 +18,15 @@ def main():
         if path.is_file():
             files[path.relative_to(ROOT / 'addon').as_posix()] = path
     for path in sorted((ROOT / 'dist').rglob('*')):
+        if path.relative_to(ROOT / 'dist').parts[0] in ('server', '.openai'):
+            continue
         # Never embed older Windows bundles (or a previous copy of this ZIP).
         if path.is_file() and (path.suffix.lower() != '.zip' or path.name == 'AzerothLiveMap.zip'):
             files['Companion/' + path.relative_to(ROOT).as_posix()] = path
     files['Companion/scripts/serve.py'] = ROOT / 'scripts/serve.py'
+    files['Companion/scripts/model_assets.py'] = ROOT / 'scripts/model_assets.py'
+    files['Companion/scripts/build_item_models.py'] = ROOT / 'scripts/build_item_models.py'
+    files['Companion/THIRD_PARTY_NOTICES.md'] = ROOT / 'THIRD_PARTY_NOTICES.md'
     for name in ('README.txt', 'START-MAP.cmd'):
         files[name] = ROOT / 'packaging/windows' / name
     for path in files.values():

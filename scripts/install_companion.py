@@ -61,12 +61,15 @@ def main():
         raise RuntimeError('Missing dist/index.html; run this installer from a complete project copy.')
     changes = []
     for source in sorted((SOURCE / 'dist').rglob('*')):
+        if source.relative_to(SOURCE / 'dist').parts[0] in ('server', '.openai'):
+            continue
         if source.is_symlink():
             raise RuntimeError('Refusing to package a symlink: ' + str(source))
         if source.is_file():
             changes.append((data_dir / source.relative_to(SOURCE), source.read_bytes()))
-    for name in ('companion.py', 'install_companion.py'):
+    for name in ('companion.py', 'install_companion.py', 'model_assets.py', 'build_item_models.py'):
         changes.append((data_dir / 'scripts' / name, (SOURCE / 'scripts' / name).read_bytes()))
+    changes.append((data_dir / 'THIRD_PARTY_NOTICES.md', (SOURCE / 'THIRD_PARTY_NOTICES.md').read_bytes()))
     desktop = applications / (APP + '.desktop')
     text = desktop_text(data_dir)
     changes.append((desktop, text.encode()))

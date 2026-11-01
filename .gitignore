@@ -1,4 +1,6 @@
 node_modules/
+dist/server/
+dist/.openai/
 .DS_Store
 __pycache__/
 .local/

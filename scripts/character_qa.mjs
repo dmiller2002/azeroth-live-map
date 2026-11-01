@@ -16,10 +16,10 @@ CharacterQuestPin={UiMapID=1944,x=40,y=60,miniMapIcon=false,
  data={Type='monster',ObjectiveIndex=1,QuestData={name='Character sync test quest'},ObjectiveData={Collected=1,Needed=5}}}
 QuestieLoader={ImportModule=function()return {questIdFrames={[123]={CharacterQuestPin='CharacterQuestPin'}}}end}
 local sequence=0
-for frame=1,500 do
+for frame=1,1000 do
  clock=frame*.1
- if frame==201 then fixture.slots[1]=12345;fixture.slots[16]=nil;fixture.stats[1]=225 end
- if frame==351 then
+ if frame==501 then fixture.slots[1]=12345;fixture.slots[16]=nil;fixture.stats[1]=225 end
+ if frame==751 then
    ns.QuestSession=778;fixture.name='New Character'
    assert(loadfile('addon/AzerothLiveMap/Character.lua'))('AzerothLiveMap',ns)
  end
@@ -104,14 +104,33 @@ try{
  const hover=await evaluate("(()=>{const r=document.querySelector('[data-slot=\"16\"]').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()");
  await send('Input.dispatchMouseEvent',{type:'mouseMoved',...hover});
  await until("!document.getElementById('equipment-tooltip').hidden",'mouse hover tooltip');
+ await until("document.getElementById('model-viewport').dataset.state==='ready' && document.querySelector('#model-viewport canvas')",'3D character loads');
+ const modelRect=await evaluate("(()=>{const r=document.getElementById('model-viewport').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,scale:1};})()");
+ let bright=0;
+ for(let attempt=0;attempt<20 && bright<400;attempt++){
+   const png=await send('Page.captureScreenshot',{format:'png',clip:modelRect});
+   const pixels=spawnSync('python3',['-c',"from PIL import Image;import sys,io;im=Image.open(io.BytesIO(sys.stdin.buffer.read())).convert('RGB');print(sum(1 for r,g,b in im.getdata() if max(r,g,b)>125))"],{input:Buffer.from(png.data,'base64'),encoding:'utf8'});
+   assert.equal(pixels.status,0,pixels.stderr);bright=Number(pixels.stdout.trim());
+   if(bright<400)await new Promise(resolve=>setTimeout(resolve,200));
+ }
+ assert.ok(bright>=400,'3D canvas contains rendered character pixels, not an empty placeholder');
+ await evaluate("document.getElementById('model-right').click();document.getElementById('model-zoom-in').click();document.getElementById('model-pause').click()");
+ assert.equal(await evaluate("document.getElementById('model-viewport').dataset.rotation"),'23');
+ assert.equal(await evaluate("document.getElementById('model-viewport').dataset.zoom"),'110');
+ assert.equal(await evaluate("document.getElementById('model-pause').getAttribute('aria-pressed')"),'true');
+ await evaluate("document.getElementById('model-reset').click();document.querySelector('.model-appearance').open=true");
+ const appearance=await evaluate("(()=>{const select=document.querySelector('#model-appearance-options select');select.selectedIndex=1;select.dispatchEvent(new Event('change'));return {value:select.value,saved:localStorage.getItem('azeroth-live-map.model-appearance.v1')};})()");
+ assert.ok(appearance.saved.includes(appearance.value),'appearance selection is saved as a browser display preference');
+ await evaluate("document.querySelector('.model-appearance').open=false");
  await mkdir('artifacts',{recursive:true});
  const screenshot=await send('Page.captureScreenshot',{format:'png'});await writeFile(`artifacts/character-${artMode?'art':'plain'}-synthetic.png`,Buffer.from(screenshot.data,'base64'));
  await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:550,y:110});
  await until("document.getElementById('equipment-tooltip').hidden",'mouse leave dismisses tooltip');
  await evaluate("document.querySelector('[data-slot=\"16\"]').focus()");
- await evaluate("(()=>{const original=window.fetch;window.__failedItemLookups=0;window.fetch=(url,...args)=>{if(String(url).includes('/tbc/tooltip/item/12345')){window.__failedItemLookups++;return Promise.reject(new TypeError('Synthetic item lookup failure'));}return original(url,...args);};window.__index=200;})()");
+ await evaluate("(()=>{const original=window.fetch;window.__failedItemLookups=0;window.fetch=(url,...args)=>{if(String(url).includes('/tbc/tooltip/item/12345')){window.__failedItemLookups++;return Promise.reject(new TypeError('Synthetic item lookup failure'));}return original(url,...args);};window.__index=500;})()");
  await until("document.querySelector('[data-slot=\"1\"] strong').textContent===\"Équipement de l'aventurier\" && document.querySelector('[data-slot=\"16\"] strong').textContent==='Empty'",'replacement item and unequipped main hand');
  await until("document.getElementById('stat-strength').textContent==='225'",'updated attributes');
+ await until("document.getElementById('model-viewport').dataset.state==='ready' && document.getElementById('model-status').textContent.includes('1 equipped item')",'3D model updates removed gear and reports an unknown appearance');
  assert.equal(await evaluate("document.querySelector('[data-slot=\"16\"]').hasAttribute('href')"),false);
  assert.equal(await evaluate("document.getElementById('equipment-tooltip').hidden"),true,'unequipping the hovered item closes its tooltip');
  await evaluate("document.getElementById('toggle-controls').click()");
@@ -134,9 +153,10 @@ try{
  assert.equal(await evaluate("window.__failedItemLookups"),1,'icons and repeated tooltip opens share the same failed lookup');
  await evaluate("document.getElementById('tab-map').click()");
  assert.equal(await evaluate("document.activeElement.id"),'tab-map');
+ await until("!document.querySelector('#model-viewport canvas')",'leaving Character releases the 3D renderer');
  await evaluate("document.getElementById('tab-updates').click()");
  assert.equal(await evaluate("document.getElementById('character-panel').hidden"),true);
- await evaluate("document.getElementById('tab-character').click();window.__index=350");
+ await evaluate("document.getElementById('tab-character').click();window.__index=750");
  await until("document.getElementById('character-name').textContent==='New Character'",'new addon session clears old character');
  await evaluate("clearInterval(window.__timer)");
  await until("document.getElementById('character-status').textContent.includes('paused')",'frozen capture');
@@ -145,5 +165,5 @@ try{
  await evaluate("document.getElementById('connect').click()");
  await until("document.getElementById('character-status').textContent.includes('Connect WoW')",'disconnect cleanup');
  assert.deepEqual(errors,[]);
- console.log(`${artMode?'Animated':'Plain'} character browser QA passed: identity, 19 slots, names, quality, actual icon load, stats, gear changes, empty slots, session replacement, responsive panel, keyboard/focus, stale capture and disconnect cleanup.`);
+ console.log(`${artMode?'Animated':'Plain'} character browser QA passed: identity, 19 slots, names, quality, actual icon load, real 3D pixels, rotation/zoom, appearance preferences, renderer cleanup, stats, gear changes, empty slots, session replacement, responsive panel, keyboard/focus, stale capture and disconnect cleanup.`);
 }finally{socket.close();await fetch(`http://127.0.0.1:9223/json/close/${target.id}`);}

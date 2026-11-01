@@ -7,6 +7,7 @@ import hmac
 from http import HTTPStatus
 from http.client import HTTPConnection, HTTPException
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from model_assets import MODEL_PREFIX, fetch_model_asset
 import json
 import mimetypes
 import os
@@ -91,6 +92,9 @@ def make_server(root, port, key):
                 if re.fullmatch(r'[a-f0-9]{64}', challenge):
                     payload['proof'] = proof(key, root_id, challenge)
                 self.respond(HTTPStatus.OK, json.dumps(payload).encode(), 'application/json', head); return
+            if request.path.startswith(MODEL_PREFIX):
+                status, data, mime = fetch_model_asset(self.path)
+                self.respond(status, data, mime, head); return
             decoded = unquote(request.path)
             parts = decoded.lstrip('/').split('/')
             if '\\' in decoded or '\0' in decoded or any(p.startswith('.') for p in parts if p):

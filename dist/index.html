@@ -94,8 +94,18 @@
     <div class="character-layout">
     <div class="character-equipment">
     <div class="paper-doll">
+      <div class="character-model">
+        <div id="model-viewport" class="model-viewport" tabindex="0" role="region" aria-label="3D character. Drag to rotate. Scroll to zoom. Arrow keys rotate; plus and minus zoom." data-state="waiting"></div>
+        <p id="model-status" class="model-status" role="status">Connect WoW to load your character’s model.</p>
+        <button id="model-retry" class="model-retry" hidden>Retry 3D preview</button>
+        <div class="model-controls" aria-label="3D model controls">
+          <button id="model-left" aria-label="Rotate model left">↶</button><button id="model-right" aria-label="Rotate model right">↷</button>
+          <button id="model-zoom-out" aria-label="Zoom model out">−</button><button id="model-zoom-in" aria-label="Zoom model in">+</button>
+          <button id="model-reset">Reset</button><button id="model-pause" aria-pressed="false">Pause</button>
+        </div>
+        <p class="model-hint">Drag to rotate · Scroll to zoom<br>Models © Blizzard · <a href="https://www.wowhead.com/tbc" target="_blank" rel="noreferrer">Wowhead viewer</a></p>
+      </div>
       <div id="equipment-left" class="equipment-column"></div>
-      <div class="equipment-silhouette" aria-hidden="true"><svg viewBox="0 0 80 300"><circle cx="40" cy="42" r="16"/><path d="M19 69 Q40 57 61 69 L73 142 L61 147 L52 105 L54 172 L63 260 L45 260 L40 187 L35 260 L17 260 L26 172 L28 105 L19 147 L7 142 Z"/></svg></div>
       <div id="equipment-right" class="equipment-column"></div>
       <div id="equipment-weapons" class="equipment-weapons"></div>
     </div>
@@ -109,6 +119,7 @@
       <div><dt>Spirit</dt><dd id="stat-spirit">—</dd></div><div><dt>Armor</dt><dd id="stat-armor">—</dd></div>
       <div><dt>Max health</dt><dd id="stat-health">—</dd></div><div><dt id="stat-power-label">Power</dt><dd id="stat-power">—</dd></div>
     </dl>
+    <details class="model-appearance"><summary>Match face & hair</summary><p>Race, body type, and gear sync from WoW. Choose your face, skin, and hair here to match your character; these appearance choices are saved on this browser.</p><div id="model-appearance-options"></div></details>
     <p class="character-note">Hover or focus an item for stats and effects. On touch screens, tap once for details and again to open Wowhead. Item descriptions and icons load from Wowhead; names, item level and durability sync from WoW.</p>
     </div>
     </div>
@@ -119,7 +130,7 @@
       <p class="updates-intro">Your companion is growing. Find new features and improvements here as they arrive.</p>
       <div class="updates-grid">
         <article class="update-card"><span class="update-tag">NAVIGATION</span><h2>A place for every view</h2><p>Switch between your map, character, and updates with the tabs above. Your WoW connection keeps running while you browse.</p></article>
-        <article class="update-card"><span class="update-tag">CHARACTER · ADDON 0.6.0</span><h2>Your gear, at a glance</h2><p>See all 19 equipment slots, quality colors, and core attributes. Hover an item for its stats, requirements, effects, and live durability.</p></article>
+        <article class="update-card"><span class="update-tag">CHARACTER · ADDON 0.6.0</span><h2>Your gear, at a glance</h2><p>See your character in 3D, all 19 equipment slots, quality colors, and core attributes. Hover an item for its stats, requirements, effects, and live durability.</p></article>
         <article class="update-card"><span class="update-tag">QUEST TRACKING</span><h2>Follow the color</h2><p>Quest pins match their sidebar colors across zones. Select a quest to highlight its locations, and browse areas with left-click and right-click.</p></article>
       </div>
       <div class="updates-next"><span class="eyebrow">MORE TO COME</span><p>Future additions will have their own place here alongside Map and Character.</p></div>
