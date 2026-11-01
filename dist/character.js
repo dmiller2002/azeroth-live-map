@@ -1,3 +1,5 @@
+import {getItemDetails, createEquipmentTooltip} from './equipment-tooltip.js';
+
 export const EQUIPMENT_SLOTS = {
   1:'Head',2:'Neck',3:'Shoulders',4:'Shirt',5:'Chest',6:'Waist',7:'Legs',8:'Feet',9:'Wrists',10:'Hands',
   11:'Finger 1',12:'Finger 2',13:'Trinket 1',14:'Trinket 2',15:'Back',16:'Main hand',17:'Off hand',18:'Ranged / relic',19:'Tabard',
@@ -39,23 +41,9 @@ export class CharacterFeed {
   slot(index){return this.records.get(index);}
 }
 
-// Only item IDs leave the browser for optional icon lookup. Names and stats
-// come from the capture; no account credentials or character lookup is needed.
-const icons=new Map();
-async function itemIcon(id){
-  if(!icons.has(id))icons.set(id,(async()=>{
-    try{
-      const response=await fetch(`https://nether.wowhead.com/tbc/tooltip/item/${id}`,{credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(6000)});
-      if(!response.ok)return null;
-      const data=await response.json();
-      return typeof data.icon==='string' && /^[a-z0-9_]+$/i.test(data.icon)?`https://wow.zamimg.com/images/wow/icons/large/${data.icon.toLowerCase()}.jpg`:null;
-    }catch{return null;}
-  })());
-  return icons.get(id);
-}
-
 export function createCharacterPanel(feed){
   const $=id=>document.getElementById(id),panel=$('character-panel'),slots=new Map();
+  const tooltip=createEquipmentTooltip();
   const columns=[['equipment-left',[1,2,3,15,5,4,19,9]],['equipment-right',[10,6,7,8,11,12,13,14]],['equipment-weapons',[16,17,18]]];
   for(const [container,indices] of columns)for(const index of indices){
     const link=document.createElement('a');link.className='equipment-slot';link.dataset.slot=index;link.target='_blank';link.rel='noopener noreferrer';
@@ -63,10 +51,12 @@ export function createCharacterPanel(feed){
     const copy=document.createElement('span');copy.className='equipment-copy';
     const label=document.createElement('small');label.textContent=EQUIPMENT_SLOTS[index];
     const name=document.createElement('strong');name.textContent='Waiting…';
-    copy.append(label,name);link.append(icon,copy);$(container).append(link);slots.set(index,{link,icon,name,itemId:null});
+    copy.append(label,name);link.append(icon,copy);$(container).append(link);
+    const entry={link,icon,name,itemId:null};slots.set(index,entry);tooltip.watch(entry);
   }
   let lastKey='';
   function setOpen(open,focus=true){
+    if(!open)tooltip.hide();
     panel.hidden=!open;document.body.classList.toggle('character-open',open);
     $('toggle-character').setAttribute('aria-expanded',String(open));
     if(focus)(open?$('close-character'):$('toggle-character')).focus();
@@ -95,10 +85,13 @@ export function createCharacterPanel(feed){
       if(id && item.itemLevel)detail.push(`Item level ${item.itemLevel}`);
       if(id && item.maxDurability)detail.push(`Durability ${item.durability}/${item.maxDurability}`);
       if(id)detail.push('Open item details on Wowhead');
-      entry.link.title=detail.join(' · ');entry.link.setAttribute('aria-label',detail.join(' · '));
+      entry.link.setAttribute('aria-label',detail.join(' · '));
+      entry.tooltipData={itemId:id,name:entry.name.textContent,slot:EQUIPMENT_SLOTS[index],itemLevel:item?.itemLevel,durability:item?.durability,maxDurability:item?.maxDurability,generation:record?.generation};
+      tooltip.refresh(entry);
       if(entry.itemId!==id){
         entry.itemId=id;entry.icon.replaceChildren();entry.icon.textContent=id?'✦':'·';
-        if(id)itemIcon(id).then(url=>{
+        if(id)getItemDetails(id).then(details=>{
+          const url=details?.icon;
           if(!url || entry.itemId!==id)return;
           const image=document.createElement('img');image.alt='';image.referrerPolicy='no-referrer';image.src=url;
           image.onerror=()=>{if(entry.itemId===id)entry.icon.textContent='✦';};entry.icon.replaceChildren(image);
