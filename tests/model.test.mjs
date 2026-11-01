@@ -37,7 +37,7 @@ test('hosted model requests never forward user credentials and enforce response 
     const response=await worker.fetch(new Request('https://app.example/_model/m2/123.m2',{headers:{Cookie:'private-user-cookie',Authorization:'private-user-token',Origin:'https://unrelated.example'}}),{},{});
     assert.equal(response.status,200);assert.equal(await response.text(),'model-data');
     assert.equal(requests[0].url,'https://wow.zamimg.com/modelviewer/tbc/m2/123.m2');
-    assert.equal(requests[0].options.headers,undefined);assert.equal(requests[0].options.redirect,'error');
+    assert.equal(requests[0].options.headers,undefined);assert.equal(requests[0].options.redirect,'manual');
     assert.equal((await worker.fetch(new Request('https://app.example/_model/m2/123.m2',{method:'HEAD'}),{},{})).body,null);
     globalThis.fetch=async()=>new Response('small',{headers:{'Content-Length':String(17*1024*1024)}});
     assert.equal((await worker.fetch(new Request('https://app.example/_model/m2/123.m2'),{},{})).status,502);

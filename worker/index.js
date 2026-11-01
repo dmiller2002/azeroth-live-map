@@ -16,7 +16,7 @@ export default {
       if(!target)return new Response('Model asset not found',{status:404});
       try{
         // Fetch only the fixed public CDN. No user headers or cookies are sent.
-        const upstream=await fetch(target,{redirect:'error',signal:AbortSignal.timeout(15000)});
+        const upstream=await fetch(target,{redirect:'manual',signal:AbortSignal.timeout(15000)});
         if(!upstream.ok){
           console.warn('Public model CDN response',upstream.status,url.pathname);
           return new Response('Model asset unavailable',{status:upstream.status===404?404:502});
