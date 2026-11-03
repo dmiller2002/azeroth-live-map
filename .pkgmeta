@@ -1,0 +1,27 @@
+package-as: AzerothLiveMap
+enable-nolib-creation: no
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+optional-dependencies:
+  - questie
+move-folders:
+  AzerothLiveMap/addon/AzerothLiveMap: AzerothLiveMap
+ignore:
+  - .github
+  - .gitignore
+  - .pkgmeta
+  - app
+  - assets
+  - desktop
+  - docs
+  - packaging
+  - scripts
+  - tests
+  - README.md
+  - THIRD_PARTY_NOTICES.md
+  - CHANGELOG.md
+  - package.json
+  - package-lock.json
+  - start-companion.sh
+  - START-COMPANION.cmd

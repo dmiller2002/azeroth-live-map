@@ -1,8 +1,0 @@
-Built-in image_gen tool; reference: the user's uploaded pink elephant pixel art.
-Generated source: elephant-idle-source.png. Runtime packing: scripts/build_elephant.py.
-
-Prompt:
-Use case: identity-preserve pixel sprite animation. Asset type: game addon idle animation spritesheet. Input image is the character reference: preserve this exact cute bright PINK upright elephant, large pale-pink ears, short curling trunk, dark rectangular eyes, red bow tie with a small blue center, little gray toenails, dark maroon outline. Create ONE spritesheet containing exactly EIGHT full-body frames, in a precise FOUR-column by TWO-row evenly spaced grid. Canvas 1024x1024, each cell 256x512. Same character scale and ground line in each cell; ample transparent padding, no cropping, no labels, no separators, no shadows outside sprite. Character centered inside every cell. Crisp deliberate low-resolution pixel art with a consistent limited pink palette, no smoothing or blurry gradient. Eight-frame sequence: 1 neutral, 2 slight breathing rise, 3 ears tilted outward, 4 gentle blink (eyes closed), 5 eyes open slight bob downward, 6 tiny trunk wiggle to the left, 7 ears relaxed slight breathing rise, 8 return to neutral. Movement subtle enough for a small always-visible game UI mascot. Keep red bow tie in same place and preserve identity, body proportions and silhouette. Background MUST be actually transparent. Output only the spritesheet.
-
-The returned sheet was 1254x1254. The packing script aligns each frame and exports
-50x64 artwork cells, a native power-of-two TGA atlas, and matching Lua/JSON data.

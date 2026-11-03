@@ -3,7 +3,7 @@ local records, order, urgent, queued = {}, {}, {}, {}
 local revision, cursor, active, nextRefresh = 0, 1, nil, 0
 
 local function Number(value, maximum)
-    if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return 0 end
+    if not ns.IsReadable(value) or type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return 0 end
     return math.floor(math.max(0, math.min(maximum or 65535, value)))
 end
 local function Put(bytes, value, size)
@@ -11,7 +11,7 @@ local function Put(bytes, value, size)
     for i = size - 1, 0, -1 do bytes[#bytes + 1] = math.floor(value / 256 ^ i) % 256 end
 end
 local function Text(value, limit)
-    value = type(value) == "string" and value or ""
+    value = ns.IsReadable(value) and type(value) == "string" and value or ""
     value = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("[%c]", " ")
     if #value > limit then
         local cut = limit + 1
@@ -19,6 +19,22 @@ local function Text(value, limit)
         value = value:sub(1, cut - 1)
     end
     return value
+end
+
+-- Restricted values are never compared or encoded. Max wire values mean
+-- unavailable; the desktop shows a dash while equipment continues syncing.
+local function Stat(fn, effective, ...)
+    if type(fn) ~= "function" then return nil end
+    local ok, base, value = pcall(fn, ...)
+    if not ok then return nil end
+    if effective then
+        if not ns.IsReadable(value) then return nil end
+        if value == nil then value = base end
+    else value = base end
+    if ok and ns.IsReadable(value) and type(value) == "number" then return value end
+end
+local function PutStat(bytes, value, size)
+    Put(bytes, value == nil and (256 ^ size - 1) or value, size)
 end
 local function Record(key, kind, index, payload, text)
     local signature = table.concat(payload, ",") .. "|" .. (text or "")
@@ -43,18 +59,22 @@ local function Refresh()
     local name, realm = UnitName("player")
     if not name then return false end
     local _, _, classID = UnitClass("player")
-    local _, _, raceID = UnitRace("player")
+    local raceName, _, raceID = UnitRace("player")
+    local className = UnitClass("player")
+    local gameVersion, gameBuild
+    if GetBuildInfo then gameVersion, gameBuild = GetBuildInfo() end
     local payload = {}
     Put(payload, UnitLevel("player"), 2)
     payload[3], payload[4], payload[5] = Number(classID, 255), Number(raceID, 255), Number(UnitSex("player"), 3)
     payload[6] = Number(UnitPowerType("player"), 255)
-    Record("identity", 0, 0, payload, Text(name, 48) .. "\n" .. Text(realm or (GetRealmName and GetRealmName()), 96))
+    Record("identity", 0, 0, payload, table.concat({Text(name,48),Text(realm or (GetRealmName and GetRealmName()),96),Text(raceName,64),Text(className,64),Text(gameVersion,24),Text(gameBuild,16)},"\n"))
     payload = {}
-    for stat = 1, 5 do local _, effective = UnitStat("player", stat); Put(payload, effective, 2) end
+    for stat = 1, 5 do PutStat(payload, Stat(UnitStat, true, "player", stat), 2) end
     Record("primary", 3, 1, payload)
     payload = {}
-    local _, armor = UnitArmor("player")
-    Put(payload, armor, 3); Put(payload, UnitHealthMax("player"), 3); Put(payload, UnitPowerMax("player"), 3)
+    PutStat(payload, Stat(UnitArmor, true, "player"), 3)
+    PutStat(payload, Stat(UnitHealthMax, false, "player"), 3)
+    PutStat(payload, Stat(UnitPowerMax, false, "player"), 3)
     Record("defense", 3, 2, payload)
     local itemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
     for slot = 1, 19 do

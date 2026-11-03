@@ -1,10 +1,83 @@
 {
-  "name": "azeroth-live-map",
+  "name": "drunks-azeroth-ui-companion",
+  "productName": "Drunks Azeroth Companion - Forever",
+  "desktopName": "drunks-azeroth-companion.desktop",
+  "version": "1.0.0",
+  "description": "Desktop companion and addon for Blizzard\u2019s official World of Warcraft Forever client",
   "private": true,
-  "type": "module",
+  "main": "desktop/main.cjs",
+  "author": "Drunk",
   "scripts": {
-    "test": "node --test --test-isolation=none tests/*.test.mjs",
-    "start": "python3 scripts/serve.py",
-    "package:addon": "python3 scripts/package_addon.py"
-  }
+    "start": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "test:desktop": "node scripts/desktop-qa.mjs",
+    "build:linux": "electron-builder --linux AppImage tar.gz",
+    "build:windows": "electron-builder --win nsis zip --x64",
+    "build:unpacked": "electron-builder --dir",
+    "package:addon": "python3 scripts/package_addon.py",
+    "release:source": "python3 scripts/package_source.py"
+  },
+  "devDependencies": {
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.drunk.azeroth.companion",
+    "asar": true,
+    "toolsets": {
+      "wine": "1.0.1"
+    },
+    "directories": {
+      "output": "release/1.0.0"
+    },
+    "files": [
+      "app/**/*",
+      "desktop/**/*",
+      "addon/**/*",
+      "package.json",
+      "README.md",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "extraFiles": [
+      "README.md",
+      "THIRD_PARTY_NOTICES.md",
+      {
+        "from": "app/DrunksAzerothUI.zip",
+        "to": "DrunksAzerothUI.zip"
+      },
+      {
+        "from": "docs",
+        "to": "docs"
+      }
+    ],
+    "artifactName": "Drunks-Azeroth-Companion-Forever-${version}-${os}-${arch}.${ext}",
+    "linux": {
+      "syncDesktopName": true,
+      "executableName": "drunks-azeroth-companion",
+      "category": "Game",
+      "icon": "app/icons/huzzah-icon-512.png",
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ]
+    },
+    "win": {
+      "icon": "app/icons/huzzah.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "signExecutable": false
+    },
+    "nsis": {
+      "artifactName": "Drunks-Azeroth-Companion-Forever-${version}-Windows-Setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "installerIcon": "app/icons/huzzah.ico",
+      "uninstallerIcon": "app/icons/huzzah.ico"
+    }
+  },
+  "type": "module"
 }

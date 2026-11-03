@@ -1,0 +1,54 @@
+.theme-picker{border-top:1px solid var(--line);padding-top:20px;margin:0 0 18px}
+.theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:12px}
+.theme-options button{padding:10px 5px;font-size:11px}
+.theme-options button[aria-pressed=true]{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+@media(max-width:650px){.theme-picker{grid-column:1/-1;margin:0}}
+
+:root[data-theme=light]{
+  color-scheme:light;
+  --bg:#f4f5ef;--panel:#fffefa;--line:#c9cfbf;--muted:#526054;--text:#202b23;--accent:#226342;--gold:#705423;
+  --surface:#fffefa;--surface-alt:#e9eee3;--sidebar:#e9eee3;--input:#fff;--selected:#dde9d9;--hover:#e4ebdf;--on-accent:#fff;--title:#3e321c;--map-background:#e7ece1;
+  --reader-bg:#fff7e3;--reader-text:#392c19;--reader-heading:#4a3516;--reader-muted:#685539;--reader-line:#cdbb92;--positive:#2d661d;--negative:#a72e26;
+}
+:root[data-theme=dark]{
+  color-scheme:dark;
+  --bg:#101114;--panel:#1a1c22;--line:#393e4a;--muted:#a9b0be;--text:#edf0f5;--accent:#8fc7ff;--gold:#d6c08c;
+  --surface:#181b20;--surface-alt:#20242d;--sidebar:#15171d;--input:#11141a;--selected:#283b50;--hover:#29313f;--on-accent:#101c2a;--title:#f0e4cb;--map-background:#101318;
+  --reader-bg:#1e222a;--reader-text:#e1e5ed;--reader-heading:#f0dbac;--reader-muted:#b3bac7;--reader-line:#515b6c;--positive:#9bd488;--negative:#ff9e8f;
+}
+/* Original uses the established stylesheet without palette overrides. */
+html:is([data-theme=light],[data-theme=dark]) #controls-panel{background:var(--sidebar)}
+html:is([data-theme=light],[data-theme=dark]) :is(.connection,.character-panel,.bags-view,.guild-view,.quests-view,.integrated-quests,.update-card,.bag-card,.guild-sharing,dialog,.split-view .updates-view){background:var(--surface);border-color:var(--line)}
+html:is([data-theme=light],[data-theme=dark]) .app-tabs{background:var(--bg)}
+html:is([data-theme=light],[data-theme=dark]) :is(.edition,.sidebar-bottom p,footer,dialog>p,.steps p,.note){color:var(--muted)}
+html:is([data-theme=light],[data-theme=dark]) :is(h1,dialog h2,.update-card h2,.character-panel h2,.bag-card h2,#quest-log-heading,.character-stats dd){color:var(--title)}
+html:is([data-theme=light],[data-theme=dark]) :is(input[type=search],.minimap-command input){background:var(--input);color:var(--text)}
+html:is([data-theme=light],[data-theme=dark]) input::placeholder{color:var(--muted);opacity:1}
+html:is([data-theme=light],[data-theme=dark]) :is(code,.note,.model-controls button,.model-retry){background:var(--surface-alt)}
+html:is([data-theme=light],[data-theme=dark]) .primary{background:var(--accent);color:var(--on-accent)}
+html:is([data-theme=light],[data-theme=dark]) .primary:hover{background:color-mix(in srgb,var(--accent) 85%,var(--text))}
+html:is([data-theme=light],[data-theme=dark]) :is(button,select):hover{border-color:var(--accent)}
+html:is([data-theme=light],[data-theme=dark]) .app-tabs [role=tab]:hover{background:var(--hover)}
+html:is([data-theme=light],[data-theme=dark]) .app-tabs [aria-selected=true]{background:var(--selected)}
+html:is([data-theme=light],[data-theme=dark]) .options input{background:var(--line)}
+html:is([data-theme=light],[data-theme=dark]) .options input:before{background:var(--muted)}
+html:is([data-theme=light],[data-theme=dark]) .options input:checked{background:var(--accent)}
+html:is([data-theme=light],[data-theme=dark]) .options input:checked:before{background:var(--on-accent)}
+html:is([data-theme=light],[data-theme=dark]) #map-stage{border-color:var(--line);box-shadow:0 8px 24px #0002}
+html:is([data-theme=light],[data-theme=dark]) :is(.map-badge,#map-hint,.zoom-controls,.map-message,.quest-tooltip){background:var(--surface);color:var(--text);border-color:var(--line)}
+html:is([data-theme=light],[data-theme=dark]) .map-badge.live{color:var(--accent)}
+html:is([data-theme=light],[data-theme=dark]) .zoom-controls button:is(:hover,[aria-pressed=true]){background:var(--selected);color:var(--accent)}
+html:is([data-theme=light],[data-theme=dark]) .legend-dot{background:#8ae0be;border:1px solid #286c4c}
+html:is([data-theme=light],[data-theme=dark]) .quest-log-entry{background:var(--surface-alt)}
+html:is([data-theme=light],[data-theme=dark]) .quest-log-entry[aria-pressed=true]{background:var(--selected)}
+html[data-theme=light] .quest-log-entry strong{color:color-mix(in srgb,var(--quest-difficulty) 45%,#172318)}
+html[data-theme=light] .equipment-copy strong{color:color-mix(in srgb,var(--item-color) 55%,#15261c)}
+html:is([data-theme=light],[data-theme=dark]) .quest-complete{color:var(--positive)!important}
+html:is([data-theme=light],[data-theme=dark]) .quest-failed{color:var(--negative)!important}
+html:is([data-theme=light],[data-theme=dark]) .quest-reader{background:var(--reader-bg);color:var(--reader-text);border-color:var(--reader-line);box-shadow:none}
+html:is([data-theme=light],[data-theme=dark]) .quest-reader :is(h2,h3){color:var(--reader-heading)}
+html:is([data-theme=light],[data-theme=dark]) .quest-reader :is(h3,.quest-reader-actions,.quest-reader-back){border-color:var(--reader-line)}
+html:is([data-theme=light],[data-theme=dark]) :is(.quest-reader-meta,#quest-reader-state,.quest-reader-note,.quest-reader-actions p,.quest-reader-empty,.quest-reader-back){color:var(--reader-muted)}
+html:is([data-theme=light],[data-theme=dark]) .quest-reader-actions button{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+html:is([data-theme=light],[data-theme=dark]) .quest-objectives li>span:first-child{color:var(--reader-muted)}
+html:is([data-theme=light],[data-theme=dark]) .quest-objectives li.is-complete,html:is([data-theme=light],[data-theme=dark]) .quest-objectives li.is-complete>span:first-child{color:var(--positive)}

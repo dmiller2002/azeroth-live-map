@@ -1,14 +1,27 @@
-#!/usr/bin/env python3
+"""Build the addon ZIP from the current TOC, without including local game data."""
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
-from shutil import copyfile
 
-root = Path(__file__).resolve().parent.parent
-target = root / 'dist' / 'DrunksAzerothUI.zip'
-with ZipFile(target, 'w', ZIP_DEFLATED) as archive:
-    for path in sorted((root / 'addon' / 'AzerothLiveMap').glob('*')):
-        if path.is_file():
-            archive.write(path, path.relative_to(root / 'addon'))
-print(target)
-# Keep existing download links working; the addon identity preserves saved data.
-copyfile(target, root / 'dist' / 'AzerothLiveMap.zip')
+ROOT = Path(__file__).resolve().parents[1]
+ADDON = ROOT / "addon" / "AzerothLiveMap"
+OUTPUT = ROOT / "app" / "DrunksAzerothUI.zip"
+
+
+def package():
+    toc = ADDON / "AzerothLiveMap.toc"
+    declared = [line.strip() for line in toc.read_text().splitlines()
+                if line.strip() and not line.lstrip().startswith("#")]
+    files = [toc, *(ADDON / name for name in declared)]
+    # The sprite's Lua module references this texture outside the TOC file list.
+    files.extend([ADDON / "Elephant.tga", ADDON / "README.md"])
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    temporary = OUTPUT.with_suffix(".zip.tmp")
+    with ZipFile(temporary, "w", ZIP_DEFLATED) as archive:
+        for file in files:
+            archive.write(file, file.relative_to(ADDON.parent))
+    temporary.replace(OUTPUT)
+    print(f"Built {OUTPUT.relative_to(ROOT)} ({len(files)} files)")
+
+
+if __name__ == "__main__":
+    package()

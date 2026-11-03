@@ -3,7 +3,7 @@ local records, order, known, urgent, queued, topology = {}, {}, {}, {}, {}, {}
 local revision, cursor, active, nextRefresh = 0, 1, nil, 0
 
 local function Number(value, maximum)
-    if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return 0 end
+    if not ns.IsReadable(value) or type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return 0 end
     return math.floor(math.max(0, math.min(maximum or 65535, value)))
 end
 local function Put(bytes, value, size)
@@ -11,7 +11,7 @@ local function Put(bytes, value, size)
     for i = size - 1, 0, -1 do bytes[#bytes + 1] = math.floor(value / 256 ^ i) % 256 end
 end
 local function Text(value)
-    value = type(value) == "string" and value or ""
+    value = ns.IsReadable(value) and type(value) == "string" and value or ""
     value = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("[%c]", " ")
     if #value > 100 then
         local cut = 101

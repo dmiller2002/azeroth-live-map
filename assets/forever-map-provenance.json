@@ -1,0 +1,8 @@
+{
+  "environment": "classicplus",
+  "provider": "Wowhead",
+  "zoneMapPattern": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/{areaId}.jpg",
+  "discoveredFrom": "https://www.wowhead.com/forever/guide/zephras-isle-zone-overview",
+  "nativeAreaMappingSource": "https://github.com/Questie/QuestieDB/blob/master/support/Forever/Zones/uiMapIdToAreaId.lua",
+  "notes": "Native Forever artwork is used directly, without Classic coordinate transforms. UiMap 2665 is a second Zephras Isle map whose artwork coordinate frame is unverified; it retains a native coordinate grid."
+}

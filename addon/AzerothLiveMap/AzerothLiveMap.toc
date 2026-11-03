@@ -1,14 +1,18 @@
-## Interface: 20506, 11509
-## Title: Drunks Azeroth UI
-## Notes: Syncs your map, quests, character, and bags with Drunks Azeroth UI. /daui for help.
+## Interface: 16001
+## Title: Drunks Azeroth UI - Forever
+## Notes: WoW Forever companion: map, readable quest log, objectives, character, bags, and guild. /daui for help.
 ## Author: Dylan
-## Version: 0.7.1
+## Version: 1.0.0
 ## OptionalDeps: Questie
 ## SavedVariables: AzerothLiveMapDB
+## X-Website: https://github.com/dmiller2002/azeroth-live-map
+Compat.lua
 Protocol.lua
 Questie.lua
+QuestLog.lua
 Character.lua
 Bags.lua
+Guild.lua
 Elephant.lua
 Art.lua
 Main.lua

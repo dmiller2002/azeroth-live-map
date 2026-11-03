@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111817">
+  <meta name="description" content="Your standalone World of Warcraft Forever companion for a second screen.">
+  <title>Drunks Azeroth Companion — WoW Forever Edition</title>
+  <link rel="icon" href="icons/huzzah-icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/huzzah-icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="themes.css">
+</head>
+<body>
+<div class="app">
+  <aside id="controls-panel">
+    <div class="brand" aria-label="Drunks Azeroth Companion"><img class="brand-logo" src="icons/huzzah-icon-512.png" alt="HUZZAH crest" width="64" height="64"><span>DRUNKS<small>AZEROTH UI</small><small class="developer-credit">Developed by Drunk</small></span></div>
+    <div class="edition"><span></span> WOW FOREVER EDITION</div>
+    <section class="connection" aria-labelledby="connection-heading">
+      <div class="eyebrow" id="connection-heading">YOUR CONNECTION</div>
+      <div class="status-line"><span id="status-dot" class="dot"></span><strong id="status" role="status">Not connected</strong></div>
+      <p id="status-detail">Bring your journey to a second screen.</p>
+      <button class="primary" id="connect">Connect WoW <span aria-hidden="true">↗</span></button>
+      <button id="calibrate" class="text-button" hidden>Select position strip manually</button>
+    </section>
+    <section class="position" aria-labelledby="position-heading">
+      <div class="eyebrow" id="position-heading">YOUR LOCATION</div>
+      <h2 id="location">Waiting for your character</h2>
+      <div class="coords"><div><span>X COORDINATE</span><strong id="coord-x">—</strong></div><div><span>Y COORDINATE</span><strong id="coord-y">—</strong></div></div>
+      <div class="updated" id="updated">No position received</div>
+    </section>
+    <section class="options" aria-label="Map options">
+      <label><span>Follow my zone</span><input type="checkbox" id="follow" checked></label>
+      <label><span>Show recent trail</span><input type="checkbox" id="trail" checked></label>
+      <label><span>Coordinate grid</span><input type="checkbox" id="grid"></label>
+      <label><span>Questie markers</span><input type="checkbox" id="quests" checked></label>
+    </section>
+    <section class="theme-picker" aria-labelledby="theme-heading">
+      <div class="eyebrow" id="theme-heading">THEME</div>
+      <div class="theme-options" role="group" aria-label="App theme">
+        <button type="button" data-theme="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        <button type="button" data-theme="original" aria-pressed="true">Original</button>
+      </div>
+    </section>
+    <div class="sidebar-bottom"><p>Position is processed on this device.<br>Your screen is never uploaded by this app.</p><div id="sidebar-sync" class="sidebar-sync" data-state="offline" role="status" aria-live="polite"><span id="sidebar-sync-dot" class="dot" aria-hidden="true"></span><span id="sidebar-sync-text">Sync · Offline</span></div></div>
+  </aside>
+  <main>
+    <div class="app-toolbar">
+      <span id="app-mode">WOW FOREVER EDITION</span>
+      <div class="toolbar-actions">
+        <button id="ui-scale" class="toolbar-button" aria-haspopup="dialog" aria-controls="ui-scale-dialog" disabled>UI scale · 100%</button>
+        <button id="wow-minimap" class="toolbar-button" aria-haspopup="dialog">WoW minimap</button>
+        <button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
+        <button id="toggle-controls" class="toolbar-button" aria-controls="controls-panel" aria-expanded="true">Hide controls</button>
+      </div>
+    </div>
+    <nav id="app-tabs" class="app-tabs" role="tablist" aria-label="App views">
+      <button id="tab-map" role="tab" data-view="map" aria-controls="map-view" aria-selected="true">Map &amp; Quests</button>
+      <button id="tab-character" role="tab" data-view="character" aria-controls="character-panel" aria-selected="false" tabindex="-1">Character</button>
+      <button id="tab-bags" role="tab" data-view="bags" aria-controls="bags-view" aria-selected="false" tabindex="-1">Bags</button>
+      <button id="tab-guild" role="tab" data-view="guild" aria-controls="guild-view" aria-selected="false" tabindex="-1">Guild</button>
+      <button id="tab-updates" role="tab" data-view="updates" aria-controls="updates-view" aria-selected="false" tabindex="-1">Updates</button>
+    </nav>
+    <div class="viewer-layout-controls">
+      <button id="split-view-toggle" class="toolbar-button" aria-pressed="false" aria-controls="split-view-options">Split view</button>
+      <div id="split-view-options" class="split-view-options" hidden>
+        <label>First view <select id="split-primary" aria-label="First split view"></select></label>
+        <label>Second view <select id="split-secondary" aria-label="Second split view"></select></label>
+        <button id="split-view-swap" class="toolbar-button" aria-label="Swap split views">Swap</button>
+      </div>
+    </div>
+    <div id="quick-connection" class="quick-connection" hidden>
+      <span class="quick-signal"><span id="quick-status-dot" class="dot"></span><span id="quick-status">Not connected</span></span>
+      <span id="quick-coordinates">X — · Y —</span>
+      <button id="quick-connect">Connect WoW ↗</button>
+    </div>
+    <div id="viewer-panels" class="viewer-panels">
+    <section id="map-view" class="map-view adventure-view" role="tabpanel" aria-labelledby="tab-map" tabindex="0">
+    <div class="adventure-layout">
+    <div class="map-surface">
+    <header>
+      <div><div class="eyebrow" id="map-type">EASTERN KINGDOMS · ZONE MAP</div><h1 id="map-title">Elwynn Forest</h1></div>
+      <div class="header-actions"><label class="sr-only" for="zone">Browse a map</label><select id="zone" aria-label="Browse a map"></select><button id="toggle-quest-log" class="toolbar-button" aria-controls="quests-view" aria-expanded="true">Hide quests</button></div>
+    </header>
+    <div class="map-navigation">
+      <button id="map-up" aria-label="Go up one map level" title="Go up one map level (right-click or Backspace)">↑ Up</button>
+      <nav id="map-path" aria-label="Map hierarchy"></nav>
+      <span id="navigation-hint">Left-click an area · Right-click to go up</span>
+    </div>
+    <div id="map-stage" tabindex="0" role="region" aria-label="Map. Left-click an area to open it. Right-click or Backspace to go up one map level. Drag to pan. Use plus and minus buttons to zoom.">
+      <canvas id="map" aria-label="World map and player position"></canvas>
+      <div id="quest-tooltip" class="quest-tooltip" role="tooltip" hidden></div>
+      <div id="area-tooltip" class="quest-tooltip" role="tooltip" hidden></div>
+      <div id="guild-tooltip" class="quest-tooltip" role="tooltip" hidden></div>
+      <div class="map-top"><span class="map-badge" id="mode-badge">BROWSING · NO LIVE POSITION</span><span class="north" title="North">N<span>↑</span></span></div>
+      <div id="map-message" class="map-message" role="status" hidden></div>
+      <div class="map-bottom"><span id="map-hint">Connect WoW to see your character here</span><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button><button id="whole-map" aria-label="Show the whole map" aria-pressed="false">Whole map</button><button id="fit" aria-label="Fill the map box" title="Fill the map box (0)" aria-pressed="true">Fill box</button></div></div>
+    </div>
+    <footer><span><i class="legend-dot"></i> You <span class="trail-legend">―</span> Recent trail <i class="legend-dot guild-legend"></i> Guild</span><span>Map art © Blizzard Entertainment · <a href="https://www.wowhead.com/forever" target="_blank" rel="noreferrer">Wowhead</a></span></footer>
+    </div>
+    <aside id="quests-view" class="quests-view integrated-quests" aria-labelledby="quest-log-heading">
+      <div class="eyebrow">YOUR ADVENTURE · QUEST LOG</div>
+      <h2 id="quest-log-heading">Quest log</h2>
+      <p id="quest-log-status" class="character-status" role="status">Connect WoW to read your quests and live objectives.</p>
+      <div id="quest-browser-view"><div class="quest-log-controls"><label class="sr-only" for="quest-log-search">Search quests</label><input id="quest-log-search" type="search" placeholder="Search quests, zones, or objectives"><label class="sr-only" for="quest-log-filter">Filter quests</label><select id="quest-log-filter"><option value="all">All quests</option><option value="tracked">Tracked in WoW</option><option value="complete">Ready for turn-in</option></select></div>
+        <div class="quest-log-browser"><div id="quest-log-list" aria-label="Your quests grouped by zone"></div><p id="quest-log-empty" class="guild-empty">Connect WoW to read your quest log.</p></div>
+      </div>
+        <article id="quest-reader" class="quest-reader" aria-label="Quest details" tabindex="0" hidden>
+          <button id="quest-reader-back" class="quest-reader-back">← Quest log</button>
+          <div id="quest-reader-empty" class="quest-reader-empty"><span aria-hidden="true">!</span><h2>Your next adventure</h2><p>Select a quest to read its story and objectives here.</p></div>
+          <div id="quest-reader-content" hidden>
+            <p id="quest-reader-meta" class="quest-reader-meta"></p><h2 id="quest-reader-title"></h2><p id="quest-reader-state"></p>
+            <h3>Objectives</h3><p id="quest-reader-overview" class="quest-prose"></p><ul id="quest-reader-objectives" class="quest-objectives"></ul>
+            <h3>Description</h3><div id="quest-reader-description" class="quest-prose"></div><p id="quest-reader-text-note" class="quest-reader-note"></p>
+            <div class="quest-reader-actions"><button id="quest-reader-map" disabled>Show on map</button><p id="quest-reader-map-status"></p></div>
+          </div>
+        </article>
+      <p class="character-note">Quest text and objective progress come from your WoW quest log. Tracked quests follow your in-game watch list. Questie supplies map markers when installed. Select a quest to read it and highlight its map locations.</p>
+    </aside>
+    </div>
+    </section>
+  <section id="character-panel" class="character-panel" role="tabpanel" aria-labelledby="tab-character" tabindex="0" hidden>
+    <div class="eyebrow">YOUR ADVENTURER · EQUIPMENT & ATTRIBUTES</div>
+    <h2 id="character-name">Your character</h2>
+    <p id="character-subtitle" class="character-subtitle">Equipment & attributes</p>
+    <p id="character-status" class="character-status" role="status">Connect WoW to sync your character and equipment.</p>
+    <div class="character-layout">
+    <div class="character-equipment">
+    <div class="paper-doll">
+      <div class="character-model">
+        <div id="model-viewport" class="model-viewport" tabindex="0" role="region" aria-label="3D character. Drag to rotate. Scroll to zoom. Arrow keys rotate; plus and minus zoom." data-state="waiting"></div>
+        <p id="model-status" class="model-status" role="status">Connect WoW to load your character’s model.</p>
+        <button id="model-retry" class="model-retry" hidden>Retry 3D preview</button>
+        <div class="model-controls" aria-label="3D model controls">
+          <button id="model-left" aria-label="Rotate model left">↶</button><button id="model-right" aria-label="Rotate model right">↷</button>
+          <button id="model-zoom-out" aria-label="Zoom model out">−</button><button id="model-zoom-in" aria-label="Zoom model in">+</button>
+          <button id="model-reset">Reset</button><button id="model-pause" aria-pressed="false">Pause</button>
+        </div>
+        <p class="model-hint">Forever model preview · some equipment models may be unavailable<br>Drag to rotate · Scroll to zoom<br>Models © Blizzard · <a href="https://www.wowhead.com/forever" target="_blank" rel="noreferrer">Wowhead viewer</a></p>
+      </div>
+      <div id="equipment-left" class="equipment-column"></div>
+      <div id="equipment-right" class="equipment-column"></div>
+      <div id="equipment-weapons" class="equipment-weapons"></div>
+    </div>
+    <p id="character-gear-count" class="character-gear-count">Waiting for equipment</p>
+    </div>
+    <div class="character-attributes">
+    <div class="eyebrow character-stats-heading">ATTRIBUTES</div>
+    <dl class="character-stats">
+      <div><dt>Strength</dt><dd id="stat-strength">—</dd></div><div><dt>Agility</dt><dd id="stat-agility">—</dd></div>
+      <div><dt>Stamina</dt><dd id="stat-stamina">—</dd></div><div><dt>Intellect</dt><dd id="stat-intellect">—</dd></div>
+      <div><dt>Spirit</dt><dd id="stat-spirit">—</dd></div><div><dt>Armor</dt><dd id="stat-armor">—</dd></div>
+      <div><dt>Max health</dt><dd id="stat-health">—</dd></div><div><dt id="stat-power-label">Power</dt><dd id="stat-power">—</dd></div>
+    </dl>
+    <details class="model-appearance"><summary>Match face & hair</summary><p>Race, body type, and gear sync from WoW. Choose your face, skin, and hair here to match your character; these appearance choices are saved on this browser.</p><div id="model-appearance-options"></div></details>
+    <p class="character-note">Hover or focus an item for stats and effects. On touch screens, tap once for details and again to open Wowhead. Item descriptions and icons load from Wowhead; names, item level and durability sync from WoW.</p>
+    </div>
+    </div>
+  </section>
+    <section id="bags-view" class="bags-view" role="tabpanel" aria-labelledby="tab-bags" tabindex="0" hidden>
+      <div class="eyebrow">YOUR INVENTORY · BACKPACK & BAGS</div>
+      <div class="bags-heading"><div><h1>Bags</h1><p id="bags-summary">Your backpack and four equipped bags</p></div><div class="bags-display-controls"><label class="bags-layout-choice">Bag view <select id="bags-layout"><option value="separate">Separate bags</option><option value="combined">Combined bag</option></select></label><label class="bags-empty-toggle"><input id="bags-show-empty" type="checkbox" checked> Show empty slots</label></div></div>
+      <p id="bags-status" class="character-status" role="status">Connect WoW to sync your backpack and equipped bags.</p>
+      <div id="bags-grid" class="bags-grid">
+        <section id="combined-bag" class="bag-card bag-card-combined" hidden>
+          <header><div><small>ALL BAGS</small><h2>Combined bag</h2></div><span id="combined-bag-capacity" class="bag-capacity">Waiting…</span></header>
+          <ul id="combined-bag-items" class="bag-grid" aria-label="Combined backpack and bag contents"></ul>
+          <p id="combined-bag-empty" class="bag-empty-note">Waiting for bag data…</p>
+        </section>
+      </div>
+      <p class="character-note">Hover or focus an item for details. Stack counts and contents sync from WoW. On touch screens, tap once for details and again to open Wowhead.</p>
+    </section>
+    <section id="guild-view" class="guild-view" role="tabpanel" aria-labelledby="tab-guild" tabindex="0" hidden>
+      <div class="eyebrow">DRUNKS AZEROTH UI · GUILD</div>
+      <h1 id="guild-name">Guild</h1>
+      <p id="guild-status" class="character-status" role="status">Connect WoW to sync your guild roster.</p>
+      <div class="guild-sharing"><p>For professions and precise map pins, guild members need addon 0.8.0 and <code>/daui guild on</code> in WoW. Sharing sends your primary professions and coordinates to your guild. Use <code>/daui guild off</code> to stop.</p><p id="guild-sharing-status"></p></div>
+      <div class="guild-controls"><label>Find a member <input id="guild-search" type="search" placeholder="Name, profession, class, or zone"></label><label class="guild-online-filter"><input id="guild-online-only" type="checkbox"> Online only</label></div>
+      <p id="guild-results" class="guild-results"></p>
+      <div class="guild-table-wrap"><table id="guild-table" class="guild-table" hidden><caption class="sr-only">Guild members, professions, and locations</caption><thead><tr><th scope="col">Member</th><th scope="col">Status</th><th scope="col">Primary professions</th><th scope="col">Location</th><th scope="col"><span class="sr-only">Map actions</span></th></tr></thead><tbody id="guild-roster"></tbody></table></div>
+      <p id="guild-empty" class="guild-empty">Connect WoW for live guild information.</p>
+      <p class="character-note">Blue pins show fresh shared positions in Map &amp; Quests. Pins expire after 30 seconds without a new location. Zone names come from the roster; they do not provide precise coordinates. Use Split view to keep Guild and Map &amp; Quests open together.</p>
+    </section>
+    <section id="updates-view" class="updates-view" role="tabpanel" aria-labelledby="tab-updates" tabindex="0" hidden>
+      <div class="eyebrow">DRUNKS AZEROTH UI · LATEST IMPROVEMENTS</div>
+      <h1>What’s new</h1>
+      <p class="updates-intro">Your companion is growing. Find new features and improvements here as they arrive.</p>
+      <div class="updates-grid">
+        <article class="update-card"><span class="update-tag">DESKTOP 1.0.0</span><h2>WoW Forever</h2><p>Made for Blizzard’s official Forever client. Native quests, equipment, bags and guild data sync to your second screen. New zones use a coordinate grid where artwork is unavailable.</p></article>
+      </div>
+      <div class="updates-next"><span class="eyebrow">MORE TO COME</span><p>Future additions will have their own place here alongside Map and Character.</p></div>
+    </section>
+    </div>
+  </main>
+</div>
+<dialog id="ui-scale-dialog" aria-labelledby="ui-scale-heading">
+  <button class="dialog-close" id="close-ui-scale" aria-label="Close UI scale">×</button>
+  <div class="eyebrow">DISPLAY</div><h2 id="ui-scale-heading">UI scale</h2>
+  <p>Adjust the size of text, controls, and panels. Your preference is saved automatically.</p>
+  <label class="ui-scale-label" for="ui-scale-slider">Interface size <output id="ui-scale-value" for="ui-scale-slider">100%</output></label>
+  <div class="ui-scale-adjustment">
+    <button id="ui-scale-less" aria-label="Decrease UI scale">−</button>
+    <input type="range" id="ui-scale-slider" min="50" max="200" step="5" value="100" aria-valuetext="100 percent">
+    <button id="ui-scale-more" aria-label="Increase UI scale">+</button>
+  </div>
+  <div class="ui-scale-range" aria-hidden="true"><span>50%</span><span>200%</span></div>
+  <button id="ui-scale-reset">Reset to 100%</button>
+  <p class="small-print">Shortcuts: Ctrl + plus or minus to adjust · Ctrl + 0 to reset.</p>
+  <p id="ui-scale-status" role="status"></p>
+</dialog>
+<dialog id="minimap-dialog" aria-labelledby="minimap-heading">
+  <button class="dialog-close" id="close-minimap" aria-label="Close minimap commands">×</button>
+  <div class="eyebrow">IN-GAME DISPLAY</div><h2 id="minimap-heading">WoW minimap</h2>
+  <p>Copy a command, paste it into WoW chat, then press Enter. The companion cannot change game UI directly.</p>
+  <div class="minimap-command"><label class="sr-only" for="minimap-hide-command">Hide WoW minimap command</label><input id="minimap-hide-command" value="/alm minimap hide" readonly spellcheck="false"><button id="copy-minimap-hide">Copy hide command</button></div>
+  <div class="minimap-command"><label class="sr-only" for="minimap-show-command">Show WoW minimap command</label><input id="minimap-show-command" value="/alm minimap show" readonly spellcheck="false"><button id="copy-minimap-show">Copy show command</button></div>
+  <p id="minimap-copy-status" role="status" aria-live="polite"></p>
+  <p class="small-print">Requires addon 0.5.2. Your choice is remembered after /reload and login. Changes requested during combat apply when combat ends.</p>
+</dialog>
+<dialog id="calibration-dialog">
+  <button class="dialog-close" id="close-calibration" aria-label="Close selection">×</button>
+  <div class="eyebrow">POSITION STRIP</div><h2>Select the black-and-white rectangle</h2>
+  <p>Drag from one corner to the opposite corner, including the full black border.</p>
+  <canvas id="capture-preview" aria-label="Shared game preview. Drag to select the position strip."></canvas>
+  <p id="calibration-result" role="status">This preview stays on your device.</p>
+</dialog>
+<video id="capture-video" muted autoplay playsinline></video>
+<script type="module" src="app.js"></script>
+<script type="module" src="companion.js"></script>
+</body>
+</html>

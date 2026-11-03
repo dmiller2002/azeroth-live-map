@@ -1,7 +1,11 @@
 node_modules/
-dist/server/
-dist/.openai/
+release/
+.local/
+.cache/
+artifacts/
 .DS_Store
 __pycache__/
-.local/
-artifacts/
+*.pyc
+.release/
+.env
+.env.*

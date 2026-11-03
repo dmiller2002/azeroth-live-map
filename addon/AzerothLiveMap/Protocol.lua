@@ -45,6 +45,9 @@ end
 -- v3 kind 0/1: independent zone metadata/pins (up to 65535 per zone).
 -- v3 kind 2: map/index encode the 24-bit quest ID; text is shared globally.
 -- v3 kind 3: global status, zone count, pin total, and addon session epoch.
+-- v8: same layout as v3; marker byte 18 packs kind + Questie icon ID * 4.
+-- v9: quest-log stable slots; quest ID 0 deletes a slot; epochs identify a quest.
+-- v10: stable Questie pin slots with per-pin revisions; kind 4 deletes one pin.
 function ns.EncodeQuest(kind, sequence, mapID, generation, index, payload, version)
     local bytes = { 167, version or 2, kind }
     for _, n in ipairs({ sequence, mapID or 0, generation, index }) do

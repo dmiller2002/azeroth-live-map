@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Drunks Azeroth Companion - Forever
+Comment=WoW Forever map, quests, character, inventory and guild companion
+Exec=drunks-azeroth-companion
+TryExec=drunks-azeroth-companion
+Icon=drunks-azeroth-companion
+Terminal=false
+StartupNotify=true
+StartupWMClass=drunks-azeroth-companion
+Categories=Game;
+Keywords=Drunks;Azeroth;Companion;WoW;Warcraft;Map;Questie;

@@ -1,0 +1,502 @@
+[
+  {
+    "uiMapId": 1416,
+    "areaId": 36,
+    "name": "Alterac Mountains",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/36.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1459,
+    "areaId": 2597,
+    "name": "Alterac Valley",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/2597.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1461,
+    "areaId": 3358,
+    "name": "Arathi Basin",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/3358.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1417,
+    "areaId": 45,
+    "name": "Arathi Highlands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/45.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1440,
+    "areaId": 331,
+    "name": "Ashenvale",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/331.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1447,
+    "areaId": 16,
+    "name": "Azshara",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/16.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1418,
+    "areaId": 3,
+    "name": "Badlands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/3.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1419,
+    "areaId": 4,
+    "name": "Blasted Lands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/4.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1428,
+    "areaId": 46,
+    "name": "Burning Steppes",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/46.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1439,
+    "areaId": 148,
+    "name": "Darkshore",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/148.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1457,
+    "areaId": 1657,
+    "name": "Darnassus",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1657.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1430,
+    "areaId": 41,
+    "name": "Deadwind Pass",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/41.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1443,
+    "areaId": 405,
+    "name": "Desolace",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/405.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1426,
+    "areaId": 1,
+    "name": "Dun Morogh",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1411,
+    "areaId": 14,
+    "name": "Durotar",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/14.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1431,
+    "areaId": 10,
+    "name": "Duskwood",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/10.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1445,
+    "areaId": 15,
+    "name": "Dustwallow Marsh",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/15.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1423,
+    "areaId": 139,
+    "name": "Eastern Plaguelands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/139.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1429,
+    "areaId": 12,
+    "name": "Elwynn Forest",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/12.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1448,
+    "areaId": 361,
+    "name": "Felwood",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/361.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1444,
+    "areaId": 357,
+    "name": "Feralas",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/357.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1424,
+    "areaId": 267,
+    "name": "Hillsbrad Foothills",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/267.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1455,
+    "areaId": 1537,
+    "name": "Ironforge",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1537.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1432,
+    "areaId": 38,
+    "name": "Loch Modan",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/38.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1450,
+    "areaId": 493,
+    "name": "Moonglade",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/493.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1412,
+    "areaId": 215,
+    "name": "Mulgore",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/215.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1454,
+    "areaId": 1637,
+    "name": "Orgrimmar",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1637.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1433,
+    "areaId": 44,
+    "name": "Redridge Mountains",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/44.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1427,
+    "areaId": 51,
+    "name": "Searing Gorge",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/51.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1451,
+    "areaId": 1377,
+    "name": "Silithus",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1377.jpg",
+    "width": 1024,
+    "height": 684
+  },
+  {
+    "uiMapId": 1421,
+    "areaId": 130,
+    "name": "Silverpine Forest",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/130.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1442,
+    "areaId": 406,
+    "name": "Stonetalon Mountains",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/406.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1453,
+    "areaId": 1519,
+    "name": "Stormwind City",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1519.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1434,
+    "areaId": 33,
+    "name": "Stranglethorn Vale",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/33.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1435,
+    "areaId": 8,
+    "name": "Swamp of Sorrows",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/8.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1446,
+    "areaId": 440,
+    "name": "Tanaris",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/440.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1438,
+    "areaId": 141,
+    "name": "Teldrassil",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/141.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1413,
+    "areaId": 17,
+    "name": "The Barrens",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/17.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1425,
+    "areaId": 47,
+    "name": "The Hinterlands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/47.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1441,
+    "areaId": 400,
+    "name": "Thousand Needles",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/400.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1456,
+    "areaId": 1638,
+    "name": "Thunder Bluff",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1638.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1420,
+    "areaId": 85,
+    "name": "Tirisfal Glades",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/85.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1449,
+    "areaId": 490,
+    "name": "Un'Goro Crater",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/490.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1458,
+    "areaId": 1497,
+    "name": "Undercity",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/1497.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1460,
+    "areaId": 3277,
+    "name": "Warsong Gulch",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/3277.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1422,
+    "areaId": 28,
+    "name": "Western Plaguelands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/28.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1436,
+    "areaId": 40,
+    "name": "Westfall",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/40.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1437,
+    "areaId": 11,
+    "name": "Wetlands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/11.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 1452,
+    "areaId": 618,
+    "name": "Winterspring",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/618.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  {
+    "uiMapId": 2482,
+    "name": "Mount Hyjal",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/616.jpg",
+    "width": 1024,
+    "height": 684,
+    "parentId": 947,
+    "areaId": 616
+  },
+  {
+    "uiMapId": 2521,
+    "name": "Zephras Isle",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/16593.jpg",
+    "width": 1024,
+    "height": 683,
+    "parentId": 947,
+    "areaId": 16593
+  },
+  {
+    "uiMapId": 2524,
+    "name": "Darkspear Islands",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/16606.jpg",
+    "width": 1024,
+    "height": 683,
+    "parentId": 947,
+    "areaId": 16606
+  },
+  {
+    "uiMapId": 2548,
+    "name": "Riverglades",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/16591.jpg",
+    "width": 1024,
+    "height": 683,
+    "parentId": 947,
+    "areaId": 16591
+  },
+  {
+    "uiMapId": 2652,
+    "name": "Shen'dralas",
+    "edition": "forever",
+    "url": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/16651.jpg",
+    "width": 1024,
+    "height": 683,
+    "parentId": 947,
+    "areaId": 16651
+  },
+  {
+    "uiMapId": 2665,
+    "name": "Zephras Isle",
+    "edition": "forever",
+    "url": null,
+    "width": 1024,
+    "height": 683,
+    "parentId": 947
+  }
+]
