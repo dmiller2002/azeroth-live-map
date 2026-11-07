@@ -1,3 +1,18 @@
+# Desktop and addon 1.0.2 — 2026-11-07
+
+- Read native map rectangles and parent relationships from Forever instead of
+  using hit regions traced from older artwork.
+- Project player positions, quest markers, guild pins, and recent trails onto
+  continent and world views. Keep overview artwork fully visible by default.
+- Add a saved Quest helper selector above the map: WoW Forever or Questie.
+- Sync Blizzard's accepted-quest POIs, next waypoints, and turn-in markers
+  independently of Questie without changing the in-game map or quest selection.
+- Preserve both helper feeds while switching, and show the selected provider's
+  status and quest-reader marker availability.
+
+Both desktop and addon 1.0.2 are required for the native map/helper features.
+Live Forever validation is still pending; automated checks use synthetic APIs.
+
 # Desktop 1.0.1 — 2026-11-07
 
 - Add companion update controls under What's new, with manual checks, download

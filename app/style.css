@@ -40,6 +40,11 @@ body.map-only #controls-panel{display:none}
 #companion-update-status{color:var(--text)}
 #companion-update-progress{display:block;width:min(100%,440px);margin:18px 0;accent-color:var(--accent)}
 .companion-updater .companion-update-note{font-size:11px;margin-bottom:0}
+.quest-map-settings{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;margin:0 0 12px;font-size:11px;color:var(--muted)}
+.quest-map-settings label{display:flex;align-items:center;gap:8px;color:var(--text)}
+.quest-map-settings select{width:150px;padding:7px 9px}
+#map-layout-status{font-size:10px;flex-basis:100%}
+#map-layout-status:empty{display:none}
 @media(max-width:650px){.sidebar-collapse{grid-column:1/-1;justify-self:end;margin:0}}
 body.map-only main{min-height:100dvh}
 @media(max-height:850px) and (min-width:651px){aside{overflow-y:auto}aside .edition{margin:20px 0}aside .position{margin-top:24px}aside .sidebar-bottom{padding-top:20px}}

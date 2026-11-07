@@ -48,14 +48,14 @@ export function decodeArtAt(image,rect,art,decodeBytes,header){
         if(difference>0)bytes[bit>>3]|=1<<(7-(bit&7));
       }
       const packet=decodeBytes(bytes);
-      if(packet && (lane===0 || ['quest','questlog','character','bags','guild'].includes(packet.type)))laneBytes[lane]=bytes;
+      if(packet && (lane===0 || ['quest','questlog','character','bags','guild','maplayout'].includes(packet.type)))laneBytes[lane]=bytes;
       return packet;
     };
     const first=read(0);
     if(!first||first.type||!first.artMode||first.artEncoding!==encoding)continue;
     const packets=[first];
     for(let lane=1;lane<=first.questLanes;lane++){
-      const packet=read(lane);if(['quest','questlog','character','bags','guild'].includes(packet?.type))packets.push(packet);
+      const packet=read(lane);if(['quest','questlog','character','bags','guild','maplayout'].includes(packet?.type))packets.push(packet);
     }
     let error=0;
     for(let i=0;i<(first.questLanes+1)*192;i++){

@@ -5,12 +5,12 @@ const BLUE = ['#cbf4ff','#45bfff','#1670cc'];
 const GRAY = ['#f2f1df','#b5b8ad','#727971'];
 const GREEN = ['#e9ffaf','#98dc39','#479b1a'];
 const RED = ['#ffe2b9','#f47c45','#b52f22'];
-export function questMarkerStyle({markerKind,iconType=0}) {
+export function questMarkerStyle({markerKind,iconType=0,source}) {
   const palette=iconType===7 || iconType===12 ? GRAY : iconType===10 || iconType===11 ? BLUE
     : iconType===13 || iconType===14 ? GREEN : iconType===15 || iconType===16 ? RED : GOLD;
   const shape=markerKind===1 ? 'pickup' : markerKind===3 ? 'turnin'
     : ({1:'sword',2:'bag',3:'search',4:'gear',5:'talk',12:'turnin',17:'gear',23:'bag'})[iconType] || 'search';
-  const label=markerKind===1 ? 'Quest available' : markerKind===3 ? 'Ready for turn-in'
+  const label=markerKind===1 ? 'Quest available' : markerKind===3 ? 'Ready for turn-in' : source==='forever' ? 'Quest objective'
     : ({sword:'Slay',bag:'Collect',search:'Explore',gear:'Interact',talk:'Talk',turnin:'Quest in progress'})[shape];
   return {shape,palette,label};
 }

@@ -11,6 +11,7 @@ async function snapshot(change=''){
 assert(loadfile('tests/fixtures/quest-log.lua'))();questLogFixture.questie()
 assert(loadfile('addon/AzerothLiveMap/Compat.lua'))('AzerothLiveMap',ns)
 assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
+assert(loadfile('addon/AzerothLiveMap/QuestStream.lua'))('AzerothLiveMap',ns)
 assert(loadfile('addon/AzerothLiveMap/Questie.lua'))('AzerothLiveMap',ns)
 local sequence=0
 local function emit(count)

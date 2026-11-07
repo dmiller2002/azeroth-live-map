@@ -211,10 +211,10 @@ try {
   await until("document.getElementById('zone').value==='1415' && document.getElementById('map-message').hidden", 'continent map load');
   await evaluate("document.getElementById('whole-map').click()");
   await wait(100);
-  const elwynn=await evaluate("(()=>{const r=document.getElementById('map').getBoundingClientRect(),v=window.__mapDraw;return {x:r.left+v.x+455/1024*v.w,y:r.top+v.y+520/683*v.h};})()");
-  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:elwynn.x,y:elwynn.y,button:'left',clickCount:1});
-  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:elwynn.x,y:elwynn.y,button:'left',clickCount:1});
-  await until("document.getElementById('zone').value==='1429' && document.getElementById('map-message').hidden",'geographic area navigation with new framing');
+  // Offline browsing uses the picker; geographic hit targets arrive from WoW
+  // and are exercised with real native packets in map-qa.mjs.
+  await evaluate("document.getElementById('zone').value='1429';document.getElementById('zone').dispatchEvent(new Event('change'))");
+  await until("document.getElementById('zone').value==='1429' && document.getElementById('map-message').hidden",'offline zone navigation');
   await evaluate("document.getElementById('follow').checked=true;document.getElementById('follow').dispatchEvent(new Event('change'));document.getElementById('fit').click()");
   await assertMapFill('default fill after navigation');
   assert.equal(await evaluate("(async () => (await fetch('/_model/https://example.com')).status)()"), 404);
@@ -238,7 +238,7 @@ try {
   await evaluate("document.getElementById('zone').value='1429';document.getElementById('zone').dispatchEvent(new Event('change'))");
   await until("document.getElementById('map-message').hidden", 'return from Forever map grid');
   const lua = `local ns={};local clock=0;GetTime=function()return clock end;GetBuildInfo=function()return '1.60.1','69977','',16001 end
-for _,name in ipairs({'Compat','Protocol','Questie','QuestLog','Character','Bags','Guild'})do assert(loadfile('addon/AzerothLiveMap/'..name..'.lua'))('AzerothLiveMap',ns)end
+for _,name in ipairs({'Compat','Protocol','QuestStream','Questie','QuestLog','Character','Bags','Guild'})do assert(loadfile('addon/AzerothLiveMap/'..name..'.lua'))('AzerothLiveMap',ns)end
 assert(loadfile('tests/fixtures/character.lua'))();assert(loadfile('tests/fixtures/bags.lua'))();assert(loadfile('tests/fixtures/guild.lua'))();assert(loadfile('tests/fixtures/quest-log.lua'))();questLogFixture.questie();ns.QuestSession=777;AzerothLiveMapDB={}
 -- Classic can expose empty modern profession APIs even with learned skills.
 GetProfessions=function()return nil,nil end;GetNumPrimaryProfessions=function()return 2 end

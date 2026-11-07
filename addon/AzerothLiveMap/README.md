@@ -1,6 +1,7 @@
 # Drunks Azeroth UI — Forever
 
-Addon version **1.0.1**. Compatible with companion **1.0.0**.
+Addon version **1.0.2**. Use companion **1.0.2** for world-map alignment and
+the built-in quest helper. Older companions can still read the existing feeds.
 
 Install this `AzerothLiveMap` folder in your official WoW Forever client's
 `Interface/AddOns` folder. Enable **Drunks Azeroth UI - Forever**, then log in.
@@ -18,9 +19,15 @@ and locks the sprite. `/daui art off` switches to the plain sync strip. The
 `/alm` command is an alias. Guild location/profession sharing defaults off;
 members can opt in with `/daui guild on` and stop with `/daui guild off`.
 
-Questie is optional for map pins and must be installed separately in a
-Forever-compatible version. Native quest text, objectives, equipment and bags
-do not require Questie.
+In the companion, choose **WoW Forever** or **Questie** above the map. The built-in
+helper supplies Blizzard's accepted-quest POIs, next waypoints, and turn-in pins
+without Questie. Questie remains an optional, separately installed provider of
+its own available-quest and objective markers. The choice is saved by the app.
+Neither provider changes your in-game map, selected quest, CVars, or Questie settings.
+
+Map rectangles and parent relationships are read from the current client's
+`C_Map` APIs. Positions and markers use those rectangles on continent/world
+views. Unknown or restricted map transforms are omitted rather than guessed.
 
 Build 69977 was used as the 1.60.1 API reference. The addon has no exact build
 lock and sends the running client version/build to the desktop automatically.

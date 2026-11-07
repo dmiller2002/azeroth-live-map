@@ -14,6 +14,12 @@ export function decodeBytes(bytes) {
   const [a, b] = checksum(bytes.slice(0, 22));
   if (bytes[22] !== a || bytes[23] !== b) return null;
   const u16 = i => bytes[i] * 256 + bytes[i + 1];
+  if(bytes[1]===12){
+    const mapId=u16(5),parentId=u16(9),mapType=bytes[11];
+    const [minX,maxX,minY,maxY]=[12,14,16,18].map(index=>u16(index)/8192-4);
+    if(bytes[2]!==0 || !mapId || mapId===parentId || mapType>6 || minX>=maxX || minY>=maxY)return null;
+    return {type:'maplayout',version:12,sequence:u16(3),mapId,session:u16(7),parentId,mapType,minX,maxX,minY,maxY};
+  }
   if (bytes[1] === 7 || bytes[1] === 9) {
     const kind=bytes[2],index=u16(9),quest=index>=1 && index<=64,body=index>=129 && index<=192,objective=index>=4096 && index<=6143;
     const base={type:'questlog',version:bytes[1],kind,sequence:u16(3),session:u16(5),generation:u16(7),index};
@@ -71,9 +77,9 @@ export function decodeBytes(bytes) {
     if(kind===3 && index===2)return {...base,armor:u24(11),maxHealth:u24(14),maxPower:u24(17)};
     return null;
   }
-  if (bytes[1] === 2 || bytes[1] === 3 || bytes[1] === 8 || bytes[1] === 10) {
+  if ([2,3,8,10,11].includes(bytes[1])) {
     const version = bytes[1], maxMarkers = version === 2 ? 96 : 65535;
-    const base = {type:'quest', version, kind:bytes[2], sequence:u16(3), mapId:u16(5), generation:u16(7), index:u16(9)};
+    const base = {type:'quest', source:version===11?'forever':'questie', version, kind:bytes[2], sequence:u16(3), mapId:u16(5), generation:u16(7), index:u16(9)};
     if (version !== 2 && base.kind === 3) {
       if (base.mapId || bytes[11]>2 || bytes[12]>1 || (bytes[11]!==1 && base.index)) return null;
       return {...base, zoneCount:base.index, status:bytes[11], limited:Boolean(bytes[12]), totalCount:u16(13)*65536+u16(15)};
@@ -88,7 +94,7 @@ export function decodeBytes(bytes) {
       return {...base, count:base.index, status:bytes[11], limited:Boolean(bytes[12])};
     }
     if (!base.index || base.index > maxMarkers) return null;
-    if (version===10 && base.kind===4)return {...base,removed:true};
+    if (version>=10 && base.kind===4)return {...base,removed:true};
     if (base.kind === 1) {
       const questId = bytes[11] * 65536 + u16(12);
       const markerKind=version>=8 ? bytes[18]&3 : bytes[18],iconType=version>=8 ? bytes[18]>>2 : 0;
@@ -153,7 +159,7 @@ export function decodeBlock(image, rect) {
   const packets=[first];
   for(let lane=1;lane<=(first.questLanes||0);lane++) {
     const packet=decodeAt(image,{...rect,y:rect.y+rect.height*lane});
-    if(['quest','questlog','character','bags','guild'].includes(packet?.type))packets.push(packet);
+    if(['quest','questlog','character','bags','guild','maplayout'].includes(packet?.type))packets.push(packet);
   }
   return packets;
 }

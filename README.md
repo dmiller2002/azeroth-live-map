@@ -2,7 +2,7 @@
 
 Desktop companion and addon for **Blizzard’s official World of Warcraft Forever** (interface `16001`). Build **1.60.1 (69977)** is the compatibility reference, not a version lock. Version **1.0.0** replaces the former Anniversary/browser project.
 
-Play on one monitor and use the companion on another for live position and trails, Questie pins, readable quests and objectives, equipment, bags, guild roster, and split views. The Electron desktop application includes its runtime in packaged releases.
+Play on one monitor and use the companion on another for live position and trails, built-in Forever or Questie markers, readable quests and objectives, equipment, bags, guild roster, and split views. The Electron desktop application includes its runtime in packaged releases.
 
 ## Downloads and launch
 
@@ -28,7 +28,7 @@ forward to the newer managed copy. Windows ZIP copies use the verified NSIS
 installer to update their existing folder. Preferences remain in the shared user
 profile. Source checkouts keep their code and dependencies managed separately.
 
-Users of the old 1.0.0 release need to install this updater-enabled 1.0.1 build
+Users of the old 1.0.0 release need to install an updater-enabled build (1.0.1 or newer)
 once. The existing `addon-v1.0.0-beta2` release has no update manifests and cannot
 serve in-app updates.
 
@@ -54,13 +54,23 @@ beta releases remain available through the GitHub releases button.
 
 The original folder name, slash commands and `AzerothLiveMapDB` saved variable remain so existing preferences can migrate. This addon ZIP targets Forever; install it into your Forever client rather than the Anniversary client.
 
-Questie is optional. Quest text, objectives, equipment and inventory work without it. For map pins, install a **Forever-compatible Questie release and its matching database** separately; Questie is not bundled. New Forever quest coverage depends on Questie’s data.
+Questie is optional. Above the map, choose **WoW Forever** for Blizzard's accepted-quest POIs, next waypoints, and turn-in markers, or **Questie** for its available-quest and objective pins. The selected provider is saved; switching keeps the capture session and both feeds. Install a **Forever-compatible Questie release and its matching database** separately to use that provider. Native helper coverage depends on what the client exposes; Questie coverage depends on its database. Quest text, objectives, equipment and inventory work without Questie.
+
+Install **both desktop and addon 1.0.2**, then `/reload` in WoW, for the built-in helper and synced world/continent layout. The source selector stays visible when the sidebar is collapsed. **Quest markers** in the sidebar shows or hides the selected provider's pins.
 
 ## Maps and game data
 
 The catalog contains **59 entries**: 49 familiar zone/city/battleground maps, six new Forever map IDs, and four navigation overviews. TBC-only zones and Outland are removed from the catalog.
 
-All live coordinates and map images use the native Forever frame. Artwork comes from Wowhead’s **`classicplus`** asset environment, including updated familiar zones, Mount Hyjal, Zephras Isle, Darkspear Islands, Riverglades and Shen’dralas. It is displayed directly, without stretching Classic artwork or transforming live positions. The second Zephras Isle map ID (`2665`) retains a grid until its artwork coordinate frame is verified. Unknown maps and download failures also retain a grid and live markers. Map art is streamed from Wowhead and is not bundled.
+All live coordinates and map images use the native Forever frame. Artwork comes from Wowhead’s **`classicplus`** asset environment, including updated familiar zones, Mount Hyjal, Zephras Isle, Darkspear Islands, Riverglades and Shen’dralas. Zone artwork uses native zone coordinates directly. The second Zephras Isle map ID (`2665`) retains a grid until its artwork coordinate frame is verified. Unknown maps and download failures also retain a grid and live markers. Map art is streamed from Wowhead and is not bundled.
+
+The addon reads the current client's `C_Map.GetMapInfo` and `GetMapRectOnMap`
+relationships. Player, quest, guild, and trail positions are projected through
+those rectangles on continent/world maps, and the same rectangles supply map
+navigation hit targets. The old TBC artwork traces are removed. Overview maps
+open in Whole map framing. Layout data stays in memory and clears on disconnect;
+before connecting, use the map picker for offline browsing. Unavailable or
+restricted transforms do not produce guessed positions.
 
 The quest reader uses Forever’s native quest log, indexed text reader, completion/failure APIs, objectives and watch state. It does not change your selected in-game quest. Primary professions support Forever’s `C_SkillInfo` records and preserve collapsed skill headers. Restricted positions produce an unavailable-position signal; restricted or unavailable character stats display `—` while equipment continues syncing.
 
@@ -88,6 +98,7 @@ The window, sidebar, About dialog and release packages identify **WoW Forever Ed
 | UI scale / Ctrl + plus/minus / Ctrl + 0 | Scale the desktop interface or reset it |
 | Collapse sidebar / Show sidebar | Give the main view the sidebar’s space, or restore its controls; the choice is saved |
 | Refresh gear (Character) | Reload current equipment appearances and retry unavailable models |
+| Quest helper (above map) | Switch between WoW Forever and Questie markers without reconnecting |
 | Whole map / Fill box | Change map framing |
 | Right-click map / Backspace | Browse to the parent map |
 
@@ -102,13 +113,14 @@ npm ci
 npm run package:addon
 npm test
 npm run test:updates
+npm run test:maps
 npm run test:desktop
 npm run build:linux
 npm run build:windows
 npm run release:source
 ```
 
-Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.1/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
+Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.2/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
 
 The Linux updater QA uses a local HTTP server and synthetic payload to exercise
 the real Electron downloader, checksum verification, and managed staging. It

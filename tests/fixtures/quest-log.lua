@@ -52,3 +52,35 @@ function questLogFixture.questie()
     end
     QuestieLoader={ImportModule=function(_,module)if module=="QuestieMap"then return {questIdFrames=frames}end end}
 end
+
+function questLogFixture.forever()
+    local title = GetQuestLogTitle
+    C_QuestLog.GetInfo=function(index)
+        local name,level,tag,header,collapsed,complete,frequency,id=title(index)
+        if name then return {title=name,level=level,isHeader=header,isCollapsed=collapsed,frequency=frequency,questID=id}end
+    end
+    local function Find(id)
+        for _,quest in ipairs(questLogFixture.quests)do if quest.id==id then return quest end end
+    end
+    C_QuestLog.IsComplete=function(id)local quest=Find(id);return quest and quest.complete==1 or false end
+    C_QuestLog.IsFailed=function(id)local quest=Find(id);return quest and quest.complete==-1 or false end
+    C_QuestLog.GetQuestWatchType=function(id)local quest=Find(id);if quest and quest.watched then return 0 end end
+    C_QuestLog.GetQuestTagInfo=function(id)local quest=Find(id);if quest and quest.tag then return {tagName=quest.tag}end end
+    GetQuestLogQuestText=function(index)
+        if questLogFixture.fail then error('Synthetic quest text API failure')end
+        local quest=Entry(index);if quest then return quest.description,quest.overview end
+    end
+    C_QuestLog.GetQuestsOnMap=function(map)
+        local pins={}
+        for _,quest in ipairs(questLogFixture.quests)do
+            if quest.complete~=-1 and map==(quest.category=='Stormwind City'and 1453 or 1429)then
+                pins[#pins+1]={questID=quest.id,x=.25,y=.65}
+            end
+        end
+        return pins
+    end
+    C_QuestLog.GetNextWaypoint=function(id)
+        local quest=Find(id)
+        if quest then return quest.category=='Stormwind City'and 1453 or 1429,.25,.65 end
+    end
+end

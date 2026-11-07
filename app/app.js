@@ -1,7 +1,7 @@
 import {decodeAt, decodeBlock, decodeBytes, findStrip, Freshness, HEADER} from './protocol.js';
 import {artGeometry, decodeArtAt} from './art.js';
 import {loadPreferences, savePreferences} from './prefs.js';
-import {QuestFeed, questColor} from './quests.js';
+import {QuestSources, questColor} from './quests.js';
 import {drawQuestMarker, questMarkerStyle} from './quest-markers.js';
 import {buildMapCatalog, mapViewport, wholeMapZoom, keepMapPointVisible, hitTestMap} from './navigation.js';
 import {CharacterFeed, createCharacterPanel} from './character.js';
@@ -11,6 +11,7 @@ import {BagFeed,createBagsPanel} from './bags.js';
 import {QuestLogFeed,createQuestLogPanel} from './quest-log.js';
 import {createThemeControls} from './theme.js';
 import {mapSurface} from './map-art.js';
+import {MapLayout} from './map-layout.js';
 
 createThemeControls();
 
@@ -20,10 +21,13 @@ const stage = $('map-stage'), video = $('capture-video');
 const readCanvas = document.createElement('canvas'), readCtx = readCanvas.getContext('2d', {willReadFrequently: true});
 const preview = $('capture-preview'), previewCtx = preview.getContext('2d');
 const freshness = new Freshness();
-const questFeed = new QuestFeed();
+const questSources = new QuestSources();
+const questFeed = () => questSources.current;
+const questSourceName = () => questSources.source==='forever'?'WoW Forever':'Questie';
+const mapLayout = new MapLayout();
 const questLogFeed = new QuestLogFeed();
 const questLogPanel = createQuestLogPanel(questLogFeed,{
-  openView:openQuestLog,highlight:id=>{focusedQuest=id;showQuestOnMap(id,{focus:false});draw();},onMap:showQuestOnMap,markers:questMarkers,
+  openView:openQuestLog,highlight:id=>{focusedQuest=id;showQuestOnMap(id,{focus:false});draw();},onMap:showQuestOnMap,markers:questMarkers,markerSource:questSourceName,
 });
 const characterFeed = new CharacterFeed(), characterPanel = createCharacterPanel(characterFeed);
 const bagFeed = new BagFeed(), bagsPanel = createBagsPanel(bagFeed);
@@ -31,7 +35,7 @@ const guildFeed = new GuildFeed();
 const guildPanel = createGuildPanel(guildFeed,{showOnMap:showGuildOnMap,mapName,canMap:id=>mapById.has(id)});
 let guildPins = [], focusedGuild = null;
 let questPins = [], focusedQuest = null;
-let maps = [], mapById = new Map(), selected = 1429, image = null, imageRequest = 0;
+let baseMaps = [], maps = [], mapById = new Map(), selected = 1429, image = null, imageRequest = 0;
 let stream = null, roi = null, captureWidth = 0, captureHeight = 0, failures = 0, nextSearch = 0;
 let last = null, trail = [], zoom = 1, pan = {x:0,y:0};
 let drag = null, selection = null, mapSize = {w:0,h:0};
@@ -44,6 +48,11 @@ let artAsset = null, roiArt = false;
 const artReady = fetch('./elephant-art.json').then(response=>response.ok?response.json():null).then(asset=>artAsset=asset).catch(()=>null);
 const preferences = loadPreferences();
 for (const key of ['follow','trail','grid','quests']) $(key).checked = preferences[key];
+questSources.select(preferences.questSource);$('quest-source').value=questSources.source;
+$('quest-source').onchange=()=>{
+  if(!questSources.select($('quest-source').value))return;
+  savePreferences({questSource:questSources.source});questPins=[];$('quest-tooltip').hidden=true;tickStatus(performance.now());
+};
 function setQuestLogOpen(open,save=true){
   $('quests-view').hidden=!open;
   $('map-view').classList.toggle('quest-log-collapsed',!open);
@@ -104,7 +113,7 @@ function message(text) { $('map-message').hidden = !text; $('map-message').textC
 function mapName(id) { return mapById.get(id)?.name || `Map ${id}`; }
 function questMarkers(id) {
   const now=performance.now();
-  return stream && freshness.isFresh(now)?questFeed.forQuest(id,now).filter(marker=>mapById.has(marker.mapId)):[];
+  return stream && freshness.isFresh(now)?questFeed().forQuest(id,now).filter(marker=>mapById.has(marker.mapId)):[];
 }
 function showQuestOnMap(id,{focus=true}={}) {
   const markers=questMarkers(id).sort((a,b)=>Number(b.mapId===selected)-Number(a.mapId===selected)||Number(b.markerKind===2)-Number(a.markerKind===2));
@@ -135,6 +144,7 @@ async function selectMap(id, manual = false) {
   $('zoom-label').textContent = '100%';
   $('zone').value = String(selected);
   const meta = mapById.get(selected);
+  if(['cosmic','world','continent'].includes(meta?.kind))mapFraming='whole';
   $('map-title').textContent = meta?.name || `Map ${selected}`;
   $('map-type').textContent = meta ? `WOW FOREVER · ${!meta.url ? 'COORDINATE GRID' : meta.kind.toUpperCase()+' MAP'}` : 'WOW FOREVER · COORDINATE GRID';
   mapChildren = maps.filter(map => map.parentId === selected && (map.polygon || map.entrance));
@@ -175,12 +185,26 @@ function navigateUp() {
 }
 $('map-up').onclick = navigateUp;
 
+function refreshMapLayout(){
+  if(!baseMaps.length)return;
+  maps=mapLayout.catalog(baseMaps);mapById=new Map(maps.map(map=>[map.uiMapId,map]));
+  mapChildren=maps.filter(map=>map.parentId===selected && (map.polygon || map.entrance));
+  updateNavigation(mapById.get(selected));draw();
+}
+
 function accept(packet, now) {
+  if(packet.type==='maplayout'){
+    if(last && packet.session===last.questSession && mapLayout.accept(packet))refreshMapLayout();
+    return;
+  }
   if (packet.type === 'questlog') {
     if(last && packet.session===last.questSession)questLogFeed.accept(packet,now);
     return;
   }
-  if (packet.type === 'quest') { questFeed.accept(packet, now); return; }
+  if (packet.type === 'quest') {
+    if(packet.kind!==3 || !last || packet.generation===last.questSession)questSources.accept(packet, now);
+    return;
+  }
   if (packet.type === 'guild') {
     if(last && packet.session===last.questSession)guildFeed.accept(packet,now);
     return;
@@ -194,14 +218,13 @@ function accept(packet, now) {
     return;
   }
   if (!freshness.accept(packet, now)) return;
-  if(last && packet.questSession!==last.questSession){questFeed.reset();questLogFeed.reset();characterFeed.reset();bagFeed.reset();guildFeed.reset();focusedQuest=null;focusedGuild=null;}
+  if(last && packet.questSession!==last.questSession){questSources.reset();mapLayout.reset();refreshMapLayout();questLogFeed.reset();characterFeed.reset();bagFeed.reset();guildFeed.reset();focusedQuest=null;focusedGuild=null;}
   if (last && packet.mapId !== last.mapId) focusedQuest = null;
   last = packet;
   if (!packet.valid) { trail = []; draw(); return; }
   if ($('follow').checked && selected !== packet.mapId) selectMap(packet.mapId);
-  if (trail.length && trail[trail.length-1].mapId !== packet.mapId) trail = [];
   const previous = trail[trail.length-1];
-  if (!previous || Math.hypot(previous.x - packet.x, previous.y - packet.y) > .0008) trail.push({...packet});
+  if (!previous || previous.mapId!==packet.mapId || Math.hypot(previous.x - packet.x, previous.y - packet.y) > .0008) trail.push({...packet});
   if (trail.length > 1500) trail.shift();
   $('location').textContent = mapName(packet.mapId);
   $('coord-x').textContent = (packet.x * 100).toFixed(1);
@@ -244,7 +267,12 @@ function tickStatus(now) {
     if (!statusOverride) status('Not connected', 'Bring your journey to a second screen.');
     $('mode-badge').textContent = 'BROWSING · NO LIVE POSITION'; $('mode-badge').className = 'map-badge';
   }
-  $('map-hint').textContent = !stream ? 'Connect WoW to see your character here' : last?.valid && selected !== last.mapId ? 'Browsing another zone · enable Follow my zone to return' : fresh && last?.valid ? 'Your position · drag to explore' : 'Waiting for a fresh position from WoW';
+  const projected=last?.valid?mapLayout.project(last.mapId,selected,last):null;
+  $('map-hint').textContent = !stream ? 'Connect WoW to see your character here' : projected ? selected===last.mapId?'Your position · drag to explore':`Your position in ${mapName(last.mapId)}` : last?.valid && selected !== last.mapId ? 'Browsing another zone · enable Follow my zone to return' : 'Waiting for a fresh position from WoW';
+  const helper=questFeed();
+  $('quest-source-status').textContent= !$('quests').checked?'Quest markers hidden':!stream?'Connect WoW to sync quest markers.':!fresh?'Quest markers paused':!helper.isFresh(now)?`Waiting for ${questSourceName()} markers · requires addon 1.0.2 for WoW Forever`:helper.status===0?questSources.source==='forever'?'Built-in quest data is unavailable in this client.':'Install or enable Questie in WoW.':helper.status===2?`${questSourceName()} data is loading…`:`${questSourceName()} · ${currentQuests(now).length} markers in this view`;
+  $('map-layout-status').textContent=stream && last?.valid && ['cosmic','world','continent'].includes(mapById.get(selected)?.kind)
+    ? projected?'Position and zones aligned using Forever map data.':'Waiting for Forever map layout · install addon 1.0.2 and /reload.':'';
   $('quick-coordinates').textContent = `X ${$('coord-x').textContent} · Y ${$('coord-y').textContent}`;
   $('quick-connect').textContent = stream ? 'Disconnect ×' : 'Connect WoW ↗';
   $('quick-connect').disabled = $('connect').disabled;
@@ -254,16 +282,19 @@ function tickStatus(now) {
 function currentQuests(now) {
   if (!stream || !last || !freshness.isFresh(now) || !mapById.has(selected) || !$('quests').checked) return [];
   const quests=new Map((questLogFeed.isFresh(now)?questLogFeed.quests():[]).map(quest=>[quest.questId,quest]));
-  return questFeed.visible(selected, now).map(marker=>{
+  const markers=[...questFeed().zones.keys()].flatMap(id=>questFeed().visible(id,now));
+  return markers.flatMap(marker=>{
+    const point=mapLayout.project(marker.mapId,selected,marker);
+    if(!point)return [];
     const quest=quests.get(marker.questId);
-    return {...marker,title:quest?.named?quest.title:marker.title,objectiveText:quest?.objectives[marker.objective-1]?.text};
+    return [{...marker,point,title:quest?.named?quest.title:marker.title,objectiveText:quest?.objectives[marker.objective-1]?.text}];
   });
 }
 
 function resetPosition() {
   freshness.reset(); last = null; trail = [];
   lastCaptureKey = null;
-  questFeed.reset(); questLogFeed.reset(); characterFeed.reset(); bagFeed.reset(); guildFeed.reset(); focusedGuild=null; guildPins=[]; focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true; $('guild-tooltip').hidden=true;
+  questSources.reset(); mapLayout.reset(); refreshMapLayout(); questLogFeed.reset(); characterFeed.reset(); bagFeed.reset(); guildFeed.reset(); focusedGuild=null; guildPins=[]; focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true; $('guild-tooltip').hidden=true;
   $('location').textContent = 'Waiting for your character'; $('coord-x').textContent = $('coord-y').textContent = '—';
   $('updated').textContent = 'No position received'; draw();
 }
@@ -412,8 +443,9 @@ function draw() {
   viewport = mapViewport(w,h,image.width,image.height,zoom,pan);
   // Fill can crop the map edges. Keep the live player in view until the user
   // takes over the camera by dragging or zooming.
-  if (mapFraming === 'fill' && $('follow').checked && last?.valid && last.mapId === selected) {
-    const shift = keepMapPointVisible(viewport,w,h,last);
+  const player=last?.valid?mapLayout.project(last.mapId,selected,last):null;
+  if (mapFraming === 'fill' && $('follow').checked && player) {
+    const shift = keepMapPointVisible(viewport,w,h,player);
     viewport = mapViewport(w,h,image.width,image.height,zoom,{x:pan.x+shift.x,y:pan.y+shift.y});
   }
   const {w:iw,h:ih,x:ox,y:oy} = viewport;
@@ -437,20 +469,27 @@ function draw() {
     ctx.strokeStyle='rgba(44,44,23,.3)'; ctx.lineWidth=1; ctx.font='10px system-ui';ctx.fillStyle='#282d17';
     for(let i=1;i<10;i++){const x=ox+iw*i/10,y=oy+ih*i/10;ctx.beginPath();ctx.moveTo(x,oy);ctx.lineTo(x,oy+ih);ctx.moveTo(ox,y);ctx.lineTo(ox+iw,y);ctx.stroke();ctx.fillText(String(i*10),x+4,oy+14);ctx.fillText(String(i*10),ox+4,y-4);}
   }
-  if ($('trail').checked && trail.length>1 && last?.mapId===selected) {
-    ctx.beginPath();trail.forEach((p,i)=>{if(i===0)ctx.moveTo(ox+p.x*iw,oy+p.y*ih);else ctx.lineTo(ox+p.x*iw,oy+p.y*ih);});
+  if ($('trail').checked && trail.length>1) {
+    let previousMap=null;ctx.beginPath();
+    for(const entry of trail){
+      const point=mapLayout.project(entry.mapId,selected,entry);
+      if(!point){previousMap=null;continue;}
+      if(previousMap!==entry.mapId)ctx.moveTo(ox+point.x*iw,oy+point.y*ih);else ctx.lineTo(ox+point.x*iw,oy+point.y*ih);
+      previousMap=entry.mapId;
+    }
     ctx.strokeStyle='#102e24bb';ctx.lineWidth=5;ctx.stroke();ctx.strokeStyle='#93edc9';ctx.lineWidth=2;ctx.stroke();
   }
   for (const marker of currentQuests(performance.now()).sort((a,b)=>Number(a.questId===focusedQuest)-Number(b.questId===focusedQuest))) {
-    const x = ox + marker.x * iw, y = oy + marker.y * ih;
+    const x = ox + marker.point.x * iw, y = oy + marker.point.y * ih;
     questPins.push({...marker, screenX:x, screenY:y});
     ctx.save(); ctx.translate(x,y);
     drawQuestMarker(ctx,marker,{focused:focusedQuest===marker.questId,dimmed:Boolean(focusedQuest && marker.questId!==focusedQuest)});
     ctx.restore();
   }
   if(!questPins.length)$('quest-tooltip').hidden=true;
-  for(const member of currentGuild(performance.now()).filter(member=>member.location.mapId===selected)){
-    const x=ox+member.location.x*iw,y=oy+member.location.y*ih;
+  for(const member of currentGuild(performance.now())){
+    const point=mapLayout.project(member.location.mapId,selected,member.location);if(!point)continue;
+    const x=ox+point.x*iw,y=oy+point.y*ih;
     guildPins.push({...member,screenX:x,screenY:y});
     ctx.save();ctx.translate(x,y);ctx.fillStyle='#8bc9ff';ctx.strokeStyle='#11293e';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(9,0);ctx.lineTo(0,9);ctx.lineTo(-9,0);ctx.closePath();ctx.fill();ctx.stroke();
@@ -461,9 +500,9 @@ function draw() {
     ctx.restore();
   }
   if(!guildPins.some(pin=>String(pin.index)===$('guild-tooltip').dataset.member))$('guild-tooltip').hidden=true;
-  if (last?.valid && last.mapId===selected) {
+  if (player) {
     const fresh=freshness.isFresh(performance.now());ctx.globalAlpha=fresh?1:.4;
-    ctx.translate(ox+last.x*iw,oy+last.y*ih);
+    ctx.translate(ox+player.x*iw,oy+player.y*ih);
     ctx.fillStyle='#8ae0be22';ctx.strokeStyle='#dbffe080';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,20,0,Math.PI*2);ctx.fill();ctx.stroke();
     ctx.rotate(-(last.facing||0));ctx.shadowColor='#102b21';ctx.shadowBlur=7;ctx.fillStyle='#b0ffdc';ctx.strokeStyle='#143b2b';ctx.lineWidth=2.5;
     ctx.beginPath();if(last.facing===null)ctx.arc(0,0,7,0,Math.PI*2);else{ctx.moveTo(0,-14);ctx.lineTo(10,10);ctx.lineTo(0,6);ctx.lineTo(-10,10);ctx.closePath();}ctx.fill();ctx.stroke();
@@ -567,7 +606,7 @@ window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach
 try {
   await artReady;
   const response=await fetch('./maps.json');if(!response.ok)throw new Error('Map catalog unavailable');
-  maps=buildMapCatalog(await response.json());mapById=new Map(maps.map(map=>[map.uiMapId,map]));
+  baseMaps=buildMapCatalog(await response.json());maps=mapLayout.catalog(baseMaps);mapById=new Map(maps.map(map=>[map.uiMapId,map]));
   for (const [label,kinds] of [['World & continents',['cosmic','world','continent']],['Zones & cities',['zone','city']],['Battlegrounds',['battleground']]]) {
     const group=document.createElement('optgroup');group.label=label;
     for(const map of maps.filter(map=>kinds.includes(map.kind))){const option=document.createElement('option');option.value=map.uiMapId;option.textContent=map.name;group.append(option);}

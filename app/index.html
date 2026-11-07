@@ -34,7 +34,7 @@
       <label><span>Follow my zone</span><input type="checkbox" id="follow" checked></label>
       <label><span>Show recent trail</span><input type="checkbox" id="trail" checked></label>
       <label><span>Coordinate grid</span><input type="checkbox" id="grid"></label>
-      <label><span>Questie markers</span><input type="checkbox" id="quests" checked></label>
+      <label><span>Quest markers</span><input type="checkbox" id="quests" checked></label>
     </section>
     <section class="theme-picker" aria-labelledby="theme-heading">
       <div class="eyebrow" id="theme-heading">THEME</div>
@@ -88,6 +88,11 @@
       <button id="map-up" aria-label="Go up one map level" title="Go up one map level (right-click or Backspace)">↑ Up</button>
       <nav id="map-path" aria-label="Map hierarchy"></nav>
       <span id="navigation-hint">Left-click an area · Right-click to go up</span>
+    </div>
+    <div class="quest-map-settings">
+      <label for="quest-source">Quest helper <select id="quest-source"><option value="forever">WoW Forever</option><option value="questie">Questie</option></select></label>
+      <span id="quest-source-status" role="status" aria-live="polite">Connect WoW to sync quest markers.</span>
+      <span id="map-layout-status" role="status"></span>
     </div>
     <div id="map-stage" tabindex="0" role="region" aria-label="Map. Left-click an area to open it. Right-click or Backspace to go up one map level. Drag to pan. Use plus and minus buttons to zoom.">
       <canvas id="map" aria-label="World map and player position"></canvas>
@@ -200,6 +205,7 @@
         <p id="companion-update-note" class="companion-update-note">Updates are downloaded only when you choose. Restart &amp; install closes the companion and ends your WoW connection.</p>
       </section>
       <div class="updates-grid">
+        <article class="update-card"><span class="update-tag">DESKTOP &amp; ADDON 1.0.2</span><h2>World maps &amp; quest helpers</h2><p>Keep player and quest positions aligned across zones, continents, and the world using Forever’s map data. Choose WoW Forever or Questie above the map. Update the addon to 1.0.2, then /reload in WoW.</p></article>
         <article class="update-card"><span class="update-tag">DESKTOP 1.0.1</span><h2>Update inside the companion</h2><p>Check for a newer release, download it, and restart to install here. Collapse the sidebar for more viewing space, and refresh Forever equipment appearances in Character.</p></article>
         <article class="update-card"><span class="update-tag">DESKTOP 1.0.0</span><h2>WoW Forever</h2><p>Made for Blizzard’s official Forever client. Native quests, equipment, bags and guild data sync to your second screen. New zones use a coordinate grid where artwork is unavailable.</p></article>
       </div>

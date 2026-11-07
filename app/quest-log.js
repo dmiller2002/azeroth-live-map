@@ -67,7 +67,7 @@ export function questDifficulty(level,playerLevel){
   const delta=level-playerLevel;
   return !level || !playerLevel?'#e5cf97':delta>=5?'#ff8679':delta>=3?'#ffb16d':delta>=-2?'#ffe08c':delta>=-Math.max(5,Math.floor(playerLevel/10)+2)?'#9bd488':'#a9afa3';
 }
-export function createQuestLogPanel(feed,{openView,highlight,onMap,markers}){
+export function createQuestLogPanel(feed,{openView,highlight,onMap,markers,markerSource=()=> 'Questie'}){
   const $=id=>document.getElementById(id),entries=new Map();
   let current=[],selectedId=null,available=false,lastKey='',readerKey='';
   const search=$('quest-log-search'),filter=$('quest-log-filter');
@@ -130,7 +130,7 @@ export function createQuestLogPanel(feed,{openView,highlight,onMap,markers}){
     $('quest-reader-content').hidden=!quest;$('quest-reader-empty').hidden=Boolean(quest);
     if(!quest){readerKey='';return;}
     const pinCount=markers(quest.questId).length;
-    const key=JSON.stringify([quest,pinCount]);if(key===readerKey)return;readerKey=key;
+    const key=JSON.stringify([quest,pinCount,markerSource()]);if(key===readerKey)return;readerKey=key;
     text('quest-reader-title',quest.title);
     text('quest-reader-meta',[quest.level?`Level ${quest.level}`:'',quest.category,quest.tag,quest.frequency?'Repeatable':''].filter(Boolean).join(' · '));
     text('quest-reader-state',quest.failed?'Failed':quest.complete?'Ready for turn-in':quest.watched?'Tracked in WoW':'In progress');
@@ -148,7 +148,7 @@ export function createQuestLogPanel(feed,{openView,highlight,onMap,markers}){
     }
     text('quest-reader-description',quest.description===null?quest.descriptionAvailable?`Receiving quest text${quest.textProgress?` · ${quest.textProgress}%`:''}…`:'Waiting for quest text from WoW…':quest.description||'This quest has no additional description.');
     text('quest-reader-text-note',quest.limited?'This unusually long description has been shortened.':'');
-    text('quest-reader-map-status',pinCount?`${pinCount} Questie map ${pinCount===1?'marker':'markers'} available`:'Questie has no received map markers for this quest yet.');
+    text('quest-reader-map-status',pinCount?`${pinCount} ${markerSource()} map ${pinCount===1?'marker':'markers'} available`:`${markerSource()} has no received map markers for this quest yet.`);
     $('quest-reader-map').disabled=!pinCount;
     $('quest-reader-map').onclick=()=>onMap(quest.questId);
   }

@@ -15,6 +15,14 @@ local auxiliary = false
 local auxiliaryCount = 0
 local function AuxiliaryPacket(mapID, x, y, sequence, now)
     auxiliaryCount = auxiliaryCount + 1
+    if ns.MapDataPacket and auxiliaryCount % 8 == 5 then
+        local packet = ns.MapDataPacket(mapID, sequence)
+        if packet then return packet end
+    end
+    if ns.NativeQuestPacket and auxiliaryCount % 8 == 7 then
+        local packet = ns.NativeQuestPacket(mapID, x, y, sequence, now)
+        if packet then return packet end
+    end
     if ns.CharacterPacket and auxiliaryCount % 8 == 0 then
         local packet = ns.CharacterPacket(sequence, now)
         if packet then return packet end

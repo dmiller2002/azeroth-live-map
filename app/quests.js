@@ -54,7 +54,7 @@ export class QuestFeed {
       if(title!==null)this.titles.set(packet.questId,title);
     } else {
       let zone=this.zones.get(packet.mapId);
-      if(version===10){
+      if(version>=10){
         if(packet.kind===0){
           if(zone && zone.generation!==packet.generation && ((packet.generation-zone.generation+65536)%65536)>32768)return false;
           if(!zone){zone=zoneState(packet);this.zones.set(packet.mapId,zone);}
@@ -119,4 +119,12 @@ export class QuestFeed {
     if(!zone || zone.status!==1 || !this.isFresh(now) || (this.version===2 && now-zone.receivedAt>=6000) || (this.global && this.global.status!==1))return [];
     return [...zone.markers.values()].map(marker=>({...marker,title:this.titles.get(marker.questId)||`Quest #${marker.questId}`}));
   }
+}
+
+export class QuestSources {
+  constructor(){this.feeds={questie:new QuestFeed(),forever:new QuestFeed()};this.source='questie';}
+  select(source){if(!Object.hasOwn(this.feeds,source))return false;this.source=source;return true;}
+  get current(){return this.feeds[this.source];}
+  accept(packet,now){const source=packet.source || (packet.version===11?'forever':'questie');return Object.hasOwn(this.feeds,source)?this.feeds[source].accept(packet,now):false;}
+  reset(){for(const feed of Object.values(this.feeds))feed.reset();}
 }

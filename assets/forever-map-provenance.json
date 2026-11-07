@@ -4,5 +4,7 @@
   "zoneMapPattern": "https://wow.zamimg.com/images/wow/classicplus/maps/enus/original/{areaId}.jpg",
   "discoveredFrom": "https://www.wowhead.com/forever/guide/zephras-isle-zone-overview",
   "nativeAreaMappingSource": "https://github.com/Questie/QuestieDB/blob/master/support/Forever/Zones/uiMapIdToAreaId.lua",
-  "notes": "Native Forever artwork is used directly, without Classic coordinate transforms. UiMap 2665 is a second Zephras Isle map whose artwork coordinate frame is unverified; it retains a native coordinate grid."
+  "overviewLayoutSource": "Live Forever C_Map.GetMapInfo, GetMapChildrenInfo and GetMapRectOnMap; no static TBC polygons",
+  "overviewApiReference": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/MapDocumentation.lua",
+  "notes": "Native Forever zone artwork uses native zone coordinates directly. Overview positions and navigation are projected using live parent-map rectangles. UiMap 2665 is a second Zephras Isle map whose artwork coordinate frame is unverified; it retains a native coordinate grid."
 }
