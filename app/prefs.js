@@ -1,6 +1,6 @@
 // Preferences only: no capture images, positions, trails, or sharing permissions.
 const KEY = 'azeroth-live-map.preferences.v1';
-const defaults = {follow:true, trail:true, grid:false, quests:true, questSource:'questie', mapOnly:false, questLogOpen:true, theme:'original', zone:1429, activeTab:'map', bagView:'separate', splitView:false, secondaryTab:'bags'};
+const defaults = {follow:true, trail:true, grid:false, quests:true, questSource:'questie', mapOnly:false, questLogOpen:true, theme:'original', zone:1429, activeTab:'map', bagView:'separate', splitView:false, secondaryTab:'bags', guildSort:'status', guildSortDirection:'descending'};
 const validTab=value=>typeof value==='string' && /^[a-z][a-z0-9-]{0,31}$/.test(value);
 
 export function loadPreferences() {
@@ -17,6 +17,8 @@ export function loadPreferences() {
     if (['separate','combined'].includes(saved.bagView)) preferences.bagView = saved.bagView;
     if (['light','dark','original'].includes(saved.theme)) preferences.theme = saved.theme;
     if (['forever','questie'].includes(saved.questSource)) preferences.questSource = saved.questSource;
+    if (['member','status','professions','location'].includes(saved.guildSort)) preferences.guildSort = saved.guildSort;
+    if (['ascending','descending'].includes(saved.guildSortDirection)) preferences.guildSortDirection = saved.guildSortDirection;
   } catch { /* The app remains usable when storage is blocked or damaged. */ }
   return preferences;
 }
@@ -32,5 +34,7 @@ export function savePreferences(changes) {
   if (['separate','combined'].includes(changes.bagView)) preferences.bagView = changes.bagView;
   if (['light','dark','original'].includes(changes.theme)) preferences.theme = changes.theme;
   if (['forever','questie'].includes(changes.questSource)) preferences.questSource = changes.questSource;
+  if (['member','status','professions','location'].includes(changes.guildSort)) preferences.guildSort = changes.guildSort;
+  if (['ascending','descending'].includes(changes.guildSortDirection)) preferences.guildSortDirection = changes.guildSortDirection;
   try { localStorage.setItem(KEY, JSON.stringify(preferences)); } catch { /* Optional persistence. */ }
 }

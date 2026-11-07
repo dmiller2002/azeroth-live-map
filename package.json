@@ -2,7 +2,7 @@
   "name": "drunks-azeroth-ui-companion",
   "productName": "Drunks Azeroth Companion - Forever",
   "desktopName": "drunks-azeroth-companion.desktop",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Desktop companion and addon for Blizzard’s official World of Warcraft Forever client",
   "private": true,
   "main": "desktop/main.cjs",
@@ -17,7 +17,8 @@
     "build:windows": "electron-builder --win nsis zip --x64 --publish never",
     "build:unpacked": "electron-builder --dir --publish never",
     "package:addon": "python3 scripts/package_addon.py",
-    "release:source": "python3 scripts/package_source.py"
+    "release:source": "python3 scripts/package_source.py",
+    "test:bank": "node scripts/bank-qa.mjs"
   },
   "devDependencies": {
     "electron": "45.2.1",

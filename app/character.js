@@ -41,8 +41,8 @@ export function createCharacterPanel(feed){
     const identity=available?feed.identity:null,info=identity?.info;
     const [name,realm,raceName,className,gameVersion,gameBuild]=(identity?.text||'').split('\n');
     $('app-mode').textContent='DRUNKS AZEROTH COMPANION · WOW FOREVER EDITION'+(gameVersion?` · ${gameVersion}${gameBuild?` (${gameBuild})`:''}`:'');
-    $('character-name').textContent=info?(name||'Syncing name…'):'Your character';
-    $('character-subtitle').textContent=info?`Level ${info.level} ${raceName||RACES[info.raceId]||'Adventurer'} ${className||CLASSES[info.classId]||''}${realm?' · '+realm:''}`:'Equipment & attributes';
+    $('character-name').textContent=info?(name?`${name}${realm?' · '+realm:''}`:'Syncing name…'):'Your character';
+    $('character-subtitle').textContent=info?`Level ${info.level} ${raceName||RACES[info.raceId]||'Adventurer'} ${className||CLASSES[info.classId]||''}`:'Equipment & attributes';
     let received=0,equipped=0;
     for(const [index,entry] of slots){
       const record=available?feed.slot(index):null,item=record?.info,id=item?.itemId||0;

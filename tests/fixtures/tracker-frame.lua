@@ -67,6 +67,7 @@ assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
     trackerFixture.frame=trackerFixture.frames.AzerothLiveMapStrip
     trackerFixture.handle=trackerFixture.frames.AzerothLiveMapDragHandle
     trackerFixture.event('PLAYER_LOGIN')
+    return ns
 end
 function trackerFixture.event(event)
     local frame=trackerFixture.frame

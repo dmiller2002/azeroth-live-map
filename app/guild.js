@@ -1,4 +1,5 @@
 import {RecordFeed} from './record-feed.js';
+import {loadPreferences,savePreferences} from './prefs.js';
 
 const PROFESSIONS={171:'Alchemy',164:'Blacksmithing',333:'Enchanting',202:'Engineering',182:'Herbalism',165:'Leatherworking',186:'Mining',393:'Skinning',197:'Tailoring',755:'Jewelcrafting'};
 const CLASSES={1:'Warrior',2:'Paladin',3:'Hunter',4:'Rogue',5:'Priest',7:'Shaman',8:'Mage',9:'Warlock',11:'Druid'};
@@ -46,14 +47,38 @@ export class GuildFeed extends RecordFeed {
 
 export function createGuildPanel(feed,{showOnMap,mapName,canMap}){
   const $=id=>document.getElementById(id);
+  const preferences=loadPreferences(),collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+  let sortColumn=preferences.guildSort,sortDirection=preferences.guildSortDirection;
   let current=[],lastKey='';
   const rows=new Map();
   const search=$('guild-search'),onlineOnly=$('guild-online-only');
+  const sortButtons=Array.from(document.querySelectorAll('[data-guild-sort]'));
+  function value(member){
+    if(sortColumn==='status')return Number(member.online);
+    if(sortColumn==='professions')return member.professions===null?null:member.professions.length?member.professions.map(p=>`${p.name} ${p.rank}`).join(' · '):'None learned';
+    if(sortColumn==='location')return (member.location?mapName(member.location.mapId):member.zone)||null;
+    return member.name;
+  }
+  function compare(a,b){
+    const av=value(a),bv=value(b),byName=collator.compare(a.name,b.name)||a.index-b.index;
+    if(av===null || bv===null)return av===bv?byName:av===null?1:-1;
+    const result=sortColumn==='status'?av-bv:collator.compare(av,bv);
+    return (sortDirection==='ascending'?result:-result)||byName;
+  }
+  function updateHeaders(){
+    for(const button of sortButtons){
+      const active=button.dataset.guildSort===sortColumn;
+      button.closest('th').setAttribute('aria-sort',active?sortDirection:'none');
+      button.querySelector('.guild-sort-indicator').textContent=active?(sortDirection==='ascending'?'↑':'↓'):'↕';
+      button.title=active?`Sorted ${sortDirection}. Click to reverse.`:'Click to sort this column.';
+    }
+  }
   function render(){
     const query=search.value.trim().toLocaleLowerCase();
     const visible=current.filter(member=>(!onlineOnly.checked || member.online) &&
-      [member.name,member.className,member.zone,...(member.professions||[]).map(p=>p.name)].join(' ').toLocaleLowerCase().includes(query));
+      [member.name,member.className,member.zone,...(member.professions||[]).map(p=>p.name)].join(' ').toLocaleLowerCase().includes(query)).sort(compare);
     const roster=$('guild-roster'),shown=new Set();
+    const focused=roster.contains(document.activeElement)?document.activeElement:null;
     for(const [position,member] of visible.entries()){
       let entry=rows.get(member.index);
       if(!entry){
@@ -78,16 +103,23 @@ export function createGuildPanel(feed,{showOnMap,mapName,canMap}){
     }
     for(const row of Array.from(roster.children))if(!shown.has(row))row.remove();
     for(const [index,entry]of rows)if(!shown.has(entry.row))rows.delete(index);
+    if(focused?.isConnected && document.activeElement!==focused)focused.focus({preventScroll:true});
     $('guild-empty').hidden=visible.length>0;
     $('guild-empty').textContent=current.length?'No members match your filters.':'Waiting for guild members…';
     $('guild-table').hidden=visible.length===0;
     $('guild-results').textContent=current.length?`${visible.length} of ${current.length} received members shown`:'';
   }
+  for(const button of sortButtons)button.addEventListener('click',()=>{
+    const column=button.dataset.guildSort;
+    sortDirection=column===sortColumn?(sortDirection==='ascending'?'descending':'ascending'):column==='status'?'descending':'ascending';
+    sortColumn=column;savePreferences({guildSort:sortColumn,guildSortDirection:sortDirection});updateHeaders();render();
+  });
+  updateHeaders();
   search.addEventListener('input',render);onlineOnly.addEventListener('change',render);
   return {update(now,{connected,fresh,demo}){
     const available=connected && fresh && !demo && feed.isFresh(now),summary=available?feed.guild?.info:null;
     $('guild-name').textContent=available && feed.guild?.text?feed.guild.text:'Guild';
-    current=available?feed.members(now).sort((a,b)=>Number(b.online)-Number(a.online)||a.name.localeCompare(b.name)):[];
+    current=available?feed.members(now):[];
     $('guild-status').textContent=demo?'Connect WoW to see your guild.':!connected?'Connect WoW to sync your guild roster.':!fresh?'Signal paused. Guild data is hidden until live capture resumes.':!summary?'Waiting for guild data. Install addon 0.8.0, then /reload in WoW.':summary.status===0?'Your character is not in a guild.':summary.status===1?'Waiting for WoW’s guild roster…':`${current.length}/${summary.count} members received · ${current.filter(m=>m.online).length} online${current.length<summary.count?' · syncing…':''}`;
     $('guild-sharing-status').textContent=summary?`Your guild sharing is ${summary.sharing?'on':'off'}.`:'';
     const key=JSON.stringify([available,summary?.status,current.map(member=>[member.index,member.name,member.level,member.classId,member.rank,member.online,member.zone,member.professions,member.location && [member.location.mapId,member.location.x,member.location.y]])]);

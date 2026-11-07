@@ -106,6 +106,10 @@ The window, sidebar, About dialog and release packages identify **WoW Forever Ed
 
 Guild location/profession sharing defaults off and uses the in-game guild addon channel. Participating members need the same addon. Coordinates expire after 30 seconds without a new sample. A roster zone by itself never creates a precise pin.
 
+**Bag/bank** shows your backpack, equipped bags, and native personal/account bank storage. For bank sync, install **desktop and addon 1.0.3**, `/reload`, and open your bank in WoW. The bank sections show item details, stack counts, empty slots, and capacity. Closing the bank keeps a clearly labeled snapshot with its last-seen time; reopen it to refresh. The addon saves snapshots separately per character and realm. Bag view combines carried bags only; bank storage stays separate. **Show empty slots** applies to both.
+
+In Guild, click **Member**, **Status**, **Primary professions**, or **Location** to sort; click again to reverse the order. Sorting works with the search and online filter and is remembered across launches. Unshared professions and unavailable locations stay at the end. The Character heading shows the character name and realm together, with level, race, and class underneath.
+
 ## Build and verify
 
 ```sh
@@ -114,13 +118,14 @@ npm run package:addon
 npm test
 npm run test:updates
 npm run test:maps
+npm run test:bank
 npm run test:desktop
 npm run build:linux
 npm run build:windows
 npm run release:source
 ```
 
-Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.2/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
+Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.3/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
 
 The Linux updater QA uses a local HTTP server and synthetic payload to exercise
 the real Electron downloader, checksum verification, and managed staging. It

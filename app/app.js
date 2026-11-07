@@ -8,6 +8,7 @@ import {CharacterFeed, createCharacterPanel} from './character.js';
 import {createTabs} from './tabs.js';
 import {GuildFeed,createGuildPanel} from './guild.js';
 import {BagFeed,createBagsPanel} from './bags.js';
+import {BankFeed,createBankPanel} from './bank.js';
 import {QuestLogFeed,createQuestLogPanel} from './quest-log.js';
 import {createThemeControls} from './theme.js';
 import {mapSurface} from './map-art.js';
@@ -31,6 +32,7 @@ const questLogPanel = createQuestLogPanel(questLogFeed,{
 });
 const characterFeed = new CharacterFeed(), characterPanel = createCharacterPanel(characterFeed);
 const bagFeed = new BagFeed(), bagsPanel = createBagsPanel(bagFeed);
+const bankFeed = new BankFeed(), bankPanel = createBankPanel(bankFeed);
 const guildFeed = new GuildFeed();
 const guildPanel = createGuildPanel(guildFeed,{showOnMap:showGuildOnMap,mapName,canMap:id=>mapById.has(id)});
 let guildPins = [], focusedGuild = null;
@@ -86,6 +88,7 @@ $('quick-connect').onclick = () => $('connect').click();
 const tabs = createTabs(view=>{
   characterPanel.hideTooltip();
   bagsPanel.hideTooltip();
+  bankPanel.hideTooltip();
   $('quest-tooltip').hidden=true;$('area-tooltip').hidden=true;$('guild-tooltip').hidden=true;
   if(!$('map-view').hidden)requestAnimationFrame(draw);
 });
@@ -217,8 +220,12 @@ function accept(packet, now) {
     if(last && packet.session===last.questSession)bagFeed.accept(packet,now);
     return;
   }
+  if(packet.type==='bank'){
+    if(last && packet.session===last.questSession)bankFeed.accept(packet,now);
+    return;
+  }
   if (!freshness.accept(packet, now)) return;
-  if(last && packet.questSession!==last.questSession){questSources.reset();mapLayout.reset();refreshMapLayout();questLogFeed.reset();characterFeed.reset();bagFeed.reset();guildFeed.reset();focusedQuest=null;focusedGuild=null;}
+  if(last && packet.questSession!==last.questSession){questSources.reset();mapLayout.reset();refreshMapLayout();questLogFeed.reset();characterFeed.reset();bagFeed.reset();bankFeed.reset();guildFeed.reset();focusedQuest=null;focusedGuild=null;}
   if (last && packet.mapId !== last.mapId) focusedQuest = null;
   last = packet;
   if (!packet.valid) { trail = []; draw(); return; }
@@ -243,6 +250,7 @@ function tickStatus(now) {
   }
   characterPanel.update(now,{connected:Boolean(stream),fresh});
   bagsPanel.update(now,{connected:Boolean(stream),fresh});
+  bankPanel.update(now,{connected:Boolean(stream),fresh});
   guildPanel.update(now,{connected:Boolean(stream),fresh});
   questLogPanel.update(now,{connected:Boolean(stream),fresh});
   if (stream && last && fresh) {
@@ -294,7 +302,7 @@ function currentQuests(now) {
 function resetPosition() {
   freshness.reset(); last = null; trail = [];
   lastCaptureKey = null;
-  questSources.reset(); mapLayout.reset(); refreshMapLayout(); questLogFeed.reset(); characterFeed.reset(); bagFeed.reset(); guildFeed.reset(); focusedGuild=null; guildPins=[]; focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true; $('guild-tooltip').hidden=true;
+  questSources.reset(); mapLayout.reset(); refreshMapLayout(); questLogFeed.reset(); characterFeed.reset(); bagFeed.reset(); bankFeed.reset(); guildFeed.reset(); focusedGuild=null; guildPins=[]; focusedQuest = null; questPins = []; $('quest-tooltip').hidden = true; $('guild-tooltip').hidden=true;
   $('location').textContent = 'Waiting for your character'; $('coord-x').textContent = $('coord-y').textContent = '—';
   $('updated').textContent = 'No position received'; draw();
 }

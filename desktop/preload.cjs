@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('companion', Object.freeze({
-  version: '1.0.2',
+  version: '1.0.3',
   saveAddon: () => ipcRenderer.invoke('addon:save'),
   getUpdateState: () => ipcRenderer.invoke('updates:get'),
   checkForUpdates: () => ipcRenderer.invoke('updates:check'),

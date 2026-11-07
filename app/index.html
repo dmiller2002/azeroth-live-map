@@ -59,7 +59,7 @@
     <nav id="app-tabs" class="app-tabs" role="tablist" aria-label="App views">
       <button id="tab-map" role="tab" data-view="map" aria-controls="map-view" aria-selected="true">Map &amp; Quests</button>
       <button id="tab-character" role="tab" data-view="character" aria-controls="character-panel" aria-selected="false" tabindex="-1">Character</button>
-      <button id="tab-bags" role="tab" data-view="bags" aria-controls="bags-view" aria-selected="false" tabindex="-1">Bags</button>
+      <button id="tab-bags" role="tab" data-view="bags" aria-controls="bags-view" aria-selected="false" tabindex="-1">Bag/bank</button>
       <button id="tab-guild" role="tab" data-view="guild" aria-controls="guild-view" aria-selected="false" tabindex="-1">Guild</button>
       <button id="tab-updates" role="tab" data-view="updates" aria-controls="updates-view" aria-selected="false" tabindex="-1">Updates</button>
     </nav>
@@ -166,8 +166,8 @@
     </div>
   </section>
     <section id="bags-view" class="bags-view" role="tabpanel" aria-labelledby="tab-bags" tabindex="0" hidden>
-      <div class="eyebrow">YOUR INVENTORY · BACKPACK & BAGS</div>
-      <div class="bags-heading"><div><h1>Bags</h1><p id="bags-summary">Your backpack and four equipped bags</p></div><div class="bags-display-controls"><label class="bags-layout-choice">Bag view <select id="bags-layout"><option value="separate">Separate bags</option><option value="combined">Combined bag</option></select></label><label class="bags-empty-toggle"><input id="bags-show-empty" type="checkbox" checked> Show empty slots</label></div></div>
+      <div class="eyebrow">YOUR INVENTORY · BAGS &amp; BANK</div>
+      <div class="bags-heading"><div><h1>Bag/bank</h1><p id="bags-summary">Your backpack and four equipped bags</p></div><div class="bags-display-controls"><label class="bags-layout-choice">Bag view <select id="bags-layout"><option value="separate">Separate bags</option><option value="combined">Combined bag</option></select></label><label class="bags-empty-toggle"><input id="bags-show-empty" type="checkbox" checked> Show empty slots</label></div></div>
       <p id="bags-status" class="character-status" role="status">Connect WoW to sync your backpack and equipped bags.</p>
       <div id="bags-grid" class="bags-grid">
         <section id="combined-bag" class="bag-card bag-card-combined" hidden>
@@ -176,6 +176,20 @@
           <p id="combined-bag-empty" class="bag-empty-note">Waiting for bag data…</p>
         </section>
       </div>
+      <section id="bank-storage" class="bank-storage">
+        <section id="bank-character" class="bank-group" aria-labelledby="bank-character-title">
+          <h2 id="bank-character-title">Bank</h2>
+          <p id="bank-character-status" class="character-status" role="status">Open your bank in WoW to sync its contents.</p>
+          <p id="bank-character-summary" class="bank-summary"></p>
+          <div id="bank-character-grid" class="bags-grid"></div>
+        </section>
+        <section id="bank-account" class="bank-group" aria-labelledby="bank-account-title" hidden>
+          <h2 id="bank-account-title">Account bank</h2>
+          <p id="bank-account-status" class="character-status" role="status"></p>
+          <p id="bank-account-summary" class="bank-summary"></p>
+          <div id="bank-account-grid" class="bags-grid"></div>
+        </section>
+      </section>
       <p class="character-note">Hover or focus an item for details. Stack counts and contents sync from WoW. On touch screens, tap once for details and again to open Wowhead.</p>
     </section>
     <section id="guild-view" class="guild-view" role="tabpanel" aria-labelledby="tab-guild" tabindex="0" hidden>
@@ -185,7 +199,13 @@
       <div class="guild-sharing"><p>For professions and precise map pins, guild members need addon 0.8.0 and <code>/daui guild on</code> in WoW. Sharing sends your primary professions and coordinates to your guild. Use <code>/daui guild off</code> to stop.</p><p id="guild-sharing-status"></p></div>
       <div class="guild-controls"><label>Find a member <input id="guild-search" type="search" placeholder="Name, profession, class, or zone"></label><label class="guild-online-filter"><input id="guild-online-only" type="checkbox"> Online only</label></div>
       <p id="guild-results" class="guild-results"></p>
-      <div class="guild-table-wrap"><table id="guild-table" class="guild-table" hidden><caption class="sr-only">Guild members, professions, and locations</caption><thead><tr><th scope="col">Member</th><th scope="col">Status</th><th scope="col">Primary professions</th><th scope="col">Location</th><th scope="col"><span class="sr-only">Map actions</span></th></tr></thead><tbody id="guild-roster"></tbody></table></div>
+      <div class="guild-table-wrap"><table id="guild-table" class="guild-table" hidden><caption class="sr-only">Guild members, professions, and locations. Activate a column heading to sort; activate it again to reverse the order.</caption><thead><tr>
+        <th scope="col" aria-sort="none"><button type="button" data-guild-sort="member">Member <span class="guild-sort-indicator" aria-hidden="true">↕</span></button></th>
+        <th scope="col" aria-sort="descending"><button type="button" data-guild-sort="status">Status <span class="guild-sort-indicator" aria-hidden="true">↓</span></button></th>
+        <th scope="col" aria-sort="none"><button type="button" data-guild-sort="professions">Primary professions <span class="guild-sort-indicator" aria-hidden="true">↕</span></button></th>
+        <th scope="col" aria-sort="none"><button type="button" data-guild-sort="location">Location <span class="guild-sort-indicator" aria-hidden="true">↕</span></button></th>
+        <th scope="col"><span class="sr-only">Map actions</span></th>
+      </tr></thead><tbody id="guild-roster"></tbody></table></div>
       <p id="guild-empty" class="guild-empty">Connect WoW for live guild information.</p>
       <p class="character-note">Blue pins show fresh shared positions in Map &amp; Quests. Pins expire after 30 seconds without a new location. Zone names come from the roster; they do not provide precise coordinates. Use Split view to keep Guild and Map &amp; Quests open together.</p>
     </section>
@@ -205,6 +225,7 @@
         <p id="companion-update-note" class="companion-update-note">Updates are downloaded only when you choose. Restart &amp; install closes the companion and ends your WoW connection.</p>
       </section>
       <div class="updates-grid">
+        <article class="update-card"><span class="update-tag">DESKTOP &amp; ADDON 1.0.3</span><h2>Bank storage &amp; guild sorting</h2><p>Bag/bank shows bank slots and items while visiting the bank, then keeps a labeled last-seen snapshot. Update the addon to 1.0.3, /reload, and open your bank in WoW. Guild columns now sort, and Character shows the realm beside the name.</p></article>
         <article class="update-card"><span class="update-tag">DESKTOP &amp; ADDON 1.0.2</span><h2>World maps &amp; quest helpers</h2><p>Keep player and quest positions aligned across zones, continents, and the world using Forever’s map data. Choose WoW Forever or Questie above the map. Update the addon to 1.0.2, then /reload in WoW.</p></article>
         <article class="update-card"><span class="update-tag">DESKTOP 1.0.1</span><h2>Update inside the companion</h2><p>Check for a newer release, download it, and restart to install here. Collapse the sidebar for more viewing space, and refresh Forever equipment appearances in Character.</p></article>
         <article class="update-card"><span class="update-tag">DESKTOP 1.0.0</span><h2>WoW Forever</h2><p>Made for Blizzard’s official Forever client. Native quests, equipment, bags and guild data sync to your second screen. New zones use a coordinate grid where artwork is unavailable.</p></article>

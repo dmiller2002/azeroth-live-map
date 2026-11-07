@@ -14,6 +14,20 @@ export function decodeBytes(bytes) {
   const [a, b] = checksum(bytes.slice(0, 22));
   if (bytes[22] !== a || bytes[23] !== b) return null;
   const u16 = i => bytes[i] * 256 + bytes[i + 1];
+  if(bytes[1]===13){
+    const kind=bytes[2],index=u16(9),descriptor=index>=60000 && index<=60031,slot=index>=1 && index<=8192;
+    const base={type:'bank',version:13,kind,sequence:u16(3),session:u16(5),generation:u16(7),index};
+    const u24=i=>bytes[i]*65536+u16(i+1);
+    if(kind===0 && index>=60032 && index<=60033 && bytes[11]<=4 && bytes[12]<=16 && bytes[19]<=1)
+      return {...base,group:index-60032,status:bytes[11],tabCount:bytes[12],epoch:u16(13),updatedAt:u16(15)*65536+u16(17),limited:Boolean(bytes[19])};
+    if(kind===0 && descriptor && u16(11)<=256 && u16(13)>0)
+      return {...base,bag:index-60000,slotCount:u16(11),containerId:u16(13),epoch:u16(15),groupEpoch:u16(17)};
+    if(kind===1 && slot && (bytes[16]<=7 || bytes[16]===255) && (u24(11)?u16(14)>0:u16(14)===0))
+      return {...base,bag:Math.floor((index-1)/256),slot:(index-1)%256+1,itemId:u24(11),count:u16(14),quality:bytes[16]===255?null:bytes[16],itemLevel:u16(17),epoch:u16(19)};
+    if(kind===2 && (descriptor || slot) && (bytes[11]&127)<10)
+      return {...base,fragment:bytes[11]&127,final:Boolean(bytes[11]&128),textBytes:Array.from(bytes.slice(12,22))};
+    return null;
+  }
   if(bytes[1]===12){
     const mapId=u16(5),parentId=u16(9),mapType=bytes[11];
     const [minX,maxX,minY,maxY]=[12,14,16,18].map(index=>u16(index)/8192-4);
@@ -159,7 +173,7 @@ export function decodeBlock(image, rect) {
   const packets=[first];
   for(let lane=1;lane<=(first.questLanes||0);lane++) {
     const packet=decodeAt(image,{...rect,y:rect.y+rect.height*lane});
-    if(['quest','questlog','character','bags','guild','maplayout'].includes(packet?.type))packets.push(packet);
+    if(['quest','questlog','character','bags','bank','guild','maplayout'].includes(packet?.type))packets.push(packet);
   }
   return packets;
 }

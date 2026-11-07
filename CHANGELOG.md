@@ -1,3 +1,18 @@
+# Desktop and addon 1.0.3 — 2026-11-07
+
+- Rename Bags to Bag/bank and display native personal/account bank tabs,
+  item details, stack quantities, empty slots, and used/free capacity.
+- Refresh bank contents while the bank is open. Keep a saved snapshot per
+  character and realm and label closed-bank contents with their last-seen time.
+- Give bank data its own incremental stream, preserving bag/quest sync bandwidth.
+- Sort the guild roster by Member, Status, Primary professions, or Location.
+  Click again to reverse the order; keep the selected sort during live updates,
+  filtering and relaunches. Unshared professions and unavailable locations stay last.
+- Move the realm from the character details line into the name heading.
+
+Bank sync requires both desktop and addon 1.0.3. Update the addon and `/reload`,
+then visit the bank to record its contents. Live Forever validation is pending.
+
 # Desktop and addon 1.0.2 — 2026-11-07
 
 - Read native map rectangles and parent relationships from Forever instead of

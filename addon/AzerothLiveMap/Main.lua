@@ -31,6 +31,10 @@ local function AuxiliaryPacket(mapID, x, y, sequence, now)
         local packet = ns.BagPacket(sequence, now)
         if packet then return packet end
     end
+    if ns.BankPacket and auxiliaryCount % 8 == 6 then
+        local packet = ns.BankPacket(sequence, now)
+        if packet then return packet end
+    end
     if ns.GuildPacket and (auxiliaryCount % 8 == 1 or auxiliaryCount % 8 == 5) then
         local packet = ns.GuildPacket(sequence, now)
         if packet then return packet end
@@ -274,7 +278,11 @@ frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:RegisterEvent("BAG_UPDATE_DELAYED")
 frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+local bankEvents={BANKFRAME_OPENED=true,BANKFRAME_CLOSED=true,BANK_TABS_CHANGED=true,BANK_TAB_SETTINGS_UPDATED=true,PLAYERBANKSLOTS_CHANGED=true,PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED=true,BAG_CONTAINER_UPDATE=true}
+for event in pairs(bankEvents) do frame:RegisterEvent(event) end
 frame:SetScript("OnEvent", function(_, event)
+    if ns.BankEvent then ns.BankEvent(event) end
+    if bankEvents[event] then return end
     if event == "PLAYER_LOGOUT" then
         local wasDragging = dragging
         dragging = false
