@@ -1,10 +1,13 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, session, shell, screen } = require('electron');
-const { readFileSync, writeFileSync } = require('node:fs');
+const { readFileSync, writeFileSync, existsSync } = require('node:fs');
 const { copyFile } = require('node:fs/promises');
 const path = require('node:path');
 const { ORIGIN, isAppURL, externalURL, createResourceHandler } = require('./resources.cjs');
 const { setupCapture } = require('./capture.cjs');
 const { normalizeUIScale, setupUIScaleIPC, UI_SCALE_STEP } = require('./ui-scale.cjs');
+const { supportsUpdates, createUpdateController, setupUpdateIPC } = require('./updates.cjs');
+const { managedPaths, findManagedUpdate, createManagedAppImageUpdater } = require('./managed-updates.cjs');
+const { spawn } = require('node:child_process');
 
 app.setName('Drunks Azeroth Companion - Forever');
 // A fixed profile keeps display preferences stable across development and packaged launches.
@@ -85,10 +88,30 @@ function createWindow() {
   mainWindow.loadURL(ORIGIN + '/?app=1').catch(error => dialog.showErrorBox('Companion could not start', error.message));
 }
 
-if (!app.requestSingleInstanceLock()) app.quit();
+const isManagedCopy = process.env.APPIMAGE && path.resolve(process.env.APPIMAGE) === managedPaths(app.getPath('userData')).executable;
+const managedUpdate = app.isPackaged && process.platform === 'linux' && !isManagedCopy
+  ? findManagedUpdate(app.getPath('userData'), app.getVersion()) : null;
+if (managedUpdate) {
+  // Existing shortcuts keep opening the installed, newer managed copy.
+  const child = spawn(managedUpdate, ['--appimage-extract-and-run', ...process.argv.slice(1)], { detached: true, stdio: 'ignore' });
+  child.on('error', error => { dialog.showErrorBox('Could not open updated companion', error.message); app.quit(); });
+  child.once('spawn', () => { child.unref(); app.quit(); });
+} else if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); } });
   app.whenReady().then(() => {
+    const supported = supportsUpdates({ packaged: app.isPackaged, platform: process.platform });
+    const managedLinux = supported && process.platform === 'linux';
+    const windowsZIP = supported && process.platform === 'win32' && !existsSync(path.join(path.dirname(process.execPath), `Uninstall ${app.getName()}.exe`));
+    const updater = !supported ? null : managedLinux ? createManagedAppImageUpdater(app) : require('electron-updater').autoUpdater;
+    if (windowsZIP) updater.installDirectory = path.dirname(process.execPath);
+    const updates = createUpdateController({
+      updater, version: app.getVersion(), supported,
+      installation: managedLinux ? 'managed-appimage' : windowsZIP ? 'windows-installer' : 'standard',
+      notify: state => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('updates:changed', state); },
+      openRelease: url => shell.openExternal(url),
+    });
+    setupUpdateIPC(ipcMain, event => trustedMain(event.sender) && event.senderFrame === event.sender.mainFrame, updates);
     session.defaultSession.protocol.handle('azeroth', createResourceHandler(root));
     session.defaultSession.setPermissionCheckHandler((contents, permission, origin, details) => isAppURL(origin) && canPermit(contents, permission, details));
     session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => callback(canPermit(contents, permission, details)));

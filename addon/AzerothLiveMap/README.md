@@ -1,5 +1,7 @@
 # Drunks Azeroth UI — Forever
 
+Addon version **1.0.1**. Compatible with companion **1.0.0**.
+
 Install this `AzerothLiveMap` folder in your official WoW Forever client's
 `Interface/AddOns` folder. Enable **Drunks Azeroth UI - Forever**, then log in.
 

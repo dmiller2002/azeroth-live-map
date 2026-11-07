@@ -29,6 +29,18 @@
 #quick-connect{margin-left:auto;padding:8px 12px;font-size:11px;white-space:nowrap;color:var(--accent)}
 body.map-only .app{grid-template-columns:1fr}
 body.map-only #controls-panel{display:none}
+.sidebar-collapse{align-self:flex-end;display:flex;align-items:center;gap:7px;padding:6px 9px;margin:0 0 16px;font-size:11px;background:transparent;color:var(--muted)}
+.sidebar-collapse>span{font-size:22px;line-height:14px}
+.sidebar-collapse:hover{color:var(--text)}
+.companion-updater{margin:24px 0;padding:22px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.companion-updater h2{margin:0 0 10px;font:22px Georgia,serif;color:var(--gold)}
+.companion-updater p{font-size:12px;line-height:1.7;color:var(--muted)}
+.companion-update-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 10px}
+#companion-update{border-color:var(--accent);color:var(--accent)}
+#companion-update-status{color:var(--text)}
+#companion-update-progress{display:block;width:min(100%,440px);margin:18px 0;accent-color:var(--accent)}
+.companion-updater .companion-update-note{font-size:11px;margin-bottom:0}
+@media(max-width:650px){.sidebar-collapse{grid-column:1/-1;justify-self:end;margin:0}}
 body.map-only main{min-height:100dvh}
 @media(max-height:850px) and (min-width:651px){aside{overflow-y:auto}aside .edition{margin:20px 0}aside .position{margin-top:24px}aside .sidebar-bottom{padding-top:20px}}
 @media(max-width:900px){.app-toolbar{align-items:flex-start;flex-wrap:wrap}.toolbar-actions{margin-left:auto}.quick-connection{gap:10px;flex-wrap:wrap}}

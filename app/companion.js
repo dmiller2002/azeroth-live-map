@@ -1,3 +1,6 @@
+import {createUpdatePanel} from './updates.js';
+
+createUpdatePanel();
 const $ = id => document.getElementById(id);
 $('app-mode').textContent = 'DRUNKS AZEROTH COMPANION · WOW FOREVER EDITION';
 const scaleButton = $('ui-scale'), scaleSlider = $('ui-scale-slider');

@@ -2,8 +2,8 @@
   "name": "drunks-azeroth-ui-companion",
   "productName": "Drunks Azeroth Companion - Forever",
   "desktopName": "drunks-azeroth-companion.desktop",
-  "version": "1.0.0",
-  "description": "Desktop companion and addon for Blizzard\u2019s official World of Warcraft Forever client",
+  "version": "1.0.1",
+  "description": "Desktop companion and addon for Blizzard’s official World of Warcraft Forever client",
   "private": true,
   "main": "desktop/main.cjs",
   "author": "Drunk",
@@ -11,9 +11,10 @@
     "start": "electron .",
     "test": "node --test tests/*.test.cjs",
     "test:desktop": "node scripts/desktop-qa.mjs",
-    "build:linux": "electron-builder --linux AppImage tar.gz",
-    "build:windows": "electron-builder --win nsis zip --x64",
-    "build:unpacked": "electron-builder --dir",
+    "test:updates": "electron scripts/update-qa.cjs",
+    "build:linux": "electron-builder --linux AppImage tar.gz --publish never",
+    "build:windows": "electron-builder --win nsis zip --x64 --publish never",
+    "build:unpacked": "electron-builder --dir --publish never",
     "package:addon": "python3 scripts/package_addon.py",
     "release:source": "python3 scripts/package_source.py"
   },
@@ -22,13 +23,18 @@
     "electron-builder": "26.18.0"
   },
   "build": {
+    "publish": {
+      "provider": "github",
+      "owner": "dmiller2002",
+      "repo": "azeroth-live-map"
+    },
     "appId": "com.drunk.azeroth.companion",
     "asar": true,
     "toolsets": {
       "wine": "1.0.1"
     },
     "directories": {
-      "output": "release/1.0.0"
+      "output": "release/${version}"
     },
     "files": [
       "app/**/*",
@@ -79,5 +85,9 @@
       "uninstallerIcon": "app/icons/huzzah.ico"
     }
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "electron-updater": "6.8.11",
+    "semver": "7.7.4"
+  }
 }

@@ -1,6 +1,6 @@
 # Forever compatibility references
 
-Reference client: Blizzard official World of Warcraft Forever **1.60.1 (69977)**, interface **16001**. Build numbers are not hardcoded gates; the actual connected version/build is transmitted to the desktop. Addon and desktop version: **1.0.0**.
+Reference client: Blizzard official World of Warcraft Forever **1.60.1 (69977)**, interface **16001**. Build numbers are not hardcoded gates; the actual connected version/build is transmitted to the desktop. Addon version: **1.0.1**. Desktop version: **1.0.1**.
 
 The implementation was checked against the [Blizzard UI source mirror at build 69977](https://github.com/Gethe/wow-ui-source/tree/c6e89983189e4f626f549204a23c2d2bea93080a). A later local game log reports build 70658; it is not evidence of testing on the requested build.
 

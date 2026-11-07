@@ -1,3 +1,27 @@
+# Desktop 1.0.1 — 2026-11-07
+
+- Add companion update controls under What's new, with manual checks, download
+  progress, and explicit restart/install for packaged Windows and Linux copies.
+- Update Windows ZIP folders through the installer; install Linux updates into
+  a managed AppImage and keep existing shortcuts opening the newer copy.
+- Configure GitHub update manifests and verify downloads before installation.
+- Add a visible Collapse sidebar button and Show sidebar control, retaining
+  connection access and remembering the choice across launches.
+- Resolve equipment appearances from Forever item records instead of the
+  legacy database; omit unverified models rather than displaying incorrect gear.
+- Prevent delayed gear lookups from restoring an older outfit, clear unequipped
+  items promptly, and add Refresh gear to retry missing appearances.
+- Start and reset the character preview at the renderer's front-facing angle.
+
+# Addon 1.0.1 — CurseForge package
+
+- Version the Forever addon package for CurseForge submission.
+- Clarify the addon version and compatibility with companion 1.0.0.
+- Retain the existing addon behavior, commands, and saved settings.
+
+Desktop sidebar, model-preview, and updater changes are distributed separately
+with the companion application.
+
 # 1.0.0 — WoW Forever Edition
 
 - Port the addon to Blizzard's official Forever client and interface 16001.

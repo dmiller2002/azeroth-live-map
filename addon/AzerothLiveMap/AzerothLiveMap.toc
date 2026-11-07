@@ -2,7 +2,7 @@
 ## Title: Drunks Azeroth UI - Forever
 ## Notes: WoW Forever companion: map, readable quest log, objectives, character, bags, and guild. /daui for help.
 ## Author: Dylan
-## Version: 1.0.0
+## Version: 1.0.1
 ## OptionalDeps: Questie
 ## SavedVariables: AzerothLiveMapDB
 ## X-Website: https://github.com/dmiller2002/azeroth-live-map

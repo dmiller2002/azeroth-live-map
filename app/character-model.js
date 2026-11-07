@@ -1,16 +1,29 @@
 const PREFIX='/_model/';
 const VISIBLE_SLOTS={1:1,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,15:16,16:21,17:22,18:26,19:19};
 const STORAGE='azeroth-live-map.model-appearance.v1';
-let library=null,itemModels=null;
-const modelAssets=new Map();
+const FRONT_ANGLE=1.5*Math.PI;
+let library=null;
+const modelAssets=new Map(),itemModels=new Map();
 const armorSlots=new Set([1,3,4,5,6,7,8,9,10,16,19,20]);
 export function equipmentModelPath(item){
   return `${PREFIX}meta/${armorSlots.has(item.slot)?`armor/${item.slot}`:'item'}/${item.display}.json`;
 }
 function hasModel(item){
   const url=equipmentModelPath(item);
-  if(!modelAssets.has(url))modelAssets.set(url,fetch(url,{signal:AbortSignal.timeout(15000)}).then(r=>r.ok).catch(()=>false));
-  return modelAssets.get(url);
+  return cachedModel(modelAssets,url,()=>fetch(url,{signal:AbortSignal.timeout(15000)}).then(r=>r.ok));
+}
+function cachedModel(cache,key,load){
+  const previous=cache.get(key);
+  if(previous && previous.expires>Date.now())return previous.promise;
+  const entry={expires:Infinity,promise:null};
+  entry.promise=Promise.resolve().then(load).catch(()=>null).then(value=>{
+    if(!value)entry.expires=Date.now()+30000;
+    return value;
+  });
+  cache.set(key,entry);return entry.promise;
+}
+function itemModel(id){
+  return cachedModel(itemModels,id,()=>json(`/_items/${id}.json`));
 }
 
 function script(src){return new Promise((resolve,reject)=>{
@@ -44,25 +57,26 @@ function saveAppearance(key,choices){try{const all=JSON.parse(localStorage.getIt
 export function modelId(race,sex){
   return [1,2,3,4,5,6,7,8,10,11,33,34].includes(race) && [2,3].includes(sex)?race*2+(sex===2?-1:0):null;
 }
-export function equippedModels(feed,mapping){
+export async function equippedModels(feed,resolve=itemModel){
   const items=[],unknown=[];
-  for(const [slot,renderSlot] of Object.entries(VISIBLE_SLOTS)){
-    const item=feed.slot(Number(slot))?.info;
-    if(!item?.itemId)continue;
-    const model=mapping[item.itemId];
-    if(!model){unknown.push(item.itemId);continue;}
-    items.push({slot:Number(slot)===5 && model[1]===20?20:renderSlot,display:model[0],visual:0});
+  // Snapshot before awaiting lookups so a newer capture cannot mix outfits.
+  const equipment=Object.entries(VISIBLE_SLOTS).map(([slot,renderSlot])=>({slot:Number(slot),renderSlot,id:feed.slot(Number(slot))?.info?.itemId})).filter(item=>item.id);
+  const models=await Promise.all(equipment.map(item=>resolve(item.id)));
+  for(const [i,item] of equipment.entries()){
+    const model=models[i];
+    if(!model || !Number.isInteger(model.display) || model.display<1){unknown.push(item.id);continue;}
+    items.push({slot:item.slot===5 && model.inventoryType===20?20:item.renderSlot,display:model.display,visual:0});
   }
   return {items,unknown};
 }
 
 export function createCharacterModel(){
   const $=id=>document.getElementById(id),stage=$('model-viewport'),status=$('model-status'),form=$('model-appearance-options');
-  let viewer=null,loading=false,active=false,epoch=0,identityKey='',gearKey='',failed=false,feed=null,options=[],choices={},key='',paused=false,angle=0,zoom=1;
+  let viewer=null,loading=false,active=false,epoch=0,identityKey='',requestedGearKey='',gearRequest=0,failed=false,feed=null,options=[],choices={},key='',paused=false,angle=FRONT_ANGLE,zoom=1;
   let observer=new ResizeObserver(()=>resize());observer.observe(stage);
   function message(text,state){status.textContent=text;stage.dataset.state=state;$('model-retry').hidden=state!=='error';for(const button of document.querySelectorAll('.model-controls button'))button.disabled=state!=='ready';}
   function destroy(){
-    epoch++;loading=false;try{viewer?.destroy();}catch{/* A failed renderer still clears its canvas. */}viewer=null;stage.replaceChildren();identityKey='';gearKey='';form.replaceChildren();options=[];
+    epoch++;loading=false;try{viewer?.destroy();}catch{/* A failed renderer still clears its canvas. */}viewer=null;stage.replaceChildren();identityKey='';requestedGearKey='';gearRequest++;form.replaceChildren();options=[];
   }
   function resize(){
     if(!viewer || !active)return;
@@ -73,14 +87,14 @@ export function createCharacterModel(){
     if(!viewer?.renderer)return;
     viewer.renderer.azimuth=angle;
     viewer.setZoom?.(zoom);
-    stage.dataset.rotation=String(Math.round(angle*180/Math.PI));stage.dataset.zoom=String(Math.round(zoom*100));
+    stage.dataset.rotation=String(Math.round((angle-FRONT_ANGLE)*180/Math.PI));stage.dataset.zoom=String(Math.round(zoom*100));
     stage.setAttribute('aria-label',`3D character. Drag to rotate. Scroll to zoom. Arrow keys rotate; plus and minus zoom. Rotation ${stage.dataset.rotation} degrees, zoom ${stage.dataset.zoom} percent.`);
   }
   function rotate(delta){angle=(viewer?.renderer?.azimuth??angle)+delta;camera();}
   function magnify(delta){zoom=Math.max(.55,Math.min(1.8,(viewer?.renderer?.zoom?.target??zoom)+delta));camera();}
   $('model-left').onclick=()=>rotate(-Math.PI/8);$('model-right').onclick=()=>rotate(Math.PI/8);
   $('model-zoom-in').onclick=()=>magnify(.1);$('model-zoom-out').onclick=()=>magnify(-.1);
-  $('model-reset').onclick=()=>{angle=0;zoom=1;camera();};
+  $('model-reset').onclick=()=>{angle=FRONT_ANGLE;zoom=1;camera();};
   $('model-pause').onclick=()=>{paused=!paused;viewer?.method('setAnimPaused',[paused]);$('model-pause').setAttribute('aria-pressed',String(paused));$('model-pause').textContent=paused?'Play':'Pause';};
   stage.addEventListener('keydown',event=>{
     if(event.key==='ArrowLeft')rotate(-Math.PI/8);else if(event.key==='ArrowRight')rotate(Math.PI/8);else if(['+','='].includes(event.key))magnify(.1);else if(event.key==='-')magnify(-.1);else return;
@@ -104,19 +118,20 @@ export function createCharacterModel(){
   }
   async function gear(){
     if(!viewer || !feed)return;
-    const request=epoch;
-    const mapping=await(itemModels||(itemModels=json('./item-models.json').catch(error=>{itemModels=null;throw error;})));
-    if(request!==epoch || !viewer)return;
-    const result=equippedModels(feed,mapping);
+    const nextKey=JSON.stringify(Object.keys(VISIBLE_SLOTS).map(slot=>feed.slot(Number(slot))?.info?.itemId||0));
+    if(nextKey===requestedGearKey)return;
+    requestedGearKey=nextKey;
+    const request=epoch,revision=++gearRequest;
+    // Remove the previous outfit immediately, including empty slots and robes.
+    for(const slot of new Set(Object.values(VISIBLE_SLOTS).concat(20)))viewer.method('clearSlots',[String(slot)]);
+    message('3D preview · syncing equipped gear…','ready');
+    const result=await equippedModels(feed);
+    if(request!==epoch || revision!==gearRequest || !viewer)return;
     const available=await Promise.all(result.items.map(hasModel));
-    if(request!==epoch || !viewer)return;
+    if(request!==epoch || revision!==gearRequest || !viewer)return;
     const items=result.items.filter((_,i)=>available[i]);
     const missing=result.unknown.length+available.filter(value=>!value).length;
-    const signature=JSON.stringify(items);
-    if(signature!==gearKey){
-      for(const slot of Object.values(VISIBLE_SLOTS).concat(20))viewer.method('clearSlots',[String(slot)]);
-      if(items.length)viewer.method('setItems',[items]);gearKey=signature;
-    }
+    if(items.length)viewer.method('setItems',[items]);
     message(missing?`3D preview · ${missing} equipped item${missing===1?'':'s'} unavailable in model data`:'3D preview · equipped gear synced','ready');
   }
   async function start(){
@@ -131,7 +146,7 @@ export function createCharacterModel(){
       appearanceControls(metadata);
       const r=stage.getBoundingClientRect();
       viewer=new window.ZamModelViewer({type:2,contentPath:PREFIX,container:window.jQuery(stage),aspect:r.width/r.height,models:{type:16,id},charCustomization:{options:options.map(option=>({optionId:option.Id,choiceId:choices[option.Id]}))},items:[],dataEnv:'classicplus',env:'classicplus',gameDataEnv:'classicplus',hd:false,physics:false});
-      angle=0;zoom=1;camera();viewer.method('setAnimPaused',[paused]);
+      angle=FRONT_ANGLE;zoom=1;camera();viewer.method('setAnimPaused',[paused]);
       // Metadata and meshes load asynchronously inside the renderer.
       const deadline=performance.now()+20000;let settled=0;
       while(request===epoch && performance.now()<deadline){
@@ -144,7 +159,11 @@ export function createCharacterModel(){
       viewer.method('setAnimPaused',[paused]);loading=false;await gear();resize();
     }catch(error){if(request===epoch){destroy();failed=true;message(error.message||'3D preview unavailable.','error');}}
   }
-  $('model-retry').onclick=()=>{failed=false;start();};
+  $('model-retry').onclick=()=>{destroy();failed=false;start();};
+  $('model-refresh').onclick=()=>{
+    itemModels.clear();modelAssets.clear();requestedGearKey='';
+    gear().catch(()=>message('Equipped-item model data is unavailable.','error'));
+  };
   return {update({available,currentFeed}){
     feed=currentFeed;
     const visible=available && !$('character-panel').hidden;

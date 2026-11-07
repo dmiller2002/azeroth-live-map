@@ -14,6 +14,37 @@ Download the current packages from [GitHub Releases](https://github.com/dmiller2
 
 The standalone program needs no local web server, hosted site, or separate browser. Internet access supplies map artwork, optional item details, and model assets. These development packages are unsigned.
 
+## Companion updates
+
+Open **What’s new → Update companion** and choose **Check for updates → Download
+update → Restart & install**. Packaged Windows and Linux copies download, verify,
+and install updates inside the app; no browser is needed.
+Checks use stable releases from `dmiller2002/azeroth-live-map` on GitHub. Downloads
+and installation require their own button clicks; closing the app normally does
+not install a downloaded update. Restarting ends capture; reconnect WoW afterward.
+Linux copies install the verified AppImage under the companion's user-data folder
+and relaunch it without requiring FUSE. Existing AppImage and tar-package shortcuts
+forward to the newer managed copy. Windows ZIP copies use the verified NSIS
+installer to update their existing folder. Preferences remain in the shared user
+profile. Source checkouts keep their code and dependencies managed separately.
+
+Users of the old 1.0.0 release need to install this updater-enabled 1.0.1 build
+once. The existing `addon-v1.0.0-beta2` release has no update manifests and cannot
+serve in-app updates.
+
+For each future desktop release, increase the desktop version in `package.json`
+and its lockfile before building. Publish a **stable GitHub release** with these
+files from the same build (do not reuse manifests from an older build):
+
+- Windows: the `Windows-Setup.exe`, its `.blockmap`, and `latest.yml`.
+- Linux: the `.AppImage` and `latest-linux.yml`.
+
+The build scripts generate the manifests using the configured GitHub feed but do
+not upload files. Keep the filenames from the build intact and upload them as
+release assets, not as source attachments. The updater verifies downloads against
+the hashes in the release manifest. Addon ZIPs alone do not update the companion;
+beta releases remain available through the GitHub releases button.
+
 ## Install the Forever addon
 
 1. Extract **DrunksAzerothUI.zip**, supplied beside the desktop executable and through the app’s addon download button.
@@ -33,7 +64,7 @@ All live coordinates and map images use the native Forever frame. Artwork comes 
 
 The quest reader uses Forever’s native quest log, indexed text reader, completion/failure APIs, objectives and watch state. It does not change your selected in-game quest. Primary professions support Forever’s `C_SkillInfo` records and preserve collapsed skill headers. Restricted positions produce an unavailable-position signal; restricted or unavailable character stats display `—` while equipment continues syncing.
 
-Equipment names, levels, quantities and durability come from the game. External item links and lookups use Wowhead’s Forever database. Character assets use Wowhead’s native `classicplus` model environment, including available models for races 33 and 34. Some equipment models remain unavailable: the bundled item-to-display lookup is a legacy database, not complete Forever item coverage. The equipment list remains usable when a model is unavailable.
+Equipment names, levels, quantities and durability come from the game. External item links and lookups use Wowhead’s Forever database. Character assets use Wowhead’s native `classicplus` model environment, including available models for races 33 and 34. Equipment appearances are resolved from Wowhead’s Forever item records rather than the legacy item-to-display database. Items without a verified Forever appearance or available model are omitted from the preview and counted in its status. Use **Refresh gear** to retry missing appearances. The equipment list remains usable when a model is unavailable.
 
 The window, sidebar, About dialog and release packages identify **WoW Forever Edition**. Once character data arrives, the toolbar shows the connected client’s actual version and build. Client build numbers can change without editing the app. If Blizzard changes the addon interface or API, review the TOC/API compatibility before updating the supported interface.
 
@@ -55,6 +86,8 @@ The window, sidebar, About dialog and release packages identify **WoW Forever Ed
 | `/daui guild status` | Report locally detected professions |
 | `/daui minimap hide`, `/daui minimap show` | Hide or restore Blizzard’s minimap |
 | UI scale / Ctrl + plus/minus / Ctrl + 0 | Scale the desktop interface or reset it |
+| Collapse sidebar / Show sidebar | Give the main view the sidebar’s space, or restore its controls; the choice is saved |
+| Refresh gear (Character) | Reload current equipment appearances and retry unavailable models |
 | Whole map / Fill box | Change map framing |
 | Right-click map / Backspace | Browse to the parent map |
 
@@ -68,13 +101,18 @@ Guild location/profession sharing defaults off and uses the in-game guild addon 
 npm ci
 npm run package:addon
 npm test
+npm run test:updates
 npm run test:desktop
 npm run build:linux
 npm run build:windows
 npm run release:source
 ```
 
-Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.0/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
+Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.1/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
+
+The Linux updater QA uses a local HTTP server and synthetic payload to exercise
+the real Electron downloader, checksum verification, and managed staging. It
+records a restart request without executing the downloaded test payload.
 
 Automated verification uses synthetic addon APIs and capture frames. **A live session on build 69977 has not been verified here.** Before relying on live data, follow [the in-game checklist](docs/FOREVER_VALIDATION.md). [Compatibility references](docs/FOREVER_COMPATIBILITY.md) record the exact UI source snapshot and map-data provenance.
 

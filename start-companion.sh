@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 companion_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -x "$companion_root/release/1.0.0/linux-unpacked/drunks-azeroth-companion" ]]; then
-  exec "$companion_root/release/1.0.0/linux-unpacked/drunks-azeroth-companion" "$@"
+if [[ -x "$companion_root/release/1.0.1/linux-unpacked/drunks-azeroth-companion" ]]; then
+  exec "$companion_root/release/1.0.1/linux-unpacked/drunks-azeroth-companion" "$@"
 elif [[ -x "$companion_root/node_modules/electron/dist/electron" ]]; then
   exec "$companion_root/node_modules/electron/dist/electron" "$companion_root" "$@"
 else

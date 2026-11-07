@@ -13,7 +13,8 @@ is retained in the file; see `app/vendor/jquery-LICENSE.txt`.
 extracted from CMaNGOS TBC-DB's item_template table, under the supplied GPL-3.0 license.
 It contains no textures or meshes. The source database is
 <https://github.com/cmangos/tbc-db/blob/1c54acd200540076c3078d22a66fd417d0f6dd60/Full_DB/TBCDB_1.11.0_Vengeance_One_A_Cmangos_Story.sql.gz>.
-The original mapping was extracted from that SQL dump; it is retained as a limited lookup for the optional preview.
+The original mapping was extracted from that SQL dump and is retained for provenance;
+the character preview no longer uses it to resolve equipment appearances.
 See `app/vendor/CMaNGOS-COPYING.txt` for the database license.
 
 # Forever assets
@@ -23,5 +24,6 @@ asset environment. Artwork and model assets remain owned by Blizzard. The asset
 URLs and map-ID provenance are recorded in `assets/forever-map-provenance.json`.
 No Questie implementation or quest database is bundled.
 
-The existing CMaNGOS item-display mapping is a legacy lookup used by the optional
-3D preview; it does not establish complete Forever equipment model coverage.
+Equipment display IDs and inventory types are fetched from Wowhead's public
+Forever item XML records. Unavailable item records or model assets are omitted
+from the preview. The retained CMaNGOS mapping is not a fallback for these records.

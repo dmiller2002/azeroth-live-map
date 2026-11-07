@@ -59,15 +59,20 @@ function openQuestLog(){
 }
 
 function setMapOnly(enabled, save = true) {
+  const sidebarHadFocus = $('controls-panel').contains(document.activeElement);
   document.body.classList.toggle('map-only', enabled);
   $('controls-panel').inert = enabled;
   $('toggle-controls').setAttribute('aria-expanded', String(!enabled));
-  $('toggle-controls').textContent = enabled ? 'Show controls' : 'Hide controls';
+  $('collapse-sidebar').setAttribute('aria-expanded', String(!enabled));
+  $('toggle-controls').textContent = enabled ? 'Show sidebar' : 'Hide sidebar';
+  $('toggle-controls').title = enabled ? 'Show connection, location, and map controls' : 'Collapse sidebar to expand the main view';
   $('quick-connection').hidden = !enabled;
+  if (enabled && sidebarHadFocus) $('toggle-controls').focus();
   if (save) savePreferences({mapOnly:enabled});
 }
 setMapOnly(preferences.mapOnly, false);
 $('toggle-controls').onclick = () => setMapOnly(!document.body.classList.contains('map-only'));
+$('collapse-sidebar').onclick = () => setMapOnly(true);
 $('quick-connect').onclick = () => $('connect').click();
 const tabs = createTabs(view=>{
   characterPanel.hideTooltip();

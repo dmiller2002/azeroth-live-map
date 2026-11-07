@@ -36,7 +36,7 @@ const until = async (expression, label, timeout = 25000) => {
 
 async function start() {
   await rm(path.join(profile, 'DevToolsActivePort'), { force: true });
-  child = spawn(executable, [...args, '--remote-debugging-port=0'], { cwd: root, env: { ...process.env, COMPANION_USER_DATA: profile }, stdio: ['ignore', 'pipe', 'pipe'] });
+  child = spawn(executable, [...args, '--remote-debugging-port=0', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'], { cwd: root, env: { ...process.env, COMPANION_USER_DATA: profile }, stdio: ['ignore', 'pipe', 'pipe'] });
   output = '';
   child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
   let port;
@@ -83,7 +83,10 @@ try {
   assert.match(await evaluate('document.title'), /WoW Forever Edition/);
   assert.equal(await evaluate("document.querySelector('.edition').textContent.trim()"),'WOW FOREVER EDITION');
   assert.equal(await evaluate('typeof require'), 'undefined'); assert.equal(await evaluate('typeof process'), 'undefined');
-  assert.deepEqual(await evaluate('Object.keys(window.companion).sort()'), ['getUIScale', 'onUIScaleChanged', 'saveAddon', 'setUIScale', 'version']);
+  assert.deepEqual(await evaluate('Object.keys(window.companion).sort()'), ['checkForUpdates', 'downloadUpdate', 'getUIScale', 'getUpdateState', 'installUpdate', 'onUIScaleChanged', 'onUpdateChanged', 'openReleases', 'saveAddon', 'setUIScale', 'version']);
+  const updatePhase = await evaluate("(async()=> (await window.companion.getUpdateState()).phase)()");
+  assert.ok(['idle', 'unsupported'].includes(updatePhase));
+  assert.equal(await evaluate("document.getElementById('companion-update').textContent"), updatePhase === 'idle' ? 'Check for updates' : 'Packaged app required');
   assert.equal(await evaluate("document.getElementById('status').textContent"), 'Not connected');
   assert.equal(await evaluate("document.getElementById('sidebar-sync-text').textContent"),'Sync · Offline');
   assert.equal(await evaluate("document.getElementById('install-app')"), null);
@@ -124,6 +127,23 @@ try {
   // Device emulation pins devicePixelRatio, so enable it only after checking
   // Electron's native zoom on the real window dimensions.
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
+  const expandedWidth = await evaluate("document.querySelector('main').getBoundingClientRect().width");
+  await evaluate("document.getElementById('collapse-sidebar').focus();document.getElementById('collapse-sidebar').click()");
+  assert.equal(await evaluate("getComputedStyle(document.getElementById('controls-panel')).display"), 'none');
+  assert.equal(await evaluate("document.getElementById('controls-panel').inert"), true);
+  assert.equal(await evaluate("document.activeElement.id"), 'toggle-controls', 'Focus must move to the visible reopen control');
+  assert.equal(await evaluate("document.getElementById('toggle-controls').getAttribute('aria-expanded')"), 'false');
+  assert.equal(await evaluate("document.getElementById('toggle-controls').textContent"), 'Show sidebar');
+  assert.equal(await evaluate("document.getElementById('quick-connection').hidden"), false);
+  assert.ok(await evaluate("document.querySelector('main').getBoundingClientRect().width") >= expandedWidth + 245, 'Collapsing the sidebar must reclaim its width');
+  for (const name of ['character', 'bags', 'guild', 'updates', 'map']) {
+    await evaluate(`document.getElementById('tab-${name}').click()`);
+    assert.equal(await evaluate("getComputedStyle(document.getElementById('controls-panel')).display"), 'none', 'All tabs retain the expanded main view');
+  }
+  const sidebarShot = await send('Page.captureScreenshot'); await writeFile(path.join(artifacts, 'desktop-sidebar-collapsed.png'), Buffer.from(sidebarShot.data, 'base64'));
+  await evaluate("document.getElementById('toggle-controls').click()");
+  assert.equal(await evaluate("document.getElementById('controls-panel').inert"), false);
+  assert.equal(await evaluate("document.querySelector('main').getBoundingClientRect().width"), expandedWidth);
   // Observe the real draw calls so coverage checks include the renderer and its
   // resize handling, rather than only testing the viewport math in isolation.
   await evaluate(`(() => {
@@ -409,12 +429,17 @@ print('['..table.concat(packets,',')..']')end`;
   await evaluate('window.companion.setUIScale(125)');
   await evaluate("document.querySelector('.theme-options [data-theme=dark]').click()");
   await until("document.getElementById('ui-scale').textContent.includes('125%')", 'saved UI scale');
+  await evaluate("document.getElementById('collapse-sidebar').click()");
   await wait(300);
   await close();
   const savedWindow = JSON.parse(await readFile(path.join(profile, 'window.json'), 'utf8'));
   assert.ok(savedWindow.width >= 900, 'Window size must persist');
   assert.equal(savedWindow.uiScale, 125, 'UI scale must be saved with window preferences');
   await start();
+  assert.equal(await evaluate("getComputedStyle(document.getElementById('controls-panel')).display"), 'none', 'Sidebar collapse must survive relaunch');
+  assert.equal(await evaluate("document.getElementById('toggle-controls').textContent"), 'Show sidebar');
+  await evaluate("document.getElementById('toggle-controls').click()");
+  assert.equal(await evaluate("document.getElementById('controls-panel').inert"), false);
   assert.equal(await evaluate('document.documentElement.dataset.theme'),'dark','Theme must survive relaunch');
   assert.equal(await evaluate("document.querySelector('.theme-options [data-theme=dark]').getAttribute('aria-pressed')"),'true');
   assert.equal(await evaluate('document.body.dataset.activeTab'),'map','An old Quests selection must migrate to the combined tab');

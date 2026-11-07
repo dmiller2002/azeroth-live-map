@@ -14,6 +14,7 @@
 <body>
 <div class="app">
   <aside id="controls-panel">
+    <button id="collapse-sidebar" class="sidebar-collapse" aria-controls="controls-panel" aria-expanded="true" title="Collapse sidebar to expand the main view"><span aria-hidden="true">‹</span> Collapse sidebar</button>
     <div class="brand" aria-label="Drunks Azeroth Companion"><img class="brand-logo" src="icons/huzzah-icon-512.png" alt="HUZZAH crest" width="64" height="64"><span>DRUNKS<small>AZEROTH UI</small><small class="developer-credit">Developed by Drunk</small></span></div>
     <div class="edition"><span></span> WOW FOREVER EDITION</div>
     <section class="connection" aria-labelledby="connection-heading">
@@ -52,7 +53,7 @@
         <button id="ui-scale" class="toolbar-button" aria-haspopup="dialog" aria-controls="ui-scale-dialog" disabled>UI scale · 100%</button>
         <button id="wow-minimap" class="toolbar-button" aria-haspopup="dialog">WoW minimap</button>
         <button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
-        <button id="toggle-controls" class="toolbar-button" aria-controls="controls-panel" aria-expanded="true">Hide controls</button>
+        <button id="toggle-controls" class="toolbar-button" aria-controls="controls-panel" aria-expanded="true" title="Collapse sidebar to expand the main view">Hide sidebar</button>
       </div>
     </div>
     <nav id="app-tabs" class="app-tabs" role="tablist" aria-label="App views">
@@ -136,6 +137,7 @@
           <button id="model-left" aria-label="Rotate model left">↶</button><button id="model-right" aria-label="Rotate model right">↷</button>
           <button id="model-zoom-out" aria-label="Zoom model out">−</button><button id="model-zoom-in" aria-label="Zoom model in">+</button>
           <button id="model-reset">Reset</button><button id="model-pause" aria-pressed="false">Pause</button>
+          <button id="model-refresh" title="Reload the appearance of your currently equipped items">Refresh gear</button>
         </div>
         <p class="model-hint">Forever model preview · some equipment models may be unavailable<br>Drag to rotate · Scroll to zoom<br>Models © Blizzard · <a href="https://www.wowhead.com/forever" target="_blank" rel="noreferrer">Wowhead viewer</a></p>
       </div>
@@ -186,7 +188,19 @@
       <div class="eyebrow">DRUNKS AZEROTH UI · LATEST IMPROVEMENTS</div>
       <h1>What’s new</h1>
       <p class="updates-intro">Your companion is growing. Find new features and improvements here as they arrive.</p>
+      <section class="companion-updater" aria-labelledby="companion-update-heading">
+        <h2 id="companion-update-heading">Update companion</h2>
+        <p id="companion-version">Installed version</p>
+        <div class="companion-update-actions">
+          <button id="companion-update" class="toolbar-button" disabled>Check for updates</button>
+          <button id="companion-releases" class="toolbar-button">GitHub releases ↗</button>
+        </div>
+        <progress id="companion-update-progress" max="100" value="0" aria-label="Companion update download" hidden></progress>
+        <p id="companion-update-status" role="status" aria-live="polite">Loading update settings…</p>
+        <p id="companion-update-note" class="companion-update-note">Updates are downloaded only when you choose. Restart &amp; install closes the companion and ends your WoW connection.</p>
+      </section>
       <div class="updates-grid">
+        <article class="update-card"><span class="update-tag">DESKTOP 1.0.1</span><h2>Update inside the companion</h2><p>Check for a newer release, download it, and restart to install here. Collapse the sidebar for more viewing space, and refresh Forever equipment appearances in Character.</p></article>
         <article class="update-card"><span class="update-tag">DESKTOP 1.0.0</span><h2>WoW Forever</h2><p>Made for Blizzard’s official Forever client. Native quests, equipment, bags and guild data sync to your second screen. New zones use a coordinate grid where artwork is unavailable.</p></article>
       </div>
       <div class="updates-next"><span class="eyebrow">MORE TO COME</span><p>Future additions will have their own place here alongside Map and Character.</p></div>
