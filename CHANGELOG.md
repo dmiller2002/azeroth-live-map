@@ -1,3 +1,22 @@
+# Desktop and addon 1.0.5 — 2026-11-25
+
+- Cut the addon's CPU use. Bags, bank, character, guild roster, quest log and
+  quest pins are rescanned after the game events that change them (at most
+  every 0.5–2 seconds), with slow fallbacks of 6–60 seconds, instead of every
+  1–2 seconds regardless.
+- Stop republishing every cached bank slot each second while the bank is
+  closed; read the bank every second only while it is open.
+- Clean each Questie quest title once instead of once per map pin, and cache
+  the realm and character name used for guild roster keys.
+- Make each sync update about 3× cheaper in Lua: bits come from a lookup table
+  and the sprite's carrier colours are worked out once per animation frame.
+- Add `/daui cpu [seconds]`, which measures the addon for a few seconds and
+  lists the cost of each part.
+
+The data sent is unchanged, so desktop 1.0.4 can read addon 1.0.5. Update the
+addon and `/reload`. Bag, gear and quest changes reach the companion as before;
+changes that fire no game event can take up to the fallback interval.
+
 # Desktop and addon 1.0.4 — 2026-11-25
 
 - Draw the sync strip and sprite on exact screen pixels. Each bit now covers

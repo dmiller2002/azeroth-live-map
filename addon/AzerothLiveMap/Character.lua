@@ -1,6 +1,8 @@
 local _, ns = ...
 local records, order, urgent, queued = {}, {}, {}, {}
-local revision, cursor, active, nextRefresh = 0, 1, nil, 0
+local revision, cursor, active = 0, 1, nil
+local schedule = ns.Schedule(1, 15)
+function ns.InvalidateCharacter() schedule:Invalidate() end
 
 local function Number(value, maximum)
     if not ns.IsReadable(value) or type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return 0 end
@@ -98,10 +100,7 @@ end
 -- v4 shares the existing auxiliary lanes. Each equipment slot has its own
 -- revision, so a stat change cannot restart or mix another item's name.
 function ns.CharacterPacket(sequence, now)
-    if now >= nextRefresh then
-        local ok = pcall(Refresh)
-        nextRefresh = now + (ok and 1 or 3)
-    end
+    if schedule:Due(now) and not pcall(Refresh) then schedule:Invalidate() end
     if #order == 0 then return nil end
     if not active then
         active = table.remove(urgent, 1)

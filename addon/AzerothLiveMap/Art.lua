@@ -33,6 +33,32 @@ function ns.CreateArt(parent)
     local length = 0
     for _, duration in ipairs(asset.durations) do length = length + duration end
     local lastFrame = nil
+    -- Each carrier's two colours (bit 0 and bit 1) per animation frame, worked
+    -- out once instead of for every carrier on every update.
+    local frameColors = {}
+    local function Colors(frameIndex)
+        local cached = frameColors[frameIndex]
+        if cached then return cached end
+        cached = {}
+        local colors = asset.frames[frameIndex]
+        for i, position in ipairs(asset.positions) do
+            local color = asset.palette[colors[position+1]+1]
+            local pair = {}
+            for bit = 0, 1 do
+                -- A brightness change survives NV12/YUV420 capture; red-only
+                -- modulation is blurred by chroma subsampling. Reserve gamut
+                -- headroom so conversion does not clip the darkest carriers.
+                local delta = bit == 1 and asset.delta or -asset.delta
+                local r = math.max(48,math.min(207,color[1]))+delta
+                local g = math.max(48,math.min(207,color[2]))+delta
+                local b = math.max(48,math.min(207,color[3]))+delta
+                pair[bit+1] = {r/255,g/255,b/255,(r*256+g)*256+b}
+            end
+            cached[i] = pair
+        end
+        frameColors[frameIndex] = cached
+        return cached
+    end
     function result:Render(packets, now)
         local tick = math.floor(now*10)%length
         local frameIndex = 1
@@ -44,26 +70,17 @@ function ns.CreateArt(parent)
             lastFrame = frameIndex
             sprite:SetTexCoord((frameIndex-1)*64/512,((frameIndex-1)*64+asset.width)/512,0,1)
         end
-        local colors = asset.frames[frameIndex]
-        for i, position in ipairs(asset.positions) do
+        local colors = Colors(frameIndex)
+        for i = 1, #pixels do
             local texture, packet = pixels[i], packets[math.floor((i-1)/192)+1]
             local shown = packet ~= nil
             if texture.dauiShown ~= shown then texture.dauiShown = shown; texture:SetShown(shown) end
             if packet then
-                local color = asset.palette[colors[position+1]+1]
-                local bit = ns.Bit(packet,(i-1)%192)
-                -- A brightness change survives NV12/YUV420 capture; red-only
-                -- modulation is blurred by chroma subsampling. Reserve gamut
-                -- headroom so conversion does not clip the darkest carriers.
-                local delta = bit == 1 and asset.delta or -asset.delta
-                local r = math.max(48,math.min(207,color[1]))+delta
-                local g = math.max(48,math.min(207,color[2]))+delta
-                local b = math.max(48,math.min(207,color[3]))+delta
+                local color = colors[i][ns.Bit(packet,(i-1)%192)+1]
                 -- Only repaint carriers whose colour actually changed.
-                local key = (r*256+g)*256+b
-                if texture.dauiColor ~= key then
-                    texture.dauiColor = key
-                    texture:SetColorTexture(r/255,g/255,b/255,1)
+                if texture.dauiColor ~= color[4] then
+                    texture.dauiColor = color[4]
+                    texture:SetColorTexture(color[1],color[2],color[3],1)
                 end
             end
         end

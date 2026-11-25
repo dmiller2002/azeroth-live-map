@@ -8,6 +8,22 @@ local function Count(n) return math.floor(math.max(0, math.min(255, Finite(n) an
 
 local defaultIcons = { available = 6, monster = 1, object = 4, item = 2, event = 3, complete = 8 }
 
+-- A quest's title is shared by all of its pins: clean each distinct title once.
+local cleanTitles = {}
+local function CleanTitle(title, questID)
+    if type(title) ~= "string" or title == "" then return "Quest #" .. questID end
+    local clean = cleanTitles[title]
+    if clean then return clean end
+    clean = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("[%c]", " ")
+    if #clean > 80 then
+        local cut = 81
+        while cut > 1 and clean:byte(cut) >= 128 and clean:byte(cut) < 192 do cut = cut - 1 end
+        clean = clean:sub(1, cut - 1)
+    end
+    cleanTitles[title] = clean
+    return clean
+end
+
 local function Collect()
     if not QuestieLoader or type(QuestieLoader.ImportModule) ~= "function" then return {}, 0 end
     local map = QuestieLoader:ImportModule("QuestieMap")
@@ -32,17 +48,10 @@ local function Collect()
                         -- Unknown/custom texture paths retain the matching type default.
                         local iconType = Finite(data.Icon) and math.floor(data.Icon) or defaultIcons[data.Type] or 0
                         if iconType < 0 or iconType > 63 then iconType = defaultIcons[data.Type] or 0 end
-                        local key = table.concat({mapID, questID, kind, iconType, index, x, y}, ":")
+                        local key = mapID .. ":" .. questID .. ":" .. kind .. ":" .. iconType .. ":" .. index .. ":" .. x .. ":" .. y
                         if not seen[key] then
                             seen[key] = true
-                            local title = data.QuestData and data.QuestData.name
-                            if type(title) ~= "string" or title == "" then title = "Quest #" .. questID end
-                            title = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("[%c]", " ")
-                            if #title > 80 then
-                                local cut = 81
-                                while cut > 1 and title:byte(cut) >= 128 and title:byte(cut) < 192 do cut = cut - 1 end
-                                title = title:sub(1, cut - 1)
-                            end
+                            local title = CleanTitle(data.QuestData and data.QuestData.name, questID)
                             result[mapID] = result[mapID] or {}
                             local markers = result[mapID]
                             markers[#markers + 1] = { questID = questID, kind = kind, iconType = iconType, objective = index,

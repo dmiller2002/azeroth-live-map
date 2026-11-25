@@ -4,7 +4,11 @@ local PREFIX, MAX_MEMBERS, TTL = "DAUI_GUILD1", 1000, 30
 local guild, rosterKey, members, byName, shared = nil, nil, {}, {}, {}
 local records, order, cursor, active = {}, {}, 1, nil
 local urgent, queued = {}, {}
-local epoch, revision, calls, nextRefresh, nextRequest, nextSend, nextSkills = 0, 0, 0, 0, 0, 0, 0
+local epoch, revision, calls, nextRequest, nextSend, nextSkills = 0, 0, 0, 0, 0, 0
+-- The roster changes only with roster events (requested every 30 s): rescan
+-- after those, and every 15 s at most otherwise.
+local schedule = ns.Schedule(2, 15)
+local realm, selfName = nil, nil
 local skills, skillsKnown = {}, false
 local readingSkills=false
 local classes = {WARRIOR=1,PALADIN=2,HUNTER=3,ROGUE=4,PRIEST=5,SHAMAN=7,MAGE=8,WARLOCK=9,DRUID=11}
@@ -29,15 +33,23 @@ local function Text(value, limit)
     end
     return value
 end
+local function Realm()
+    if not realm or realm=="" then realm=GetRealmName and GetRealmName() or "" end
+    return realm
+end
 local function Name(name)
     if not ns.IsReadable(name) or type(name)~="string" or name=="" then return nil end
-    if not name:find("-",1,true) then name=name.."-"..(GetRealmName and GetRealmName() or "") end
-    return name:gsub("%s",""):lower()
+    if not name:find("-",1,true) then name=name.."-"..Realm() end
+    return (name:gsub("%s",""):lower())
 end
+-- Read once it is known; compared against every member on every packet.
 local function SelfName()
-    local name,realm=UnitName("player")
-    if realm==""then realm=nil end
-    return Name(name and (name.."-"..(realm or (GetRealmName and GetRealmName()) or "")))
+    if selfName then return selfName end
+    local name,server=UnitName("player")
+    if server==""then server=nil end
+    local key=Name(name and (name.."-"..(server or Realm())))
+    if key and Realm()~="" then selfName=key end
+    return key
 end
 local function Record(index,kind,payload,text)
     local signature=table.concat(payload,",").."|"..(text or "")
@@ -55,8 +67,7 @@ local function Record(index,kind,payload,text)
     if index~=0 and not queued[index]then urgent[#urgent+1]=index;queued[index]=true end
 end
 local function Refresh(now)
-    if now<nextRefresh then return end
-    nextRefresh=now+2
+    if not schedule:Due(now) then return end
     local current=GetGuildInfo and GetGuildInfo("player")
     if current~=guild then
         guild=current; rosterKey=nil; shared={}; members={}; byName={}; nextRequest=0; nextSend=0
@@ -195,7 +206,7 @@ function ns.SetGuildSharing(enabled)
     if not AzerothLiveMapDB then return end
     AzerothLiveMapDB.guildShare=enabled==true
     if not enabled then Send("X1")end
-    nextRefresh=0;nextSend=0;nextSkills=0
+    schedule:Invalidate();nextSend=0;nextSkills=0
 end
 function ns.GuildEvent(event,...)
     if readingSkills and event=="SKILL_LINES_CHANGED"then return end
@@ -221,7 +232,7 @@ function ns.GuildEvent(event,...)
                 entry.skills={{p1,r1},{p2,r2}};entry.known=known=="1";entry.skillsAt=now
             end
         end
-    else nextRefresh=0 end
+    else schedule:Invalidate() end
 end
 function ns.UpdateGuild(now)
     Refresh(now)
@@ -314,5 +325,5 @@ if CreateFrame then
         ns.GuildEvent(event,...)
     end)
     local elapsed=0
-    events:SetScript("OnUpdate",function(_,dt)elapsed=elapsed+dt;if elapsed>=1 then elapsed=0;pcall(ns.UpdateGuild,GetTime())end end)
+    events:SetScript("OnUpdate",function(_,dt)elapsed=elapsed+dt;if elapsed>=1 then elapsed=0;pcall(ns.Timed,"GuildBackground",ns.UpdateGuild,GetTime())end end)
 end

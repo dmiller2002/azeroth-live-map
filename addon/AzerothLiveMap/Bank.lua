@@ -2,7 +2,10 @@ local _, ns = ...
 -- Bank records have their own stream, so a large bank cannot delay bag changes.
 -- Only read native tabs while the bank is open. Never select tabs or move items.
 local records, order, known, urgent, queued = {}, {}, {}, {}, {}
-local revision, cursor, active, sent, nextRefresh = 0, 1, nil, 0, 0
+local revision, cursor, active, sent = 0, 1, nil, 0
+-- While closed, the cached snapshot does not change: republishing every cached
+-- slot each second was pure overhead. Rescan each second only while open.
+local schedule = ns.Schedule(0.5, 60)
 local opened, loadedKey = false, nil
 local banks = {{epoch=0, topology={}}, {epoch=0, topology={}}}
 local function Finite(n)
@@ -176,10 +179,14 @@ end
 function ns.BankEvent(event)
     if event=="BANKFRAME_OPENED" then opened=true
     elseif event=="BANKFRAME_CLOSED" or event=="PLAYER_ENTERING_WORLD" then opened=false end
-    nextRefresh=0
+    schedule:Invalidate()
 end
 function ns.BankPacket(sequence,now)
-    if now>=nextRefresh then Refresh();nextRefresh=now+1 end
+    if (opened and now-schedule.last>=1) or schedule:Due(now) then
+        schedule.dirty,schedule.last=false,now
+        Refresh()
+        if not loadedKey then schedule:Invalidate() end
+    end
     sent=sent+1
     local index
     -- Repeat availability often even while thousands of slots are transmitting.

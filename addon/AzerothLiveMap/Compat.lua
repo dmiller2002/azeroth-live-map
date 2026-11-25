@@ -24,3 +24,30 @@ function ns.PlayerPosition()
     end)
     if ok then return map, x, y, facing end
 end
+
+-- Refresh scheduling. Feeds rescan soon after a relevant game event (no more
+-- often than minGap seconds) and otherwise only every maxGap seconds, instead
+-- of rescanning unchanged bags, quests and rosters every second or two.
+function ns.Schedule(minGap, maxGap)
+    local schedule = { dirty = true, last = -math.huge }
+    function schedule:Due(now)
+        if (self.dirty and now - self.last >= minGap) or now - self.last >= maxGap then
+            self.dirty, self.last = false, now
+            return true
+        end
+        return false
+    end
+    function schedule:Invalidate() self.dirty = true end
+    return schedule
+end
+
+-- /daui cpu: optional timing of each feed, collected only while sampling.
+ns.Profile = nil
+function ns.Timed(name, fn, ...)
+    local profile = ns.Profile
+    if not profile or not debugprofilestop then return fn(...) end
+    local start = debugprofilestop()
+    local a, b, c, d = fn(...)
+    profile[name] = (profile[name] or 0) + debugprofilestop() - start
+    return a, b, c, d
+end

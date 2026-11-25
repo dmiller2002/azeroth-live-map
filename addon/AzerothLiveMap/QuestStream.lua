@@ -18,10 +18,20 @@ local function TitleFragments(title)
     return fragments
 end
 
+-- Every marker stream rescans soon after quest events or a zone change, and
+-- otherwise every few seconds (scanning thousands of Questie pins is the
+-- addon's most expensive job, so it must not run more often than needed).
+local streams = {}
+function ns.InvalidateQuestMarkers()
+    for _, schedule in ipairs(streams) do schedule:Invalidate() end
+end
+
 function ns.CreateQuestStream(collect, version)
     local zones, order, zoneCursor = {}, {}, 1
     local titles, titleQueue, titleCursor, titleUpdates = {}, {}, 1, {}
-    local generation, sent, nextRefresh, status, total, limited = 0, 0, 0, 0, 0, false
+    local generation, sent, status, total, limited = 0, 0, 0, 0, false
+    local schedule, lastMap = ns.Schedule(2, 6), nil
+    streams[#streams + 1] = schedule
     local function Refresh(mapID)
         -- Providers only read game/addon data. API failures are isolated from
         -- position tracking and reported through this source's global status.
@@ -121,7 +131,8 @@ function ns.CreateQuestStream(collect, version)
     end
 
     local function Packet(mapID, x, y, sequence, now)
-        if now >= nextRefresh or #order == 0 then Refresh(mapID); nextRefresh = now + 2 end
+        if mapID ~= lastMap then lastMap = mapID; schedule:Invalidate() end
+        if schedule:Due(now) then Refresh(mapID) end
         sent = sent + 1
         -- Global heartbeats keep all zones fresh. Pins and text have independent
         -- queues so long titles cannot hold up the locations of every quest.

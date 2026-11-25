@@ -3,7 +3,8 @@ local _, ns = ...
 -- v9 records (v7 layout, stable quest slots and per-quest identity epochs): 0 manifest, 1..64 quests, 129..192 descriptions,
 -- 4096..6143 objectives. Text uses a u16 fragment offset + nine UTF-8 bytes.
 local records, order, urgent, queued, bodyOrder = {}, {}, {}, {}, {}
-local epoch, nextRefresh, status, calls = 0, 0, 2, 0
+local epoch, status, calls = 0, 2, 0
+local schedule = ns.Schedule(1, 10)
 local slots, identities, generations, pending = {}, {}, {}, {}
 local cursor, bodyCursor, active, bodyActive = 1, 1, nil, nil
 local descriptions, reading, loading = {}, false, false
@@ -124,8 +125,8 @@ local function Collect(now)
     return snapshot,1
 end
 local function Refresh(now)
-    if now<nextRefresh or reading then return end
-    nextRefresh=now+2;reading=true
+    if reading or not schedule:Due(now) then return end
+    reading=true
     local selection
     if not (C_QuestLog and C_QuestLog.GetInfo) and GetQuestLogSelection then selection=GetQuestLogSelection() end
     local ok,snapshot,newStatus=pcall(Collect,now)
@@ -223,7 +224,8 @@ function ns.InvalidateQuestLog(event)
     if reading then return end
     if event=="PLAYER_LEAVING_WORLD" or event=="LOADING_SCREEN_ENABLED"then loading=true
     elseif event=="PLAYER_ENTERING_WORLD" or event=="LOADING_SCREEN_DISABLED"then loading=false end
-    nextRefresh=0
+    schedule:Invalidate()
+    if ns.InvalidateQuestMarkers then ns.InvalidateQuestMarkers() end
 end
 if CreateFrame then
     local events=CreateFrame("Frame")

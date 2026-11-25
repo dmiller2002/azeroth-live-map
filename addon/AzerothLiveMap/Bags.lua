@@ -1,6 +1,8 @@
 local _, ns = ...
 local records, order, known, urgent, queued, topology = {}, {}, {}, {}, {}, {}
-local revision, cursor, active, nextRefresh = 0, 1, nil, 0
+local revision, cursor, active = 0, 1, nil
+-- Bags change only with bag events; rescan after them, and every 30 s at most otherwise.
+local schedule = ns.Schedule(0.5, 30)
 
 local function Number(value, maximum)
     if not ns.IsReadable(value) or type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return 0 end
@@ -96,16 +98,13 @@ local function Refresh()
     end
 end
 
-function ns.InvalidateBags() nextRefresh = 0 end
+function ns.InvalidateBags() schedule:Invalidate() end
 
 -- v5: descriptor indices 512..516, slot indices bag*64+slot (1..320).
 -- Changed slot metadata goes first; names and full repeats follow round-robin.
 -- Topology epochs prevent old slots surviving a removed/replaced bag.
 function ns.BagPacket(sequence, now)
-    if now >= nextRefresh then
-        local ok = pcall(Refresh)
-        nextRefresh = now + (ok and 1 or 3)
-    end
+    if schedule:Due(now) and not pcall(Refresh) then schedule:Invalidate() end
     while #urgent > 0 do
         local index = table.remove(urgent, 1); queued[index] = nil
         local record = records[index]

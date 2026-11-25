@@ -1,6 +1,6 @@
 # Drunks Azeroth UI — Forever
 
-Addon version **1.0.4**. Use companion **1.0.3** or newer for Bag/bank storage. World-map
+Addon version **1.0.5**. Type `/daui cpu` to measure how much CPU the addon uses. Use companion **1.0.3** or newer for Bag/bank storage. World-map
 alignment and the built-in quest helper need 1.0.2 or newer. Older companions
 can still read the existing feeds.
 

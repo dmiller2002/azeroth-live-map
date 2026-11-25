@@ -43,11 +43,11 @@ local function AuxiliaryPacket(mapID, x, y, seq, now)
     for _, feed in ipairs(SCHEDULE[auxiliaryCount % 8]) do
         local fn = ns[feed[1]]
         if fn then
-            local packet = feed[3](fn, mapID, x, y, seq, now)
+            local packet = ns.Timed(feed[1], feed[3], fn, mapID, x, y, seq, now)
             if packet then return packet end
         end
     end
-    return ns.QuestiePacket(mapID, x, y, seq, now)
+    return ns.Timed("QuestiePacket", ns.QuestiePacket, mapID, x, y, seq, now)
 end
 
 -- Textures remember the bit they show. Most bits are identical from one
@@ -280,9 +280,15 @@ handle:SetScript("OnDragStart", StartDrag)
 handle:SetScript("OnDragStop", StopDrag)
 frame:SetScript("OnHide", StopDrag)
 
+local RunUpdate
 local function Update()
     local mapID, x, y, facing = ns.PlayerPosition()
     sequence = (sequence + 1) % 65536
+    if ns.Profile then local start = debugprofilestop(); RunUpdate(mapID, x, y, facing); ns.Profile.Update = (ns.Profile.Update or 0) + debugprofilestop() - start
+    else RunUpdate(mapID, x, y, facing) end
+end
+
+function RunUpdate(mapID, x, y, facing)
     local artMode = art and AzerothLiveMapDB.art
     local lanes = LaneCount(artMode)
     local now = GetTime()
@@ -298,7 +304,33 @@ local function Update()
         packets[#packets + 1] = packet
         if not artMode then PaintPacket(questFrames[lane].cells, packet) end
     end
-    if artMode then art:Render(packets, now) else PaintPacket(cells, bytes) end
+    if artMode then ns.Timed("Draw", art.Render, art, packets, now) else ns.Timed("Draw", PaintPacket, cells, bytes) end
+end
+
+-- /daui cpu: time each part of the addon for a few seconds, then report the
+-- average cost. Nothing is timed outside a sample.
+local PROFILE_NAMES = { Update = "Total (sync loop)", Draw = "Drawing the strip/sprite", QuestiePacket = "Questie quest pins",
+    NativeQuestPacket = "WoW Forever quest pins", QuestLogPacket = "Quest log", CharacterPacket = "Character",
+    BagPacket = "Bags", BankPacket = "Bank", GuildPacket = "Guild roster", MapDataPacket = "Map layout",
+    GuildBackground = "Guild (background timer)" }
+local function ProfileCPU(seconds)
+    if ns.Profile then Tell("A CPU sample is already running."); return end
+    if not debugprofilestop or not C_Timer then Tell("CPU timing is not available in this client."); return end
+    ns.Profile = {}
+    local started = debugprofilestop()
+    Tell(("Measuring addon CPU for %d seconds. Play normally."):format(seconds))
+    C_Timer.After(seconds, function()
+        local profile, elapsed = ns.Profile, (debugprofilestop() - started) / 1000
+        ns.Profile = nil
+        local rows = {}
+        for name, ms in pairs(profile) do rows[#rows + 1] = { PROFILE_NAMES[name] or name, ms / elapsed, name } end
+        table.sort(rows, function(a, b) return a[2] > b[2] end)
+        local total = (profile.Update or 0) + (profile.GuildBackground or 0)
+        Tell(("Addon CPU: %.2f ms per second, about %.2f%% of one CPU core."):format(total / elapsed, total / elapsed / 10))
+        for _, row in ipairs(rows) do
+            if row[3] ~= "Update" then print(("   %s: %.2f ms/s"):format(row[1], row[2])) end
+        end
+    end)
 end
 
 local function SetArtMode(enabled)
@@ -319,10 +351,21 @@ frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:RegisterEvent("BAG_UPDATE_DELAYED")
 frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+frame:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
+frame:RegisterEvent("PLAYER_LEVEL_UP")
+-- Character stats: only the player's own unit events.
+local characterEvents = { UNIT_STATS = true, UNIT_MAXHEALTH = true, UNIT_MAXPOWER = true, UNIT_DISPLAYPOWER = true, UNIT_RESISTANCES = true, UNIT_INVENTORY_CHANGED = true }
+for event in pairs(characterEvents) do
+    if frame.RegisterUnitEvent then frame:RegisterUnitEvent(event, "player") else frame:RegisterEvent(event) end
+end
 local bankEvents = { BANKFRAME_OPENED = true, BANKFRAME_CLOSED = true, BANK_TABS_CHANGED = true, BANK_TAB_SETTINGS_UPDATED = true,
     PLAYERBANKSLOTS_CHANGED = true, PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED = true, BAG_CONTAINER_UPDATE = true }
 for event in pairs(bankEvents) do frame:RegisterEvent(event) end
-frame:SetScript("OnEvent", function(_, event)
+frame:SetScript("OnEvent", function(_, event, unit)
+    if characterEvents[event] or event == "UPDATE_INVENTORY_DURABILITY" or event == "PLAYER_LEVEL_UP" then
+        if (not characterEvents[event] or unit == "player") and ns.InvalidateCharacter then ns.InvalidateCharacter() end
+        return
+    end
     if ns.BankEvent then ns.BankEvent(event) end
     if bankEvents[event] then return end
     if event == "PLAYER_LOGOUT" then
@@ -334,6 +377,7 @@ frame:SetScript("OnEvent", function(_, event)
     end
     if event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED" or event == "GET_ITEM_INFO_RECEIVED" then
         if ns.InvalidateBags then ns.InvalidateBags() end
+        if event ~= "BAG_UPDATE_DELAYED" and ns.InvalidateCharacter then ns.InvalidateCharacter() end
         return
     end
     if event == "PLAYER_REGEN_ENABLED" then
@@ -407,11 +451,13 @@ SlashCmdList.AZEROTHLIVEMAP = function(message)
     elseif command == "guild" and (arg == "on" or arg == "off") then
         ns.SetGuildSharing(arg == "on")
         Tell(arg == "on" and "Guild sharing on: your coordinates and primary professions are shared with guild members using Drunks Azeroth UI." or "Guild sharing off. Your roster remains available in the companion.")
+    elseif command == "cpu" then
+        ProfileCPU(math.max(3, math.min(60, math.floor(Number(arg, 10)))))
     elseif command == "size" and Number(arg, nil) then
         local width = ScreenSize()
         AzerothLiveMapDB.size = ClampSize(arg, width); Layout()
         Tell("Each bit is " .. AzerothLiveMapDB.size .. " screen pixels; the data block is " .. frame:GetWidth() .. " x " .. frame:GetHeight() .. ". Smallest for this screen: " .. MinimumSize(width) .. ". If the companion loses the signal, try a larger size.")
     else
-        Tell("/alm guild on|off|status · /alm minimap hide|show · /alm art on|off · /alm size <pixels> (2–24) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep the full artwork/data block visible while sharing WoW.")
+        Tell("/alm cpu [seconds] · /alm guild on|off|status · /alm minimap hide|show · /alm art on|off · /alm size <pixels> (2–24) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep the full artwork/data block visible while sharing WoW.")
     end
 end

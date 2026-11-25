@@ -92,6 +92,7 @@ The window, sidebar, About dialog and release packages identify **WoW Forever Ed
 | `/daui unlock`, `/daui lock` | Show the drag handle to move the sprite, then lock it |
 | `/daui reset` | Restore its default position |
 | `/daui sync fast`, `/daui sync compact` | 20 or 10 visible updates per second |
+| `/daui cpu`, `/daui cpu 30` | Measure the addon's CPU use for 10 (or 3–60) seconds and list the cost of each part |
 | `/daui guild on`, `/daui guild off` | Opt into or stop guild profession/location sharing |
 | `/daui guild status` | Report locally detected professions |
 | `/daui minimap hide`, `/daui minimap show` | Hide or restore Blizzard’s minimap |
@@ -125,7 +126,7 @@ npm run build:windows
 npm run release:source
 ```
 
-Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.4/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
+Addon fixture tests require **LuaJIT**. Desktop QA requires a graphical Linux session, Electron’s system dependencies, and internet access for optional model assets. Windows cross-builds on Linux also need electron-builder’s Wine/NSIS tools. Output is in `release/1.0.5/`. The source archive excludes dependencies, caches, generated QA artifacts, game data and old releases.
 
 The Linux updater QA uses a local HTTP server and synthetic payload to exercise
 the real Electron downloader, checksum verification, and managed staging. It
