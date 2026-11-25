@@ -11,6 +11,8 @@ local background = frame:CreateTexture(nil, "BACKGROUND")
 background:SetAllPoints()
 background:SetColorTexture(0, 0, 0, 1)
 local cells, sequence, elapsed, dragging = {}, 0, 0, false
+local IDLE_INTERVAL = 0.5
+local lastMap, lastX, lastY, lastFacing
 local lastLayout = nil
 local auxiliary = false
 local auxiliaryCount = 0
@@ -289,6 +291,11 @@ local function Update()
 end
 
 function RunUpdate(mapID, x, y, facing)
+    -- Any change in where the player is or faces keeps the strip at full speed.
+    if mapID ~= lastMap or facing ~= lastFacing or (x and lastX and (math.abs(x - lastX) > 1e-6 or math.abs(y - lastY) > 1e-6)) or (x == nil) ~= (lastX == nil) then
+        lastMap, lastX, lastY, lastFacing = mapID, x, y, facing
+        ns.Wake()
+    end
     local artMode = art and AzerothLiveMapDB.art
     local lanes = LaneCount(artMode)
     local now = GetTime()
@@ -404,12 +411,17 @@ frame:SetScript("OnEvent", function(_, event, unit)
     if dragging then
         dragging = false; frame:StopMovingOrSizing(); SavePosition(true)
     end
-    if AzerothLiveMapDB then Layout(); Update() end
+    if AzerothLiveMapDB then ns.Wake(10); Layout(); Update() end
 end)
 frame:SetScript("OnUpdate", function(_, dt)
     if not AzerothLiveMapDB then return end
     local interval = AzerothLiveMapDB.fastSync and 0.05 or 0.1
     elapsed = elapsed + dt
+    if elapsed + 0.000001 >= interval and AzerothLiveMapDB.adaptive ~= false then
+        local now = GetTime()
+        if IsPlayerMoving and IsPlayerMoving() then ns.Wake()
+        elseif not ns.IsBusy(now) then interval = IDLE_INTERVAL end
+    end
     if elapsed + 0.000001 >= interval then
         -- Preserve fractional frame time, but never emit catch-up packets that
         -- the desktop cannot see after a slow game frame or a loading pause.
@@ -451,6 +463,9 @@ SlashCmdList.AZEROTHLIVEMAP = function(message)
     elseif command == "guild" and (arg == "on" or arg == "off") then
         ns.SetGuildSharing(arg == "on")
         Tell(arg == "on" and "Guild sharing on: your coordinates and primary professions are shared with guild members using Drunks Azeroth UI." or "Guild sharing off. Your roster remains available in the companion.")
+    elseif command == "idle" and (arg == "on" or arg == "off") then
+        AzerothLiveMapDB.adaptive = arg == "on"
+        Tell(arg == "on" and "Adaptive sync on: full speed while you move or something changes, 2 updates/sec otherwise." or "Adaptive sync off: the strip always runs at full speed.")
     elseif command == "cpu" then
         ProfileCPU(math.max(3, math.min(60, math.floor(Number(arg, 10)))))
     elseif command == "size" and Number(arg, nil) then
@@ -458,6 +473,6 @@ SlashCmdList.AZEROTHLIVEMAP = function(message)
         AzerothLiveMapDB.size = ClampSize(arg, width); Layout()
         Tell("Each bit is " .. AzerothLiveMapDB.size .. " screen pixels; the data block is " .. frame:GetWidth() .. " x " .. frame:GetHeight() .. ". Smallest for this screen: " .. MinimumSize(width) .. ". If the companion loses the signal, try a larger size.")
     else
-        Tell("/alm cpu [seconds] · /alm guild on|off|status · /alm minimap hide|show · /alm art on|off · /alm size <pixels> (2–24) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep the full artwork/data block visible while sharing WoW.")
+        Tell("/alm cpu [seconds] · /alm idle on|off · /alm guild on|off|status · /alm minimap hide|show · /alm art on|off · /alm size <pixels> (2–24) · /alm sync fast|compact · /alm unlock · /alm lock · /alm reset · /alm show · /alm hide. Keep the full artwork/data block visible while sharing WoW.")
     end
 end

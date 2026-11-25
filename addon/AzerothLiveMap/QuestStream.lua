@@ -32,6 +32,12 @@ function ns.CreateQuestStream(collect, version)
     local generation, sent, status, total, limited = 0, 0, 0, 0, false
     local schedule, lastMap = ns.Schedule(2, 6), nil
     streams[#streams + 1] = schedule
+    -- Changed pins and new titles are sent at full speed; repeats can idle.
+    ns.pending[#ns.pending + 1] = function()
+        if #titleUpdates > 0 then return true end
+        for _, id in ipairs(order) do if #zones[id].updates > 0 then return true end end
+        return false
+    end
     local function Refresh(mapID)
         -- Providers only read game/addon data. API failures are isolated from
         -- position tracking and reported through this source's global status.

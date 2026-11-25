@@ -25,6 +25,25 @@ function ns.PlayerPosition()
     if ok then return map, x, y, facing end
 end
 
+-- Adaptive sync. The strip runs at full speed while the player moves, right
+-- after a game event, and while any feed still has changed records to send;
+-- otherwise it idles at a slow heartbeat (the companion only needs a position
+-- every 2.5 s and each feed every 6 s to stay live). ns.pending holds one
+-- function per feed that returns true while that feed has changes queued.
+ns.pending = {}
+local activeUntil = 0
+function ns.Wake(seconds)
+    local now = GetTime and GetTime() or 0
+    if now + (seconds or 2) > activeUntil then activeUntil = now + (seconds or 2) end
+end
+function ns.IsBusy(now)
+    if now < activeUntil then return true end
+    for _, pending in ipairs(ns.pending) do
+        if pending() then return true end
+    end
+    return false
+end
+
 -- Refresh scheduling. Feeds rescan soon after a relevant game event (no more
 -- often than minGap seconds) and otherwise only every maxGap seconds, instead
 -- of rescanning unchanged bags, quests and rosters every second or two.
@@ -37,7 +56,7 @@ function ns.Schedule(minGap, maxGap)
         end
         return false
     end
-    function schedule:Invalidate() self.dirty = true end
+    function schedule:Invalidate() self.dirty = true; ns.Wake() end
     return schedule
 end
 

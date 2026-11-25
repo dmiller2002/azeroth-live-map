@@ -92,6 +92,7 @@ The window, sidebar, About dialog and release packages identify **WoW Forever Ed
 | `/daui unlock`, `/daui lock` | Show the drag handle to move the sprite, then lock it |
 | `/daui reset` | Restore its default position |
 | `/daui sync fast`, `/daui sync compact` | 20 or 10 visible updates per second |
+| `/daui idle on`, `/daui idle off` | Adaptive sync (default on): full speed while moving or syncing changes, 2 updates/sec when idle |
 | `/daui cpu`, `/daui cpu 30` | Measure the addon's CPU use for 10 (or 3–60) seconds and list the cost of each part |
 | `/daui guild on`, `/daui guild off` | Opt into or stop guild profession/location sharing |
 | `/daui guild status` | Report locally detected professions |

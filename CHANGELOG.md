@@ -10,6 +10,11 @@
   the realm and character name used for guild roster keys.
 - Make each sync update about 3× cheaper in Lua: bits come from a lookup table
   and the sprite's carrier colours are worked out once per animation frame.
+- Adaptive sync: full speed (20 or 10 updates/sec) while you move, right
+  after a game event and until every changed record has been sent; otherwise
+  2 updates/sec, which keeps the map and all feeds live. Unchanged data keeps
+  repeating slowly so a companion that connects later still fills in.
+  `/daui idle off` restores constant full speed.
 - Add `/daui cpu [seconds]`, which measures the addon for a few seconds and
   lists the cost of each part.
 - Draw WoW Forever quest markers in the client's own style: a maroon disc with

@@ -232,3 +232,5 @@ if CreateFrame then
     for _,event in ipairs({"QUEST_LOG_UPDATE","QUEST_WATCH_UPDATE","QUEST_WATCH_LIST_CHANGED","QUEST_ACCEPTED","QUEST_REMOVED","PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","LOADING_SCREEN_ENABLED","LOADING_SCREEN_DISABLED"})do events:RegisterEvent(event)end
     events:SetScript("OnEvent",function(_,event)ns.InvalidateQuestLog(event)end)
 end
+
+ns.pending[#ns.pending+1]=function()return #urgent>0 end

@@ -209,3 +209,5 @@ function ns.BankPacket(sequence,now)
     if record.cursor>#record.packets then record.cursor=1;active=nil end
     return ns.EncodeQuest(packet.kind,sequence,ns.QuestSession or 0,record.generation,index,packet.payload,13)
 end
+
+ns.pending[#ns.pending + 1] = function() return #urgent > 0 end

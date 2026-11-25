@@ -113,3 +113,5 @@ function ns.CharacterPacket(sequence, now)
     if record.cursor > #record.packets then record.cursor = 1; active = nil end
     return ns.EncodeQuest(packet.kind, sequence, ns.QuestSession or 0, record.generation, packet.index, packet.payload, 4)
 end
+
+ns.pending[#ns.pending + 1] = function() return #urgent > 0 end

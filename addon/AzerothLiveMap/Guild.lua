@@ -327,3 +327,5 @@ if CreateFrame then
     local elapsed=0
     events:SetScript("OnUpdate",function(_,dt)elapsed=elapsed+dt;if elapsed>=1 then elapsed=0;pcall(ns.Timed,"GuildBackground",ns.UpdateGuild,GetTime())end end)
 end
+
+ns.pending[#ns.pending+1]=function()return #urgent>0 end

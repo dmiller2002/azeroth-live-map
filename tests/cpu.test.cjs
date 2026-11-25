@@ -67,3 +67,21 @@ io.write(table.concat(lines,'\\n'))`);
   assert.match(out,/Questie quest pins: [0-9.]+ ms\/s/);
   assert.match(out,/Drawing the strip\/sprite: [0-9.]+ ms\/s/);
 });
+
+test('adaptive sync idles at 2 updates/sec and returns to full speed on movement',()=>lua(`
+assert(loadfile('tests/fixtures/tracker-frame.lua'))();local f=trackerFixture
+local clock,moving=100,false
+GetTime=function()return clock end
+IsPlayerMoving=function()return moving end
+f.boot({units='px',x=12,y=12,size=3,art=true,fastSync=true})
+local function run(seconds)local before=f.positionWrites;for _=1,seconds*60 do clock=clock+1/60;f.frame.scripts.OnUpdate(f.frame,1/60)end;return f.positionWrites-before end
+assert(run(1)==20,'full speed right after login')
+run(15)
+local idle=run(4)
+assert(idle>=7 and idle<=9,'standing still idles at about 2 updates/sec, got '..idle)
+moving=true
+local active=run(1)
+assert(active>=19,'moving restores full speed, got '..active)
+moving=false;f.command('idle off');run(15)
+assert(run(1)==20,'/daui idle off keeps full speed')
+`));
