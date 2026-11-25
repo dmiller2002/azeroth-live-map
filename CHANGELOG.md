@@ -17,6 +17,10 @@
   `/daui idle off` restores constant full speed.
 - Add `/daui cpu [seconds]`, which measures the addon for a few seconds and
   lists the cost of each part.
+- Add all 25 classic dungeons and raids (63 floors) to the map browser, under
+  Dungeons and Raids. Multi-floor instances get floor buttons above the map,
+  and Up returns to the zone the instance is in. The game gives addons no
+  position inside instances, so these maps are for browsing.
 - Draw WoW Forever quest markers in the client's own style: a maroon disc with
   three gold dots for objectives (a "?" when ready to turn in), turning gold
   when the quest is selected. Questie markers keep Questie's symbols.

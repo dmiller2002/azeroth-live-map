@@ -13,6 +13,7 @@
 .minimap-command button{padding:10px;font-size:11px;white-space:nowrap}
 #minimap-copy-status{min-height:20px;color:var(--accent)}
 @media(max-width:450px){.minimap-command{align-items:stretch;flex-direction:column}}
+.map-floors{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 12px;flex-shrink:0}.map-floors[hidden]{display:none}.map-floors button{font-size:11px;padding:5px 10px}.map-floors button[aria-current]{border-color:var(--accent,#8ae0be);color:var(--accent,#8ae0be)}
 .map-navigation{display:flex;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap;flex-shrink:0}
 #map-up{padding:7px 11px;font-size:11px;white-space:nowrap}
 #map-up:disabled{cursor:default}

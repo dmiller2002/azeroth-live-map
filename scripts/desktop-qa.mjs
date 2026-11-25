@@ -66,7 +66,7 @@ async function start() {
     else if (message.method === 'Log.entryAdded' && /content security policy/i.test(message.params.entry.text)) blocked.push(message.params.entry.text);
   });
   await send('Runtime.enable'); await send('Page.enable'); await send('Log.enable');
-  await until("document.querySelectorAll('#zone option').length === 59 && window.companion && !document.getElementById('ui-scale').disabled", 'application readiness');
+  await until("document.querySelectorAll('#zone option').length === 84 && window.companion && !document.getElementById('ui-scale').disabled", 'application readiness');
 }
 
 async function close() {
@@ -459,7 +459,7 @@ print('['..table.concat(packets,',')..']')end`;
   assert.equal(await evaluate("document.getElementById('grid').checked"), grid, 'Display settings must survive relaunch');
   assert.equal(await evaluate("document.getElementById('status').textContent"), 'Not connected', 'Capture must require a new connection after relaunch');
   await close();
-  console.log('Desktop QA passed: map framing, panning, resizing, split view, navigation, UI scaling, saved preferences, 59 maps, synthetic HUZZAH capture, character, 64 bag slots, guild roster, guild pins, readable quest stories, objective progress, tracked quests, quest search, incremental quest acceptance/removal, sprite/strip switching, Questie symbols, pin tooltips/clicks, Questie navigation, keyboard focus, disconnect, clean shutdown.');
+  console.log('Desktop QA passed: map framing, panning, resizing, split view, navigation, UI scaling, saved preferences, 84 maps, synthetic HUZZAH capture, character, 64 bag slots, guild roster, guild pins, readable quest stories, objective progress, tracked quests, quest search, incremental quest acceptance/removal, sprite/strip switching, Questie symbols, pin tooltips/clicks, Questie navigation, keyboard focus, disconnect, clean shutdown.');
 } finally {
   if (socket) socket.close();
   if (child && child.exitCode === null) {

@@ -54,6 +54,8 @@ beta releases remain available through the GitHub releases button.
 
 The original folder name, slash commands and `AzerothLiveMapDB` saved variable remain so existing preferences can migrate. This addon ZIP targets Forever; install it into your Forever client rather than the Anniversary client.
 
+All 25 classic dungeons and raids (63 floors) can be browsed from the map list under **Dungeons** and **Raids**; floor buttons appear above multi-floor maps and **Up** returns to the instance's zone. WoW does not give addons a position inside instances, so these maps show no live position.
+
 Questie is optional. Above the map, choose **WoW Forever** for Blizzard's accepted-quest POIs, next waypoints, and turn-in markers, or **Questie** for its available-quest and objective pins. The selected provider is saved; switching keeps the capture session and both feeds. Install a **Forever-compatible Questie release and its matching database** separately to use that provider. Native helper coverage depends on what the client exposes; Questie coverage depends on its database. Quest text, objectives, equipment and inventory work without Questie.
 
 Install **both desktop and addon 1.0.2**, then `/reload` in WoW, for the built-in helper and synced world/continent layout. The source selector stays visible when the sidebar is collapsed. **Quest markers** in the sidebar shows or hides the selected provider's pins.

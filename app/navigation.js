@@ -33,6 +33,27 @@ export function buildMapCatalog(zones) {
   return catalog;
 }
 
+// Dungeon and raid floors (app/dungeons.json). WoW Forever has no UiMap IDs
+// for instance floors, so each floor gets a stable companion-only ID
+// (50000 + instance ID * 10 + floor). Its parent is the zone the instance is in.
+export function buildDungeonCatalog(dungeons) {
+  const catalog=[];
+  for (const dungeon of dungeons) {
+    const floors=dungeon.floors.map(floor=>floor.uiMapId);
+    for (const floor of dungeon.floors) {
+      const many=dungeon.floors.length>1;
+      catalog.push({
+        uiMapId:floor.uiMapId, kind:dungeon.kind, parentId:dungeon.zone, edition:'forever',
+        name:many ? `${dungeon.name} · ${floor.floorName || `Level ${floor.floor}`}` : dungeon.name,
+        instanceName:dungeon.name, floorName:floor.floorName || (many ? `Level ${floor.floor}` : dungeon.name),
+        floor:floor.floor, floors, url:floor.url, width:floor.crop ? floor.crop[2] : floor.width,
+        height:floor.crop ? floor.crop[3] : floor.height, ...(floor.crop ? {crop:floor.crop} : {}),
+      });
+    }
+  }
+  return catalog;
+}
+
 export function mapViewport(width, height, imageWidth, imageHeight, zoom = 1, pan = {x:0,y:0}) {
   const base = Math.max(width/imageWidth,height/imageHeight);
   const w = imageWidth*base*zoom, h = imageHeight*base*zoom;

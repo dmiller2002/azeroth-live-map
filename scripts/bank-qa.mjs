@@ -66,7 +66,7 @@ async function start() {
     else if (message.method === 'Log.entryAdded' && /content security policy/i.test(message.params.entry.text)) blocked.push(message.params.entry.text);
   });
   await send('Runtime.enable'); await send('Page.enable'); await send('Log.enable');
-  await until("document.querySelectorAll('#zone option').length === 59 && window.companion && !document.getElementById('ui-scale').disabled", 'application readiness');
+  await until("document.querySelectorAll('#zone option').length === 84 && window.companion && !document.getElementById('ui-scale').disabled", 'application readiness');
 }
 
 async function close() {

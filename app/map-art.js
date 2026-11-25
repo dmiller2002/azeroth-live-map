@@ -1,5 +1,12 @@
 // Native Forever artwork already uses the same coordinates as the addon.
 export function mapSurface(meta, artwork = null) {
+  if (artwork && meta?.crop) {
+    // Some floor images include a few pixels beyond the game's 1002 x 668 map
+    // area; draw only that area so map coordinates line up.
+    const [x,y,w,h]=meta.crop,canvas=document.createElement('canvas');
+    canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(artwork,x,y,w,h,0,0,w,h);
+    return canvas;
+  }
   if (artwork) return artwork;
   const canvas = document.createElement('canvas');
   canvas.width = meta?.width || 1024; canvas.height = meta?.height || 683;

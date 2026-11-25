@@ -1,0 +1,959 @@
+[
+ {
+  "instanceId": 48,
+  "name": "Blackfathom Deeps",
+  "kind": "dungeon",
+  "zone": 1440,
+  "areaId": 719,
+  "floors": [
+   {
+    "uiMapId": 50481,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/719-1.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "The Pool of Ask'Ar"
+   },
+   {
+    "uiMapId": 50482,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/719-2.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Moonshrine Sanctum"
+   },
+   {
+    "uiMapId": 50483,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/719-3.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "The Forgotten Pool"
+   }
+  ]
+ },
+ {
+  "instanceId": 230,
+  "name": "Blackrock Depths",
+  "kind": "dungeon",
+  "zone": 1427,
+  "areaId": 1584,
+  "floors": [
+   {
+    "uiMapId": 52301,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1584-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Detention Block",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52302,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1584-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Shadowforge City",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 229,
+  "name": "Blackrock Spire",
+  "kind": "dungeon",
+  "zone": 1428,
+  "areaId": 1583,
+  "floors": [
+   {
+    "uiMapId": 52291,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1583-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Tazz'Alor",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52292,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1583-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Skitterweb Tunnels",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52293,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1583-3.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Hordemar City",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52294,
+    "floor": 4,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1583-4.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Hall of Blackhand",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52295,
+    "floor": 5,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1583-5.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Halycon's Lair",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52296,
+    "floor": 6,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1583-6.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Chamber of Battle",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52297,
+    "floor": 7,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1583-7.jpg",
+    "width": 1022,
+    "height": 668
+   }
+  ]
+ },
+ {
+  "instanceId": 36,
+  "name": "Deadmines",
+  "kind": "dungeon",
+  "zone": 1436,
+  "areaId": 1581,
+  "floors": [
+   {
+    "uiMapId": 50361,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1581-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "The Deadmines",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 50362,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1581-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Ironclad Cove",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 429,
+  "name": "Dire Maul",
+  "kind": "dungeon",
+  "zone": 1444,
+  "areaId": 2557,
+  "floors": [
+   {
+    "uiMapId": 54291,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2557-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Gordok Commons",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54292,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2557-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Capital Gardens",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54293,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2557-3.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Court of the Highborne",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54294,
+    "floor": 4,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2557-4.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Prison of Immol'Thar",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54295,
+    "floor": 5,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2557-5.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Warpwood Quarter",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54296,
+    "floor": 6,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2557-6.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "The Shrine of Eldretharr",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 90,
+  "name": "Gnomeregan",
+  "kind": "dungeon",
+  "zone": 1426,
+  "areaId": 721,
+  "floors": [
+   {
+    "uiMapId": 50901,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/721-1.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "The Hall of Gears"
+   },
+   {
+    "uiMapId": 50902,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/721-2.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "The Dormitory"
+   },
+   {
+    "uiMapId": 50903,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/721-3.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Launch Bay"
+   },
+   {
+    "uiMapId": 50904,
+    "floor": 4,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/721-4.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Tinkers' Court"
+   }
+  ]
+ },
+ {
+  "instanceId": 349,
+  "name": "Maraudon",
+  "kind": "dungeon",
+  "zone": 1443,
+  "areaId": 2100,
+  "floors": [
+   {
+    "uiMapId": 53491,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2100-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Caverns of Maraudon",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 53492,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2100-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Zaetar's Grave",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 389,
+  "name": "Ragefire Chasm",
+  "kind": "dungeon",
+  "zone": 1454,
+  "areaId": 2437,
+  "floors": [
+   {
+    "uiMapId": 53891,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2437-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 129,
+  "name": "Razorfen Downs",
+  "kind": "dungeon",
+  "zone": 1413,
+  "areaId": 722,
+  "floors": [
+   {
+    "uiMapId": 51291,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/722-1.jpg",
+    "width": 1022,
+    "height": 668
+   }
+  ]
+ },
+ {
+  "instanceId": 47,
+  "name": "Razorfen Kraul",
+  "kind": "dungeon",
+  "zone": 1413,
+  "areaId": 491,
+  "floors": [
+   {
+    "uiMapId": 50471,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/491-1.jpg",
+    "width": 1022,
+    "height": 668
+   }
+  ]
+ },
+ {
+  "instanceId": 189,
+  "name": "Scarlet Monastery",
+  "kind": "dungeon",
+  "zone": 1420,
+  "areaId": 796,
+  "floors": [
+   {
+    "uiMapId": 51891,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/796-1.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Graveyard"
+   },
+   {
+    "uiMapId": 51892,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/796-2.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Library"
+   },
+   {
+    "uiMapId": 51893,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/796-3.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Armory"
+   },
+   {
+    "uiMapId": 51894,
+    "floor": 4,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/796-4.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Cathedral"
+   }
+  ]
+ },
+ {
+  "instanceId": 289,
+  "name": "Scholomance",
+  "kind": "dungeon",
+  "zone": 1422,
+  "areaId": 2057,
+  "floors": [
+   {
+    "uiMapId": 52891,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2057-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "The Reliquary",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52892,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2057-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Chamber of Summoning",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52893,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2057-3.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "The Upper Study",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 52894,
+    "floor": 4,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2057-4.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Headmaster's Study",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 33,
+  "name": "Shadowfang Keep",
+  "kind": "dungeon",
+  "zone": 1421,
+  "areaId": 209,
+  "floors": [
+   {
+    "uiMapId": 50331,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/209-1.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "The Courtyard"
+   },
+   {
+    "uiMapId": 50332,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/209-2.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Dining Hall"
+   },
+   {
+    "uiMapId": 50333,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/209-3.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "The Vacant Den"
+   },
+   {
+    "uiMapId": 50334,
+    "floor": 4,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/209-4.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Lower Observatory"
+   },
+   {
+    "uiMapId": 50335,
+    "floor": 5,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/209-5.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Upper Observatory"
+   },
+   {
+    "uiMapId": 50336,
+    "floor": 6,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/209-6.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "Lord Godfrey's Chamber"
+   },
+   {
+    "uiMapId": 50337,
+    "floor": 7,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/209-7.jpg",
+    "width": 1022,
+    "height": 668,
+    "floorName": "The Wall Walk"
+   }
+  ]
+ },
+ {
+  "instanceId": 34,
+  "name": "Stormwind Stockade",
+  "kind": "dungeon",
+  "zone": 1453,
+  "areaId": 717,
+  "floors": [
+   {
+    "uiMapId": 50341,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/717-1.jpg",
+    "width": 1022,
+    "height": 668
+   }
+  ]
+ },
+ {
+  "instanceId": 329,
+  "name": "Stratholme",
+  "kind": "dungeon",
+  "zone": 1423,
+  "areaId": 2017,
+  "floors": [
+   {
+    "uiMapId": 53291,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2017-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Crusader's Square",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 53292,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2017-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "The Gauntlet",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 109,
+  "name": "Sunken Temple",
+  "kind": "dungeon",
+  "zone": 1435,
+  "areaId": 1477,
+  "floors": [
+   {
+    "uiMapId": 51091,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1477-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 70,
+  "name": "Uldaman",
+  "kind": "dungeon",
+  "zone": 1418,
+  "areaId": 1337,
+  "floors": [
+   {
+    "uiMapId": 50701,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1337-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Hall of the Keepers",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 50702,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1337-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Khaz'Goroth's Seat",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 43,
+  "name": "Wailing Caverns",
+  "kind": "dungeon",
+  "zone": 1413,
+  "areaId": 718,
+  "floors": [
+   {
+    "uiMapId": 50431,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/718-1.jpg",
+    "width": 1022,
+    "height": 668
+   }
+  ]
+ },
+ {
+  "instanceId": 209,
+  "name": "Zul'Farrak",
+  "kind": "dungeon",
+  "zone": 1446,
+  "areaId": 1176,
+  "floors": [
+   {
+    "uiMapId": 52091,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1176.jpg",
+    "width": 1009,
+    "height": 673,
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 531,
+  "name": "Ahn'Qiraj Temple",
+  "kind": "raid",
+  "zone": 1451,
+  "areaId": 3428,
+  "floors": [
+   {
+    "uiMapId": 55311,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/3428-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "The Hive Undergrounds",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 55312,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/3428-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "The Temple Gates",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 55313,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/3428-3.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Vault of C'Thun",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 469,
+  "name": "Blackwing Lair",
+  "kind": "raid",
+  "zone": 1428,
+  "areaId": 2677,
+  "floors": [
+   {
+    "uiMapId": 54691,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2677-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Dragonmaw Garrison",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54692,
+    "floor": 2,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2677-2.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Halls of Strife",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54693,
+    "floor": 3,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2677-3.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Crimson Laboratories",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   },
+   {
+    "uiMapId": 54694,
+    "floor": 4,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2677-4.jpg",
+    "width": 1009,
+    "height": 673,
+    "floorName": "Nefarian's Lair",
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 409,
+  "name": "Molten Core",
+  "kind": "raid",
+  "zone": 1427,
+  "areaId": 2717,
+  "floors": [
+   {
+    "uiMapId": 54091,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2717-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 249,
+  "name": "Onyxia's Lair",
+  "kind": "raid",
+  "zone": 1445,
+  "areaId": 2159,
+  "floors": [
+   {
+    "uiMapId": 52491,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/2159-1.jpg",
+    "width": 1009,
+    "height": 673,
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 509,
+  "name": "Ruins of Ahn'Qiraj",
+  "kind": "raid",
+  "zone": 1451,
+  "areaId": 3429,
+  "floors": [
+   {
+    "uiMapId": 55091,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/3429.jpg",
+    "width": 1009,
+    "height": 673,
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ },
+ {
+  "instanceId": 309,
+  "name": "Zul'Gurub",
+  "kind": "raid",
+  "zone": 1434,
+  "areaId": 1977,
+  "floors": [
+   {
+    "uiMapId": 53091,
+    "floor": 1,
+    "url": "https://wow.zamimg.com/images/wow/maps/enus/original/1977.jpg",
+    "width": 1009,
+    "height": 673,
+    "crop": [
+     0,
+     0,
+     1002,
+     668
+    ]
+   }
+  ]
+ }
+]

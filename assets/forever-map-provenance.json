@@ -6,5 +6,7 @@
   "nativeAreaMappingSource": "https://github.com/Questie/QuestieDB/blob/master/support/Forever/Zones/uiMapIdToAreaId.lua",
   "overviewLayoutSource": "Live Forever C_Map.GetMapInfo, GetMapChildrenInfo and GetMapRectOnMap; no static TBC polygons",
   "overviewApiReference": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/MapDocumentation.lua",
-  "notes": "Native Forever zone artwork uses native zone coordinates directly. Overview positions and navigation are projected using live parent-map rectangles. UiMap 2665 is a second Zephras Isle map whose artwork coordinate frame is unverified; it retains a native coordinate grid."
+  "notes": "Native Forever zone artwork uses native zone coordinates directly. Overview positions and navigation are projected using live parent-map rectangles. UiMap 2665 is a second Zephras Isle map whose artwork coordinate frame is unverified; it retains a native coordinate grid.",
+  "dungeonFloorPattern": "https://wow.zamimg.com/images/wow/maps/enus/original/{areaId}-{floor}.jpg ({areaId}.jpg for Zul'Farrak, Zul'Gurub and Ruins of Ahn'Qiraj)",
+  "dungeonNotes": "WoW Forever has no UiMap IDs for instance floors; app/dungeons.json gives each floor a companion-only ID (50000 + instance ID * 10 + floor). Floor order and names follow the Forever client's own floor art (the OpenMap addon's Data/Forever/DungeonMaps.lua, generated from the install). Every Wowhead floor image was checked against the client's floor tiles (correlation >= 0.999); 1009 x 673 exports are cropped to the 1002 x 668 map area. Player positions are not available inside instances."
 }

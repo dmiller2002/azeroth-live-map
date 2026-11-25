@@ -3,7 +3,7 @@ import {artGeometry, decodeArtAt} from './art.js';
 import {loadPreferences, savePreferences} from './prefs.js';
 import {QuestSources, questColor} from './quests.js';
 import {drawQuestMarker, questMarkerStyle} from './quest-markers.js';
-import {buildMapCatalog, mapViewport, wholeMapZoom, keepMapPointVisible, hitTestMap} from './navigation.js';
+import {buildMapCatalog, buildDungeonCatalog, mapViewport, wholeMapZoom, keepMapPointVisible, hitTestMap} from './navigation.js';
 import {CharacterFeed, createCharacterPanel} from './character.js';
 import {createTabs} from './tabs.js';
 import {GuildFeed,createGuildPanel} from './guild.js';
@@ -145,13 +145,13 @@ async function selectMap(id, manual = false) {
   hoveredMap = null; stage.style.cursor = ''; drag = null;
   $('quest-tooltip').hidden = true; $('area-tooltip').hidden = true; $('guild-tooltip').hidden=true;
   $('zoom-label').textContent = '100%';
-  $('zone').value = String(selected);
+  $('zone').value = String(mapById.get(selected)?.floors?.[0] ?? selected);
   const meta = mapById.get(selected);
   if(['cosmic','world','continent'].includes(meta?.kind))mapFraming='whole';
   $('map-title').textContent = meta?.name || `Map ${selected}`;
   $('map-type').textContent = meta ? `WOW FOREVER · ${!meta.url ? 'COORDINATE GRID' : meta.kind.toUpperCase()+' MAP'}` : 'WOW FOREVER · COORDINATE GRID';
   mapChildren = maps.filter(map => map.parentId === selected && (map.polygon || map.entrance));
-  updateNavigation(meta);
+  updateNavigation(meta);updateFloors(meta);
   const request = ++imageRequest;
   if (!meta?.url) { image=mapSurface(meta); message('Artwork is not available for this area yet. Showing native Forever coordinates on a grid.'); draw(); return; }
   message('Loading map…'); draw();
@@ -159,6 +159,19 @@ async function selectMap(id, manual = false) {
   img.onload = () => { if (request === imageRequest) { image = mapSurface(meta,img); message(null); draw(); } };
   img.onerror = () => { if (request === imageRequest) { image=mapSurface(meta);message('Map image could not load. Showing native Forever coordinates on a grid.');draw();} };
   img.src = meta.url;
+}
+
+// Multi-floor dungeons and raids: one button per floor.
+function updateFloors(meta) {
+  const nav=$('map-floors');nav.replaceChildren();
+  nav.hidden=!(meta?.floors?.length>1);
+  if(nav.hidden)return;
+  for(const id of meta.floors){
+    const floor=mapById.get(id);if(!floor)continue;
+    const button=document.createElement('button');button.textContent=floor.floorName;
+    if(id===selected)button.setAttribute('aria-current','page');
+    button.onclick=()=>selectMap(id,true);nav.append(button);
+  }
 }
 
 function updateNavigation(meta) {
@@ -613,11 +626,13 @@ window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach
 
 try {
   await artReady;
-  const response=await fetch('./maps.json');if(!response.ok)throw new Error('Map catalog unavailable');
-  baseMaps=buildMapCatalog(await response.json());maps=mapLayout.catalog(baseMaps);mapById=new Map(maps.map(map=>[map.uiMapId,map]));
-  for (const [label,kinds] of [['World & continents',['cosmic','world','continent']],['Zones & cities',['zone','city']],['Battlegrounds',['battleground']]]) {
+  const [response,dungeonResponse]=await Promise.all([fetch('./maps.json'),fetch('./dungeons.json')]);if(!response.ok)throw new Error('Map catalog unavailable');
+  const dungeons=dungeonResponse.ok?await dungeonResponse.json().catch(()=>[]):[];
+  baseMaps=[...buildMapCatalog(await response.json()),...buildDungeonCatalog(dungeons)];maps=mapLayout.catalog(baseMaps);mapById=new Map(maps.map(map=>[map.uiMapId,map]));
+  for (const [label,kinds] of [['World & continents',['cosmic','world','continent']],['Zones & cities',['zone','city']],['Battlegrounds',['battleground']],['Dungeons',['dungeon']],['Raids',['raid']]]) {
     const group=document.createElement('optgroup');group.label=label;
-    for(const map of maps.filter(map=>kinds.includes(map.kind))){const option=document.createElement('option');option.value=map.uiMapId;option.textContent=map.name;group.append(option);}
+    // One entry per dungeon or raid (its first floor); floors switch above the map.
+    for(const map of maps.filter(map=>kinds.includes(map.kind) && (!map.floors || map.floor===1))){const option=document.createElement('option');option.value=map.uiMapId;option.textContent=map.instanceName||map.name;group.append(option);}
     $('zone').append(group);
   }
   selectMap(mapById.has(preferences.zone) ? preferences.zone : 1429);
