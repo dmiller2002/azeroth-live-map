@@ -94,3 +94,11 @@ test('a dropped removal is repaired by repeats and delayed pins cannot revive a 
   assert.equal(feed.visible(1429,rows.at(-1).now).length,12);
   assert.equal(feed.accept({...old,sequence:60000},rows.at(-1).now+1),false);
 });
+
+test('WoW Forever markers use the client\'s quest blips; Questie keeps its own symbols',async()=>{
+  const {questMarkerStyle}=await import('../app/quest-markers.js');
+  assert.deepEqual([1,2,3].map(markerKind=>questMarkerStyle({markerKind,iconType:3,source:'forever'}).shape),['poi-available','poi','poi-turnin']);
+  assert.ok(questMarkerStyle({markerKind:2,source:'forever'}).blizzard);
+  assert.equal(questMarkerStyle({markerKind:2,iconType:1,source:'questie'}).shape,'sword');
+  assert.equal(questMarkerStyle({markerKind:2,iconType:1,source:'questie'}).blizzard,undefined);
+});

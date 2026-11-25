@@ -1,11 +1,17 @@
-// Original vector artwork using Questie's familiar map symbol conventions.
-// Icon IDs come from Questie's ICON_TYPE_* constants; old addons use kind defaults.
+// Original vector artwork. WoW Forever markers follow the client's own world-map
+// quest blips (a maroon disc with three gold dots, gold when selected); Questie
+// markers use Questie's familiar symbol conventions. Icon IDs come from
+// Questie's ICON_TYPE_* constants; old addons use kind defaults.
 const GOLD = ['#fff1a3','#ffd331','#dc8c08'];
 const BLUE = ['#cbf4ff','#45bfff','#1670cc'];
 const GRAY = ['#f2f1df','#b5b8ad','#727971'];
 const GREEN = ['#e9ffaf','#98dc39','#479b1a'];
 const RED = ['#ffe2b9','#f47c45','#b52f22'];
 export function questMarkerStyle({markerKind,iconType=0,source}) {
+  if(source==='forever'){
+    const shape=markerKind===1 ? 'poi-available' : markerKind===3 ? 'poi-turnin' : 'poi';
+    return {shape,palette:[],label:markerKind===1 ? 'Quest available' : markerKind===3 ? 'Ready for turn-in' : 'Quest objective',blizzard:true};
+  }
   const palette=iconType===7 || iconType===12 ? GRAY : iconType===10 || iconType===11 ? BLUE
     : iconType===13 || iconType===14 ? GREEN : iconType===15 || iconType===16 ? RED : GOLD;
   const shape=markerKind===1 ? 'pickup' : markerKind===3 ? 'turnin'
@@ -16,8 +22,33 @@ export function questMarkerStyle({markerKind,iconType=0,source}) {
 }
 
 const sprites=new Map();
-function sprite(style) {
-  const key=style.shape+style.palette.join();
+// The client's quest blip: a disc with a thin rim and its symbol (three dots,
+// "?" or "!"). Selected quests turn the disc gold with dark symbols.
+function blip(ctx,shape,selected){
+  const disc=ctx.createLinearGradient(0,4,0,28);
+  if(selected){disc.addColorStop(0,'#fff38a');disc.addColorStop(.45,'#ffd21f');disc.addColorStop(1,'#cf9200');}
+  else{disc.addColorStop(0,'#6a1a1c');disc.addColorStop(.55,'#4a0f12');disc.addColorStop(1,'#2a0507');}
+  ctx.beginPath();ctx.arc(16,16,12.5,0,Math.PI*2);ctx.fillStyle=disc;ctx.fill();
+  ctx.lineWidth=selected ? 1.6 : 1.2;ctx.strokeStyle=selected ? '#5a3f08' : '#8c7a2e';ctx.stroke();
+  // Soft top sheen, as on the in-game blip.
+  const sheen=ctx.createLinearGradient(0,4,0,16);sheen.addColorStop(0,selected ? '#ffffff66' : '#ffffff22');sheen.addColorStop(1,'#ffffff00');
+  ctx.beginPath();ctx.ellipse(16,10.5,9,5.5,0,0,Math.PI*2);ctx.fillStyle=sheen;ctx.fill();
+  const ink=selected ? '#4b2a12' : '#ffc928';
+  ctx.fillStyle=ink;ctx.strokeStyle=ink;
+  if(shape==='poi'){
+    for(const x of [10.5,16,21.5]){ctx.beginPath();ctx.arc(x,16,2.1,0,Math.PI*2);ctx.fill();}
+  } else if(shape==='poi-turnin'){
+    ctx.lineWidth=2.6;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();ctx.moveTo(12.3,12.6);ctx.bezierCurveTo(12.3,7.6,20,7.6,20,12.2);ctx.bezierCurveTo(20,15.6,16,15.4,16,19.2);ctx.stroke();
+    ctx.beginPath();ctx.arc(16,23.2,1.7,0,Math.PI*2);ctx.fill();
+  } else {
+    ctx.beginPath();ctx.moveTo(14.4,8);ctx.lineTo(17.6,8);ctx.lineTo(16.9,19.5);ctx.lineTo(15.1,19.5);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.arc(16,23.2,1.8,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function sprite(style,selected=false) {
+  const key=style.shape+style.palette.join()+(style.blizzard && selected ? ':selected' : '');
   if(sprites.has(key))return sprites.get(key);
   // Render once at 3x for sharp outlines at fractional desktop zoom levels.
   const image=document.createElement('canvas');image.width=image.height=96;
@@ -31,6 +62,7 @@ function sprite(style) {
   const paint=(path,fill,stroke='#241c10',width=1.8)=>{
     const p=new Path2D(path);ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke(p);ctx.fill(p);
   };
+  if(style.blizzard){blip(ctx,style.shape,selected);sprites.set(key,image);return image;}
   const metal=gradient(['#f3fcff','#92b7c2','#456576']);
   const gold=gradient(style.palette);
   switch(style.shape){
@@ -78,14 +110,22 @@ function sprite(style) {
 }
 
 export function drawQuestMarker(ctx,marker,{focused=false,dimmed=false}={}) {
+  const style=questMarkerStyle(marker);
   ctx.save();
+  if(style.blizzard){
+    // As in game: the selected quest's blips turn gold; the others stay as they are.
+    ctx.shadowColor='#000000b0';ctx.shadowBlur=3;ctx.shadowOffsetY=1;
+    const size=focused ? 26 : 22;
+    ctx.drawImage(sprite(style,focused),-size/2,-size/2,size,size);
+    ctx.restore();return;
+  }
   ctx.globalAlpha=dimmed ? .35 : 1;
   if(focused){
     ctx.fillStyle='#fff1a328';ctx.strokeStyle='#fff1b3';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();ctx.stroke();
   }
   ctx.shadowColor='#100e09';ctx.shadowBlur=3;ctx.shadowOffsetY=1;
-  const style=questMarkerStyle(marker),size=style.shape==='pickup' || style.shape==='turnin' ? 28 : 24;
+  const size=style.shape==='pickup' || style.shape==='turnin' ? 28 : 24;
   ctx.drawImage(sprite(style),-size/2,-size/2,size,size);
   ctx.restore();
 }

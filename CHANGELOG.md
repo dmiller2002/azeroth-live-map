@@ -12,6 +12,9 @@
   and the sprite's carrier colours are worked out once per animation frame.
 - Add `/daui cpu [seconds]`, which measures the addon for a few seconds and
   lists the cost of each part.
+- Draw WoW Forever quest markers in the client's own style: a maroon disc with
+  three gold dots for objectives (a "?" when ready to turn in), turning gold
+  when the quest is selected. Questie markers keep Questie's symbols.
 
 The data sent is unchanged, so desktop 1.0.4 can read addon 1.0.5. Update the
 addon and `/reload`. Bag, gear and quest changes reach the companion as before;
