@@ -7,6 +7,16 @@ end
 local function Count(n) return math.floor(math.max(0, math.min(255, Finite(n) and n or 0))) end
 local function U16(n) return math.floor(n / 256), n % 256 end
 
+-- Titles travel as 10-byte fragments; byte 1 is the offset, +128 on the last.
+local function TitleFragments(title)
+    local fragments = {}
+    for offset = 0, math.max(0, math.ceil(#title / 10) - 1) do
+        local payload = { offset + ((offset + 1) * 10 >= #title and 128 or 0) }
+        for i = 1, 10 do payload[#payload + 1] = title:byte(offset * 10 + i) or 0 end
+        fragments[#fragments + 1] = payload
+    end
+    return fragments
+end
 
 function ns.CreateQuestStream(collect, version)
     local zones, order, zoneCursor = {}, {}, 1
@@ -32,40 +42,53 @@ function ns.CreateQuestStream(collect, version)
             limited = limited or wasLimited
             total = total + #markers
             local previous = zones[id]
-            if not previous then previous = { generation = 0, cursor = 1, sent = 0, remaining = 0, updates = {}, queued = {}, markers = {} } end
+            if not previous then
+                previous = { generation = 0, cursor = 1, sent = 0, remaining = 0, updates = {}, queued = {}, markers = {} }
+            end
             local indices, incoming, free = {}, {}, {}
-            for index,marker in ipairs(previous.markers)do if not marker.removed then indices[marker.key] = index end end
-            for _,marker in ipairs(markers)do incoming[marker.key] = true;newTitles[marker.questID] = marker.title end
+            for index, marker in ipairs(previous.markers) do
+                if not marker.removed then indices[marker.key] = index end
+            end
+            for _, marker in ipairs(markers) do
+                incoming[marker.key] = true
+                newTitles[marker.questID] = marker.title
+            end
             local function Queue(index)
-                if not previous.queued[index] then previous.updates[#previous.updates+1] = index;previous.queued[index] = true end
+                if not previous.queued[index] then
+                    previous.updates[#previous.updates + 1] = index
+                    previous.queued[index] = true
+                end
             end
             -- Slots and revisions belong to individual pins, never to the whole zone.
-            for index,old in ipairs(previous.markers)do
+            for index, old in ipairs(previous.markers) do
                 if old.removed or not incoming[old.key] then
-                    free[#free+1] = index
+                    free[#free + 1] = index
                     if not old.removed then
-                        previous.markers[index] = {removed=true,generation=(old.generation+1)%65536}
+                        previous.markers[index] = { removed = true, generation = (old.generation + 1) % 65536 }
                         Queue(index)
                     end
                 end
             end
-            local freeCursor=1
-            for _,marker in ipairs(markers)do
-                local index=indices[marker.key]
+            local freeCursor = 1
+            for _, marker in ipairs(markers) do
+                local index = indices[marker.key]
                 if not index then
-                    index=free[freeCursor] or (#previous.markers+1);freeCursor=freeCursor+1
+                    index = free[freeCursor] or (#previous.markers + 1)
+                    freeCursor = freeCursor + 1
                 end
-                local old=previous.markers[index]
-                local changed=not old or old.key~=marker.key or old.collected~=marker.collected or old.needed~=marker.needed
-                marker.generation=changed and ((old and old.generation or 0)+1)%65536 or old.generation
-                previous.markers[index]=marker
+                local old = previous.markers[index]
+                local changed = not old or old.key ~= marker.key or old.collected ~= marker.collected or old.needed ~= marker.needed
+                marker.generation = changed and ((old and old.generation or 0) + 1) % 65536 or old.generation
+                previous.markers[index] = marker
                 if changed then Queue(index) end
             end
-            if previous.count~=#markers or previous.status~=status or previous.limited~=wasLimited then
-                generation=(generation+1)%65536;previous.generation=generation;previous.sent=0
+            if previous.count ~= #markers or previous.status ~= status or previous.limited ~= wasLimited then
+                generation = (generation + 1) % 65536
+                previous.generation = generation
+                previous.sent = 0
             end
-            previous.remaining=math.max(previous.remaining,#previous.markers- (previous.highWater or 0))
-            previous.highWater=#previous.markers
+            previous.remaining = math.max(previous.remaining, #previous.markers - (previous.highWater or 0))
+            previous.highWater = #previous.markers
             previous.count, previous.status, previous.limited = #markers, status, wasLimited
             zones[id] = previous; newOrder[#newOrder + 1] = id
         end
@@ -77,10 +100,8 @@ function ns.CreateQuestStream(collect, version)
             titleKeys[#titleKeys + 1] = id
             if titles[id] ~= title then
                 changed = true
-                for offset = 0, math.max(0, math.ceil(#title / 10) - 1) do
-                    local payload = { offset + ((offset + 1) * 10 >= #title and 128 or 0) }
-                    for i = 1, 10 do payload[#payload + 1] = title:byte(offset * 10 + i) or 0 end
-                    titleUpdates[#titleUpdates+1] = {id=id,payload=payload}
+                for _, payload in ipairs(TitleFragments(title)) do
+                    titleUpdates[#titleUpdates + 1] = { id = id, payload = payload }
                 end
             end
         end
@@ -91,9 +112,7 @@ function ns.CreateQuestStream(collect, version)
             table.sort(titleKeys)
             for _, id in ipairs(titleKeys) do
                 local title = titles[id]
-                for offset = 0, math.max(0, math.ceil(#title / 10) - 1) do
-                    local payload = { offset + ((offset + 1) * 10 >= #title and 128 or 0) }
-                    for i = 1, 10 do payload[#payload + 1] = title:byte(offset * 10 + i) or 0 end
+                for _, payload in ipairs(TitleFragments(title)) do
                     titleQueue[#titleQueue + 1] = { id = id, payload = payload }
                     if nextTitle and id == nextTitle.id and payload[1] == nextTitle.payload[1] then titleCursor = #titleQueue end
                 end
@@ -131,9 +150,13 @@ function ns.CreateQuestStream(collect, version)
         end
         -- Finished small zones sit out the rest of this pass. A large zone gets
         -- the remaining bandwidth instead of waiting behind endless small repeats.
-        while zones[order[zoneCursor]].remaining == 0 and #zones[order[zoneCursor]].updates == 0 do zoneCursor = zoneCursor % #order + 1 end
+        while zones[order[zoneCursor]].remaining == 0 and #zones[order[zoneCursor]].updates == 0 do
+            zoneCursor = zoneCursor % #order + 1
+        end
         local id = order[zoneCursor]; zoneCursor = zoneCursor % #order + 1
-        for _,candidate in ipairs(order)do if #zones[candidate].updates>0 then id=candidate;break end end
+        for _, candidate in ipairs(order) do
+            if #zones[candidate].updates > 0 then id = candidate; break end
+        end
         local zone = zones[id]
         if zone.sent % 8 == 0 or #zone.markers == 0 then
             zone.sent = zone.sent + 1
@@ -143,7 +166,8 @@ function ns.CreateQuestStream(collect, version)
         local index = table.remove(zone.updates,1)
         if index then zone.queued[index] = nil
         else index = zone.cursor; zone.cursor = zone.cursor % #zone.markers + 1; zone.remaining = zone.remaining - 1 end
-        local m = zone.markers[index]; zone.sent = zone.sent + 1
+        local m = zone.markers[index]
+        zone.sent = zone.sent + 1
         if m.removed then return ns.EncodeQuest(4, sequence, id, m.generation, index, {}, version) end
         local xhi, xlo = U16(m.x); local yhi, ylo = U16(m.y)
         return ns.EncodeQuest(1, sequence, id, m.generation, index,

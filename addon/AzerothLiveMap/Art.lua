@@ -30,20 +30,25 @@ function ns.CreateArt(parent)
         end
     end
 
+    local length = 0
+    for _, duration in ipairs(asset.durations) do length = length + duration end
+    local lastFrame = nil
     function result:Render(packets, now)
-        local length = 0
-        for _, duration in ipairs(asset.durations) do length = length + duration end
         local tick = math.floor(now*10)%length
         local frameIndex = 1
         for i, duration in ipairs(asset.durations) do
             if tick < duration then frameIndex = i; break end
             tick = tick-duration
         end
-        sprite:SetTexCoord((frameIndex-1)*64/512,((frameIndex-1)*64+asset.width)/512,0,1)
+        if frameIndex ~= lastFrame then
+            lastFrame = frameIndex
+            sprite:SetTexCoord((frameIndex-1)*64/512,((frameIndex-1)*64+asset.width)/512,0,1)
+        end
         local colors = asset.frames[frameIndex]
         for i, position in ipairs(asset.positions) do
             local texture, packet = pixels[i], packets[math.floor((i-1)/192)+1]
-            texture:SetShown(packet ~= nil)
+            local shown = packet ~= nil
+            if texture.dauiShown ~= shown then texture.dauiShown = shown; texture:SetShown(shown) end
             if packet then
                 local color = asset.palette[colors[position+1]+1]
                 local bit = ns.Bit(packet,(i-1)%192)
@@ -51,9 +56,15 @@ function ns.CreateArt(parent)
                 -- modulation is blurred by chroma subsampling. Reserve gamut
                 -- headroom so conversion does not clip the darkest carriers.
                 local delta = bit == 1 and asset.delta or -asset.delta
-                texture:SetColorTexture((math.max(48,math.min(207,color[1]))+delta)/255,
-                    (math.max(48,math.min(207,color[2]))+delta)/255,
-                    (math.max(48,math.min(207,color[3]))+delta)/255,1)
+                local r = math.max(48,math.min(207,color[1]))+delta
+                local g = math.max(48,math.min(207,color[2]))+delta
+                local b = math.max(48,math.min(207,color[3]))+delta
+                -- Only repaint carriers whose colour actually changed.
+                local key = (r*256+g)*256+b
+                if texture.dauiColor ~= key then
+                    texture.dauiColor = key
+                    texture:SetColorTexture(r/255,g/255,b/255,1)
+                end
             end
         end
     end

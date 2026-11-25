@@ -2,7 +2,7 @@
   "name": "drunks-azeroth-ui-companion",
   "productName": "Drunks Azeroth Companion - Forever",
   "desktopName": "drunks-azeroth-companion.desktop",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Desktop companion and addon for Blizzard’s official World of Warcraft Forever client",
   "private": true,
   "main": "desktop/main.cjs",

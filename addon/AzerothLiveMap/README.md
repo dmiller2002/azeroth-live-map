@@ -1,6 +1,6 @@
 # Drunks Azeroth UI — Forever
 
-Addon version **1.0.3**. Use companion **1.0.3** for Bag/bank storage. World-map
+Addon version **1.0.4**. Use companion **1.0.3** or newer for Bag/bank storage. World-map
 alignment and the built-in quest helper need 1.0.2 or newer. Older companions
 can still read the existing feeds.
 
@@ -15,8 +15,10 @@ The addon package contains no desktop executable. Use the desktop's **Connect
 WoW** button to choose the game window or monitor in your OS capture picker.
 Keep the entire HUZZAH sprite and locator visible in the selected source.
 
-`/daui` shows command help. `/daui unlock` enables dragging; `/daui lock` saves
-and locks the sprite. `/daui art off` switches to the plain sync strip. The
+`/daui` shows command help. `/daui unlock` shows a drag handle; drag that handle
+to move the sprite. `/daui lock` saves the position and hides the handle. The
+sprite and data rows always pass clicks through to the game, including while
+unlocked. `/daui art off` switches to the plain sync strip. The
 `/alm` command is an alias. Guild location/profession sharing defaults off;
 members can opt in with `/daui guild on` and stop with `/daui guild off`.
 

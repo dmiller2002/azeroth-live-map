@@ -1,3 +1,23 @@
+# Desktop and addon 1.0.4 — 2026-11-25
+
+- Draw the sync strip and sprite on exact screen pixels. Each bit now covers
+  whole physical pixels with crisp edges at any resolution or UI scale, so the
+  signal can be smaller. `/daui size` now sets real screen pixels (2–24); the
+  smallest allowed size depends on your resolution.
+- Move your saved 1.0.3 position and size over once, so the strip stays where
+  you left it after updating.
+- Redraw only the bits that changed instead of recoloring every cell 20 times
+  a second (up to ~960 texture updates each time). The hidden strip behind the
+  sprite is no longer recolored at all.
+- Keep the sprite and data rows click-through while unlocked, so an overlay
+  placed over the minimap cannot block its tracking button. Move it with the
+  drag handle shown by `/daui unlock`.
+- Clearer internals: a table-driven feed schedule and a tidier quest stream,
+  with no change to the data sent.
+
+Desktop 1.0.3 can read addon 1.0.4. Update the addon and `/reload`. Live
+Forever validation of the click-through fix is still pending.
+
 # Desktop and addon 1.0.3 — 2026-11-07
 
 - Rename Bags to Bag/bank and display native personal/account bank tabs,

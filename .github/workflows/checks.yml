@@ -24,3 +24,32 @@ jobs:
           path: |
             app/DrunksAzerothUI.zip
             release/**/*source.zip
+  windows:
+    # Build the Windows installer and portable zip natively, so release
+    # packaging does not depend on Wine being usable on a Linux machine.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: python scripts/package_addon.py
+      - run: python scripts/validate_addon_zip.py app/DrunksAzerothUI.zip
+      - run: npx electron-builder --win nsis zip --x64 --publish never
+      - name: Check the installer is complete
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem release/*/*-Windows-Setup.exe
+          if (-not $setup -or $setup.Length -lt 50MB) { throw "Windows installer is missing or incomplete" }
+          if (-not (Test-Path "release/*/win-unpacked/Drunks Azeroth Companion - Forever.exe")) { throw "Windows executable missing" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-companion
+          if-no-files-found: error
+          path: |
+            release/*/*-Windows-Setup.exe
+            release/*/*-Windows-Setup.exe.blockmap
+            release/*/*-win-x64.zip
+            release/*/latest.yml

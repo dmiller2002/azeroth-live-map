@@ -1,7 +1,7 @@
 -- Minimal frame geometry for exercising the real addon login/drag/logout code.
 trackerFixture={width=2560,height=1440,scale=.8,left=0,bottom=0,frames={}}
 local methods={}
-for _,method in ipairs({'SetFrameStrata','SetMovable','SetClampedToScreen','SetDontSavePosition','RegisterForDrag','SetAllPoints','SetColorTexture','SetTextColor'})do methods[method]=function()end end
+for _,method in ipairs({'SetFrameStrata','SetMovable','SetClampedToScreen','SetDontSavePosition','RegisterForDrag','SetAllPoints','SetColorTexture','SetTextColor','SetTexture','SetTexCoord'})do methods[method]=function()end end
 function methods:EnableMouse(enabled)self.mouseEnabled=enabled end
 function methods:SetText(text)self.text=text end
 function methods:SetScale(scale)self.scale=scale end
@@ -16,8 +16,19 @@ function methods:SetPoint(point,parent,relative,x,y)
         self.x=x;self.y=-y
     end
 end
-function methods:GetLeft()return self.x and (trackerFixture.left+self.x)/self:GetEffectiveScale()end
-function methods:GetTop()return self.y and (trackerFixture.bottom+trackerFixture.height-self.y)/self:GetEffectiveScale()end
+-- Real WoW: at effective scale 1 the screen is 768 UI units tall, so one UI
+-- unit is height/768 physical pixels. Strip x/y offsets are in its own units.
+local function PixelsPerUnit()return trackerFixture.height>0 and trackerFixture.height/768 or 1 end
+function methods:GetLeft()
+    if not self.x then return end
+    local px=self:GetEffectiveScale()*PixelsPerUnit()
+    return (trackerFixture.left+self.x*px)/px
+end
+function methods:GetTop()
+    if not self.y then return end
+    local px=self:GetEffectiveScale()*PixelsPerUnit()
+    return (trackerFixture.bottom+trackerFixture.height-self.y*px)/px
+end
 function methods:SetShown(shown)
     local before=self.shown;self.shown=shown
     if before and not shown and self.scripts.OnHide then self.scripts.OnHide(self)end
@@ -34,12 +45,17 @@ function methods:CreateTexture()return Object(nil,self)end
 function methods:CreateFontString()return Object(nil,self)end
 UIParent=Object('UIParent')
 function UIParent:GetEffectiveScale()return trackerFixture.scale end
-function UIParent:GetWidth()return trackerFixture.width/trackerFixture.scale end
-function UIParent:GetHeight()return trackerFixture.height/trackerFixture.scale end
-function UIParent:GetLeft()return trackerFixture.left/trackerFixture.scale end
-function UIParent:GetTop()return (trackerFixture.height+trackerFixture.bottom)/trackerFixture.scale end
+function UIParent:GetWidth()return trackerFixture.height>0 and 768*trackerFixture.width/trackerFixture.height/trackerFixture.scale or 0 end
+function UIParent:GetHeight()return trackerFixture.height>0 and 768/trackerFixture.scale or 0 end
+function UIParent:GetLeft()return trackerFixture.left/(trackerFixture.scale*PixelsPerUnit())end
+function UIParent:GetTop()return (trackerFixture.height+trackerFixture.bottom)/(trackerFixture.scale*PixelsPerUnit())end
+function GetPhysicalScreenSize()return trackerFixture.width,trackerFixture.height end
+-- Physical pixels covered by one unit of a frame, e.g. the drag handle.
+function trackerFixture.pixels(frame)return frame:GetEffectiveScale()*PixelsPerUnit()end
 CreateFrame=function(_,name,parent)
     local frame=Object(name,parent)
+    trackerFixture.createdFrames=trackerFixture.createdFrames or {}
+    trackerFixture.createdFrames[#trackerFixture.createdFrames+1]=frame
     if name then trackerFixture.frames[name]=frame end
     return frame
 end
@@ -48,8 +64,9 @@ GetPlayerFacing=function()return 0 end
 GetTime=function()return 1 end
 SlashCmdList={}
 print=function()end
-function trackerFixture.boot(saved)
+function trackerFixture.boot(saved,realArt)
     AzerothLiveMapDB=saved
+    trackerFixture.createdFrames={}
     trackerFixture.positionWrites=0;trackerFixture.auxiliaryWrites=0
     local ns={Elephant={height=60,footerRows=8,width=64},QuestSession=1}
     assert(loadfile('addon/AzerothLiveMap/Compat.lua'))('AzerothLiveMap',ns)
@@ -58,7 +75,12 @@ assert(loadfile('addon/AzerothLiveMap/Protocol.lua'))('AzerothLiveMap',ns)
     ns.Encode=function(...)
         local bytes=encode(...);trackerFixture.positionPacket=bytes;trackerFixture.positionWrites=trackerFixture.positionWrites+1;return bytes
     end
-    ns.CreateArt=function(parent)return {locator=Object(nil,parent),Layout=function(_,_,enabled)trackerFixture.artVisible=enabled end,Render=function()end}end
+    if realArt then
+        assert(loadfile('addon/AzerothLiveMap/Elephant.lua'))('AzerothLiveMap',ns)
+        assert(loadfile('addon/AzerothLiveMap/Art.lua'))('AzerothLiveMap',ns)
+    else
+        ns.CreateArt=function(parent)return {locator=Object(nil,parent),Layout=function(_,_,enabled)trackerFixture.artVisible=enabled end,Render=function()end}end
+    end
     ns.QuestiePacket=function(_,_,_,sequence)
         trackerFixture.auxiliaryWrites=trackerFixture.auxiliaryWrites+1
         return ns.EncodeQuest(0,sequence,1429,1,0,{0},3)
